@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+.web/
+apps/admin/.next/
+apps/admin/out/
+apps/mobile/dist/
+packages/*/dist/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+.DS_Store
+ios/
+android/

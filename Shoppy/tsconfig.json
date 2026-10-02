@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "packages/*/src"
+  ],
+  // Nota: supabase/functions es runtime Deno (imports https:/npm:).
+  // Se valida con `supabase functions serve` + smoke_fase6, no con tsc.
+  "exclude": [
+    "node_modules",
+    "apps/mobile/node_modules",
+    "apps/admin/node_modules",
+    "apps/admin/.next",
+    "packages/*/node_modules",
+    "packages/*/dist"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "shopy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shopy — E-commerce chileno de ropa de segunda mano (monorepo)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm --workspace apps/mobile run start",
+    "mobile:android": "npm --workspace apps/mobile run android",
+    "mobile:ios": "npm --workspace apps/mobile run ios",
+    "mobile:web": "npm --workspace apps/mobile run web",
+    "mobile:typecheck": "npm --workspace apps/mobile run typecheck",
+    "admin": "npm --workspace apps/admin run dev",
+    "admin:build": "npm --workspace apps/admin run build",
+    "admin:typecheck": "npm --workspace apps/admin run typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm --workspace apps/mobile run typecheck && npm --workspace apps/admin run typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@types/node": "^20.17.0",
+    "eslint": "^9.14.0",
+    "globals": "^17.12.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.14.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
