@@ -1,6 +1,51 @@
 # PROGRESS — Shopy
 
-## Estado actual: Fase 10 — Hardening ✅ COMPLETADA (24 checks DB + Deno + typecheck + lint verdes)
+## Estado actual: Fase 11 — Remoto ✅ (push + functions + smoke 16/16 verdes contra proyecto real)
+
+## Fase 11 — Remoto + Offline ✅ (2026-10-09)
+
+### Proyecto remoto (`evzlqwiipdjgtrqjlwba`, org Shopy FREE, región us-west-2)
+
+- Conexión directa `db.*:5432` es solo-IPv6 e inalcanzable desde esta red;
+  se usó pooler sesión `aws-1-us-west-2.pooler.supabase.com:5432`.
+- `db push`: 10 migraciones (schema → RLS → seed → storage → hardening →
+  `20261009190101_remote_crons`). La de crons se hizo condicional a
+  `pg_available_extensions('pg_cron')` para no romper el harness local
+  (Postgres stock); validada con rollback (se detectó y corrigió quote `$$`
+  anidado).
+- Bucket público `product-images` + 40/40 placeholders.
+- Crons activos: `shopy-release-expired-reservations` (`* * * * *`),
+  `shopy-refresh-trending-scores` (`*/15 * * * *`).
+- Edge Functions `checkout` + `notify` deployadas; secrets
+  `PAYMENT/EMAIL=mock`, `SHIPPING=manual`, `FUNCTIONS_PUBLIC_URL` al remoto.
+- Auth: `mailer_autoconfirm=true` vía Management API (signup dev sin email).
+
+### Verificación contra remoto (todo verde)
+
+- Seed legible (categorías, productos); anon ve `[]` en `orders` (RLS);
+  RPC con token falso → `ORDER_NOT_FOUND` (sin leaks); storage público 200.
+- **Smoke 16/16** (`smoke_fase6.mjs`) incl. 4 checks BOLA (403). Incidentes del
+  camino: autoconfirm apagado (primera corrida), agotamiento de stock entre
+  corridas (se reseteó remoto a seed prístino), `availability` no se restaura
+  con `stock` (requiere UPDATE explícito a `AVAILABLE`).
+- DB suite 24/24 sigue siendo solo-local por diseño (fixtures + sin Docker
+  aquí); Deno sin instalar (último verde previo, sin cambios en functions).
+- `packages/types/src/db.ts` completado (17 → 23 interfaces) verificado con
+  `supabase gen types typescript --linked`; enums idénticos.
+- Mobile/admin `.env` apuntan al remoto (gitignored). `typecheck` + `lint` verdes.
+
+### Offline mobile (requiere dev build, no Expo Go)
+
+- `@react-native-community/netinfo@12.0.1` + `onlineManager` (`src/query/online.ts`),
+  `OfflineBanner` global y estado `fetchStatus: "paused"` en catálogo.
+- `expo-doctor`: 2 fallas preexistentes no tocadas (react duplicado 19.2.3/19.2.8,
+  patch drift expo 57.0.25 vs ~57.0.27).
+
+### Pendiente (requiere credenciales del dueño)
+
+- Providers reales (MP/Transbank, Resend, carriers): solo setear secrets + redeploy.
+- Repo GitHub + push (4 commits) + rotar publishable expuesta en chat.
+- Prueba manual en Expo Go + dev build EAS para offline.
 
 ## Fase 0 — Inspección ✅
 
