@@ -1,10 +1,11 @@
 /**
- * @shopy/types/db — Tipos espejo del schema Postgres (Fase 2).
+ * @shopy/types/db — Tipos espejo del schema Postgres (Fase 2, completado Fase B).
  *
  * Fuente de verdad: supabase/migrations/*.sql.
- * Cuando exista el proyecto Supabase real, regenerar con:
- *   supabase gen types typescript --linked > packages/types/src/db.gen.ts
- * y reemplazar este archivo manual (mantener los mismos nombres).
+ * Regenerado contra el proyecto remoto con:
+ *   supabase gen types typescript --linked
+ * (verificación 2026-10-09: 23 tablas, enums idénticos; este archivo manual
+ * mantiene los mismos nombres).
  */
 
 export type DbProductCondition = "como_nuevo" | "excelente" | "bueno" | "con_detalles";
@@ -240,4 +241,56 @@ export interface DbHomeSection {
   sort_order: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbFavorite {
+  user_id: string;
+  product_id: string;
+  created_at: string;
+}
+
+export interface DbCollectionProduct {
+  collection_id: string;
+  product_id: string;
+  sort_order: number;
+}
+
+export interface DbOrderStatusHistory {
+  id: string;
+  order_id: string;
+  from_status: DbOrderStatus | null;
+  to_status: DbOrderStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface DbOrderNotification {
+  id: string;
+  order_id: string;
+  channel: string;
+  event: string;
+  recipient: string;
+  provider_message_id: string | null;
+  created_at: string;
+}
+
+export interface DbDiscountUsage {
+  id: string;
+  discount_id: string;
+  order_id: string;
+  user_id: string | null;
+  created_at: string;
+}
+
+export interface DbAnalyticsEventRow {
+  id: string;
+  event_type: string;
+  user_id: string | null;
+  session_id: string | null;
+  product_id: string | null;
+  order_id: string | null;
+  search_query: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
