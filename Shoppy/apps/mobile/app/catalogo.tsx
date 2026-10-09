@@ -31,18 +31,28 @@ export default function CatalogScreen() {
           <Chip key={s.key} label={s.label} selected={sort === s.key} onPress={() => setSort(s.key)} />
         ))}
       </ScrollView>
-      {products.isLoading ? (
-        <View style={styles.list}>
-          <ProductGridSkeleton />
-        </View>
-      ) : products.isError ? (
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="No pudimos cargar el catálogo"
-          message="Revisa tu conexión e inténtalo de nuevo."
-          actionLabel="Reintentar"
-          onAction={() => products.refetch()}
-        />
+      {products.data === undefined ? (
+        products.fetchStatus === "paused" ? (
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="No pudimos actualizar el catálogo. Revisa tu red: se cargará solo al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => products.refetch()}
+          />
+        ) : products.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="No pudimos cargar el catálogo"
+            message="Revisa tu conexión e inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => products.refetch()}
+          />
+        ) : (
+          <View style={styles.list}>
+            <ProductGridSkeleton />
+          </View>
+        )
       ) : (
         <FlatList
           data={products.data ?? []}

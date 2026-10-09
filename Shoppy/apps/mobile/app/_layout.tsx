@@ -7,6 +7,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { queryClient } from '@/src/query/client';
+import { setupOnlineManager } from '@/src/query/online';
+import { OfflineBanner } from '@/src/components/OfflineBanner';
 import { AuthProvider } from '@/src/auth/AuthContext';
 
 export {
@@ -34,6 +36,11 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
+  // Pausa/reanuda queries según red real (requiere dev build: NetInfo nativo).
+  useEffect(() => {
+    setupOnlineManager();
+  }, []);
+
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -58,6 +65,7 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <OfflineBanner />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="catalogo" options={{ title: 'Catálogo' }} />
