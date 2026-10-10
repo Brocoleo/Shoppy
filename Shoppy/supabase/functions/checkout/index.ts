@@ -137,7 +137,8 @@ async function computeQuote(
   const coverByProduct = new Map(
     ((covers ?? []) as { product_id: string; storage_path: string }[]).map((c) => [
       c.product_id,
-      `${storageBase()}/${c.storage_path}`,
+      // ?v=2 invalida caché de cliente tras regenerar placeholders (ver mobile publicImageUrl).
+      `${storageBase()}/${c.storage_path}?v=2`,
     ]),
   );
 
