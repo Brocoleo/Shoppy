@@ -11,9 +11,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { PRODUCT_MAP } from "@/src/data/catalog";
 import { productGallery } from "@/src/data/images";
 import { trackProductView } from "@/src/lib/analytics";
+import { useIsFavorite, useToggleFavorite } from "@/src/data/favorites";
 import { useProduct, useSearchProducts } from "@/src/query/hooks";
 import { useShopStore } from "@/src/stores/useShopStore";
 import { formatCLP, radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
@@ -29,8 +29,8 @@ export default function ProductScreen() {
   const productId = Array.isArray(id) ? (id[0] ?? "") : (id ?? "");
   const product = useProduct(productId);
   const addToCart = useShopStore((s) => s.addToCart);
-  const toggleFavorite = useShopStore((s) => s.toggleFavorite);
-  const isFavorite = useShopStore((s) => s.favorites.includes(productId));
+  const toggleFavorite = useToggleFavorite();
+  const isFavorite = useIsFavorite(productId);
   const [added, setAdded] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -43,16 +43,34 @@ export default function ProductScreen() {
     "tendencia",
   );
 
-  if (product.isLoading) {
+  if (product.data === undefined) {
     return (
       <View style={[styles.fill, { backgroundColor: theme.background }]}>
         <Stack.Screen options={{ title: "Producto" }} />
-        <View style={[styles.gallery, { backgroundColor: theme.surface }]} />
+        {product.fetchStatus === "paused" ? (
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="No pudimos cargar esta prenda. Se cargará sola al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => product.refetch()}
+          />
+        ) : product.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="No pudimos cargar la prenda"
+            message="Revisa tu conexión e inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => product.refetch()}
+          />
+        ) : (
+          <View style={[styles.gallery, { backgroundColor: theme.surface }]} />
+        )}
       </View>
     );
   }
 
-  const p = product.data ?? PRODUCT_MAP[productId];
+  const p = product.data;
   if (!p) {
     return (
       <View style={[styles.fill, { backgroundColor: theme.background }]}>

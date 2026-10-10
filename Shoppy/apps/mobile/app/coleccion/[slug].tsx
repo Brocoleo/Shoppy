@@ -1,6 +1,8 @@
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { PRODUCT_MAP } from "@/src/data/catalog";
+import { useQueries } from "@tanstack/react-query";
+import { queryKeys } from "@/src/query/client";
+import { catalogRepository } from "@/src/data/repository";
 import { useCollection } from "@/src/query/hooks";
 import { spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -12,17 +14,38 @@ export default function CollectionScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const collection = useCollection(Array.isArray(slug) ? (slug[0] ?? "") : (slug ?? ""));
 
-  const products = (collection.data?.productIds ?? [])
-    .map((id) => PRODUCT_MAP[id])
+  const ids = collection.data?.productIds ?? [];
+  const productQueries = useQueries({
+    queries: ids.map((id) => ({
+      queryKey: queryKeys.product(id),
+      queryFn: () => catalogRepository.getProduct(id),
+    })),
+  });
+  const products = productQueries
+    .map((q) => q.data)
     .filter((p): p is NonNullable<typeof p> => p !== undefined);
+  const productsPending =
+    collection.isLoading || productQueries.some((q) => q.isPending);
+  const productsError = productQueries.some((q) => q.isError);
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
       <Stack.Screen options={{ title: collection.data?.name ?? "Colección" }} />
-      {collection.isLoading ? (
+      {productsPending ? (
         <View style={styles.list}>
           <ProductGridSkeleton />
         </View>
+      ) : collection.isError || productsError ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="No pudimos cargar la colección"
+          message="Revisa tu conexión e inténtalo de nuevo."
+          actionLabel="Reintentar"
+          onAction={() => {
+            collection.refetch();
+            productQueries.forEach((q) => q.refetch());
+          }}
+        />
       ) : !collection.data ? (
         <EmptyState
           icon="albums-outline"

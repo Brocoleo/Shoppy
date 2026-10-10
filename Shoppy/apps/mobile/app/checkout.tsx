@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useURL } from "expo-linking";
+import * as Linking from "expo-linking";
 import { addressSchema, type AddressInput } from "@shopy/validation";
 import {
   CheckoutApiError,
@@ -43,7 +44,7 @@ export default function CheckoutScreen() {
   const [rateId, setRateId] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedCode, setAppliedCode] = useState<string | undefined>(undefined);
-  const [result, setResult] = useState<{ order_number: string; guest_token: string | null } | null>(null);
+  const [result, setResult] = useState<{ order_id: string; order_number: string; guest_token: string | null } | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
   const [pendingRedirect, setPendingRedirect] = useState<{ order_id: string; checkout_url: string; guest_token: string | null } | null>(null);
   const returnUrl = useURL();
@@ -109,25 +110,31 @@ export default function CheckoutScreen() {
   const pay = useMutation({
     mutationFn: async () => {
       if (!address || !rateId) throw new Error("Faltan datos");
+      // En Expo Go createURL da exp://…; en dev build/producción, shopy://…
+      // (el scheme sale de app.json). La Edge Function solo acepta
+      // shopy://|https://, así que el redirect externo es para providers
+      // reales en builds nativos; en mock no hay redirect.
       const created = await createOrder({
         items,
         address,
         shipping_rate_id: rateId,
         discount_code: appliedCode,
         save_address: Boolean(session),
-        return_url: "shopy://checkout-return",
+        return_url: Linking.createURL("checkout-return"),
       });
       // Proveedor con redirect (MP/Transbank): abrir checkout externo.
+      // NO confirmar aquí: la confirmación ocurre al retornar (deep link)
+      // o con "Ya pagué" (idempotente).
       if (created.payment.checkout_url) {
         setPendingRedirect({ order_id: created.order_id, checkout_url: created.payment.checkout_url, guest_token: created.guest_token });
         await WebBrowser.openBrowserAsync(created.payment.checkout_url);
-        // La confirmación ocurre al retornar (deep link) o con "Ya pagué".
-        return confirmOrder(created.order_id, created.guest_token);
+        return { pending: true as const };
       }
       return confirmOrder(created.order_id, created.guest_token);
     },
-    onSuccess: (confirmed) => {
-      setResult({ order_number: confirmed.order_number, guest_token: confirmed.guest_token });
+    onSuccess: (res) => {
+      if ("pending" in res) return;
+      setResult({ order_id: res.order_id, order_number: res.order_number, guest_token: res.guest_token });
       clearCart();
       queryClient.invalidateQueries({ queryKey: ["cart-validation"] });
       setStep(3);
@@ -144,7 +151,7 @@ export default function CheckoutScreen() {
     setPayError(null);
     try {
       const confirmed = await confirmOrder(order_id, guest_token);
-      setResult({ order_number: confirmed.order_number, guest_token: confirmed.guest_token });
+      setResult({ order_id: confirmed.order_id, order_number: confirmed.order_number, guest_token: confirmed.guest_token });
       clearCart();
       queryClient.invalidateQueries({ queryKey: ["cart-validation"] });
       setPendingRedirect(null);
@@ -156,7 +163,7 @@ export default function CheckoutScreen() {
   };
 
   useEffect(() => {
-    if (returnUrl?.startsWith("shopy://checkout-return") && pendingRedirect && !result && !verifying) {
+    if (returnUrl?.includes("checkout-return") && pendingRedirect && !result && !verifying) {
       checkPayment(pendingRedirect.order_id, pendingRedirect.guest_token);
     }
   }, [returnUrl, pendingRedirect, result, verifying, clearCart, queryClient]);
@@ -385,10 +392,19 @@ export default function CheckoutScreen() {
             ) : null}
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.replace("/pedidos")}
+              onPress={() =>
+                !session && result.guest_token
+                  ? router.replace({
+                      pathname: "/pedido/[id]",
+                      params: { id: result.order_id, token: result.guest_token },
+                    })
+                  : router.replace("/pedidos")
+              }
               style={[styles.cta, { backgroundColor: theme.accent }]}
             >
-              <Text style={[styles.ctaText, { color: theme.onAccent }]}>Ver mis pedidos</Text>
+              <Text style={[styles.ctaText, { color: theme.onAccent }]}>
+                {!session && result.guest_token ? "Ver mi pedido" : "Ver mis pedidos"}
+              </Text>
             </Pressable>
           </View>
         ) : null}

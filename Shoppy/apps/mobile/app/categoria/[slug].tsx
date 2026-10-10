@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { CATEGORIES } from "@/src/data/catalog";
-import { useSearchProducts } from "@/src/query/hooks";
+import { useCategories, useSearchProducts } from "@/src/query/hooks";
 import { spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { Chip } from "@/src/components/Chrome";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -12,8 +12,14 @@ import { ProductGridSkeleton } from "@/src/components/Skeletons";
 export default function CategoryScreen() {
   const theme = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const category = CATEGORIES.find((c) => c.slug === slug);
-  const children = CATEGORIES.filter((c) => c.parentSlug === slug);
+  const categoriesQuery = useCategories();
+  // Remoto primero; mock solo como respaldo si el backend no responde.
+  const allCategories =
+    categoriesQuery.data && categoriesQuery.data.length > 0
+      ? categoriesQuery.data
+      : CATEGORIES;
+  const category = allCategories.find((c) => c.slug === slug);
+  const children = allCategories.filter((c) => c.parentSlug === slug);
   const [sub, setSub] = useState<string | undefined>(undefined);
 
   const results = useSearchProducts({ categorySlug: sub ?? slug });
@@ -38,10 +44,28 @@ export default function CategoryScreen() {
           ))}
         </ScrollView>
       ) : null}
-      {results.isLoading ? (
-        <View style={styles.list}>
-          <ProductGridSkeleton />
-        </View>
+      {results.data === undefined ? (
+        results.fetchStatus === "paused" ? (
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="No pudimos actualizar esta categoría. Se cargará sola al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => results.refetch()}
+          />
+        ) : results.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title={`No pudimos cargar ${category?.name ?? "esta categoría"}`}
+            message="Revisa tu conexión e inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => results.refetch()}
+          />
+        ) : (
+          <View style={styles.list}>
+            <ProductGridSkeleton />
+          </View>
+        )
       ) : (results.data ?? []).length === 0 ? (
         <EmptyState
           icon="shirt-outline"

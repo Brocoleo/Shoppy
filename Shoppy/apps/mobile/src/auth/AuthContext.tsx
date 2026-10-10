@@ -61,19 +61,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     const supabase = getSupabase();
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    let cancelled = false;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!cancelled) setSession(data.session);
+      })
+      .catch((e) => console.warn("getSession falló (¿sin red?):", e))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     const { data: listener } = supabase.auth.onAuthStateChange((event, next) => {
+      if (cancelled) return;
       setSession(next);
       if (event === "SIGNED_IN" && next?.user) {
         mergeLocalFavorites(next.user.id).catch((e) =>
           console.warn("merge favoritos falló:", e),
         );
       }
+      if (event === "SIGNED_OUT" || (event as string) === "TOKEN_EXPIRED" || (event as string) === "USER_DELETED") {
+        // Sin sesión válida no hay datos privados: limpiar cachés del usuario.
+        queryClient.removeQueries({ queryKey: ["favorites"] });
+        queryClient.removeQueries({ queryKey: ["my-orders"] });
+        queryClient.removeQueries({ queryKey: ["my-address"] });
+      }
     });
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   // Sync de carrito servidor mientras hay sesión (Fase 5).

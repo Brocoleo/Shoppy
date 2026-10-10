@@ -64,7 +64,13 @@ const CHECKOUT_TIMEOUT_MS = 20_000;
 async function callCheckout<T>(action: string, payload: Record<string, unknown>): Promise<T> {
   if (!isSupabaseConfigured) throw new CheckoutApiError(0, "NO_BACKEND", "Conecta Supabase primero.");
   const supabase = getSupabase();
-  const { data: { session } } = await supabase.auth.getSession();
+  let session: { access_token: string } | null = null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  } catch {
+    throw new CheckoutApiError(0, "OFFLINE", "Sin conexión. Revisa tu internet e inténtalo de nuevo.");
+  }
   const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/checkout`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), CHECKOUT_TIMEOUT_MS);
@@ -231,13 +237,18 @@ export interface GuestOrderResult {
 }
 
 export async function trackGuestOrder(orderId: string, token: string): Promise<GuestOrderResult> {
-  const supabase = getSupabase();
-  const { data, error } = await supabase.rpc("get_guest_order", {
-    p_order_id: orderId,
-    p_token: token,
-  });
-  if (error) throw new CheckoutApiError(404, "ORDER_NOT_FOUND", "Pedido no encontrado. Verifica los datos.");
-  const raw = data as Record<string, unknown>;
+  let rpc: { data: unknown; error: { message?: string } | null };
+  try {
+    const supabase = getSupabase();
+    rpc = await supabase.rpc("get_guest_order", {
+      p_order_id: orderId,
+      p_token: token,
+    });
+  } catch {
+    throw new CheckoutApiError(0, "OFFLINE", "Sin conexión. Revisa tu internet e inténtalo de nuevo.");
+  }
+  if (rpc.error) throw new CheckoutApiError(404, "ORDER_NOT_FOUND", "Pedido no encontrado. Verifica los datos.");
+  const raw = rpc.data as Record<string, unknown>;
   return {
     id: String(raw["id"] ?? orderId),
     order_number: String(raw["order_number"] ?? ""),
