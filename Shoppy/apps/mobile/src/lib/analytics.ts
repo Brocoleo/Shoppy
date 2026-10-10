@@ -4,8 +4,13 @@
  */
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 
+const seen = new Set<string>();
+
 export function trackProductView(productId: string): void {
   if (!isSupabaseConfigured) return;
+  // Una vez por producto y sesión de app: evita ráfagas en remontajes.
+  if (seen.has(productId)) return;
+  seen.add(productId);
   getSupabase()
     .from("analytics_events")
     .insert({ event_type: "product_view", product_id: productId })

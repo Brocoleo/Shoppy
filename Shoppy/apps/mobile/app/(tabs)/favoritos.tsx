@@ -14,10 +14,28 @@ export default function FavoritesScreen() {
   const catalog = useProducts("tendencia");
   const products = (catalog.data ?? []).filter((p) => favoriteIds.includes(p.id));
 
-  if (catalog.isLoading) {
+  if (catalog.data === undefined) {
     return (
       <Screen>
-        <ProductGridSkeleton />
+        {catalog.fetchStatus === "paused" ? (
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="Tus favoritos volverán solos al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => catalog.refetch()}
+          />
+        ) : catalog.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="No pudimos cargar tus favoritos"
+            message="Revisa tu conexión e inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => catalog.refetch()}
+          />
+        ) : (
+          <ProductGridSkeleton />
+        )}
       </Screen>
     );
   }

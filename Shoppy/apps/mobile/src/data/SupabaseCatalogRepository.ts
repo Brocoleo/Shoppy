@@ -248,7 +248,11 @@ export class SupabaseCatalogRepository implements CatalogRepository {
   }
 
   async listSizes(): Promise<string[]> {
-    const { data, error } = await getSupabase().from("products").select("size");
+    const { data, error } = await getSupabase()
+      .from("products")
+      .select("size")
+      .not("published_at", "is", null)
+      .neq("availability", "ARCHIVED");
     if (error) throw error;
     return [...new Set((data ?? []).map((r: { size: string | null }) => r.size).filter(Boolean))] as string[];
   }

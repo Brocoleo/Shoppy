@@ -64,8 +64,16 @@ export default function OrderDetailScreen() {
   }
 
   if (guestToken) {
-    if (guestOrder.isLoading) return <LoadingView />;
-    if (guestOrder.isError || !guestOrder.data) {
+    if (guestOrder.data === undefined) {
+      if (guestOrder.fetchStatus === "paused") {
+        return <NotFound message="Sin conexión. Se cargará solo al reconectar." actionLabel="Reintentar" onAction={() => guestOrder.refetch()} />;
+      }
+      if (guestOrder.isError) {
+        return <NotFound message="Verifica el identificador y el código de rastreo." actionLabel="Reintentar" onAction={() => guestOrder.refetch()} />;
+      }
+      return <LoadingView />;
+    }
+    if (!guestOrder.data) {
       return <NotFound message="Verifica el identificador y el código de rastreo." />;
     }
     const g = guestOrder.data;
@@ -86,8 +94,14 @@ export default function OrderDetailScreen() {
     );
   }
 
-  if (myOrder.isLoading) return <LoadingView />;
-  if (myOrder.isError || !myOrder.data) return <NotFound />;
+  if (myOrder.data === undefined) {
+    if (myOrder.fetchStatus === "paused") {
+      return <NotFound message="Sin conexión. Se cargará solo al reconectar." actionLabel="Reintentar" onAction={() => myOrder.refetch()} />;
+    }
+    if (myOrder.isError) return <NotFound actionLabel="Reintentar" onAction={() => myOrder.refetch()} />;
+    return <LoadingView />;
+  }
+  if (!myOrder.data) return <NotFound />;
   const o = myOrder.data;
   return (
     <DetailView
@@ -180,7 +194,11 @@ function DetailView({
                 contentFit="cover"
                 cachePolicy="memory-disk"
               />
-            ) : null}
+            ) : (
+              <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.imageFallback }]}>
+                <Text style={[styles.thumbFallbackText, { color: theme.muted }]}>Sin foto</Text>
+              </View>
+            )}
             <View style={styles.itemInfo}>
               <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={2}>
                 {item.name}
@@ -206,12 +224,12 @@ function LoadingView() {
   );
 }
 
-function NotFound({ message = "Verifica el identificador e inténtalo de nuevo." }: { message?: string }) {
+function NotFound({ message = "Verifica el identificador e inténtalo de nuevo.", actionLabel, onAction }: { message?: string; actionLabel?: string; onAction?: () => void }) {
   const theme = useTheme();
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
       <Stack.Screen options={{ title: "Pedido" }} />
-      <EmptyState icon="receipt-outline" title="Pedido no encontrado" message={message} />
+      <EmptyState icon="receipt-outline" title="Pedido no encontrado" message={message} actionLabel={actionLabel} onAction={onAction} />
     </View>
   );
 }
@@ -233,6 +251,8 @@ const styles = StyleSheet.create({
   stepDate: { fontSize: typeScale.caption },
   item: { flexDirection: "row", gap: spacing.md, alignItems: "center" },
   thumb: { width: 56, height: 72, borderRadius: radius.sm },
+  thumbFallback: { alignItems: "center", justifyContent: "center" },
+  thumbFallbackText: { fontSize: typeScale.tiny },
   itemInfo: { flex: 1, gap: 2 },
   itemName: { fontSize: typeScale.body },
   itemPrice: { fontSize: typeScale.caption },

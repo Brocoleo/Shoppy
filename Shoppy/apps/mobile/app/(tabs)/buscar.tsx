@@ -116,18 +116,28 @@ export default function SearchScreen() {
         ) : null}
       </View>
 
-      {results.isLoading ? (
-        <View style={{ padding: spacing.lg }}>
-          <ProductGridSkeleton />
-        </View>
-      ) : results.isError ? (
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="Error al buscar"
-          message="Inténtalo de nuevo."
-          actionLabel="Reintentar"
-          onAction={() => results.refetch()}
-        />
+      {results.data === undefined ? (
+        results.fetchStatus === "paused" ? (
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="La búsqueda volverá sola al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => results.refetch()}
+          />
+        ) : results.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Error al buscar"
+            message="Inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => results.refetch()}
+          />
+        ) : (
+          <View style={{ padding: spacing.lg }}>
+            <ProductGridSkeleton />
+          </View>
+        )
       ) : (results.data ?? []).length === 0 ? (
         <EmptyState
           icon="search-outline"
@@ -157,7 +167,12 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <View style={styles.cell}>
               <ProductCard product={item} />
-            </View>
+        {(categories.isError || sizes.isError) && (categories.data ?? []).length === 0 && (sizes.data ?? []).length === 0 ? (
+          <Text style={{ color: theme.muted, paddingHorizontal: spacing.lg, fontSize: typeScale.caption }}>
+            Filtros no disponibles sin conexión.
+          </Text>
+        ) : null}
+      </View>
           )}
         />
       )}

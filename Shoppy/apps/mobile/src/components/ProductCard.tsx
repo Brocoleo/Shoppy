@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { productCover } from "../data/images";
-import { useIsFavorite, useToggleFavorite } from "../data/favorites";import type { CatalogProduct } from "../data/catalog";
+import { useIsFavorite, useToggleFavorite } from "../data/favorites";
+import type { CatalogProduct } from "../data/catalog";
 import { formatCLP, radius, spacing, typeScale, useTheme } from "../theme/tokens";
 import { ConditionBadge } from "./ConditionBadge";
 
@@ -31,7 +32,9 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
               transition={200}
             />
           ) : (
-            <View style={[styles.image, { backgroundColor: theme.imageFallback }]} />
+            <View style={[styles.image, styles.imageFallback, { backgroundColor: theme.imageFallback }]}>
+              <Ionicons name="shirt-outline" size={32} color={theme.muted} />
+            </View>
           )}
           <Pressable
             accessibilityRole="button"
@@ -75,6 +78,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
 const styles = StyleSheet.create({
   card: { flex: 1, gap: 4, paddingBottom: spacing.sm },
   image: { width: "100%", aspectRatio: 3 / 4, borderRadius: radius.md },
+  imageFallback: { alignItems: "center", justifyContent: "center" },
   heart: {
     position: "absolute",
     top: spacing.sm,

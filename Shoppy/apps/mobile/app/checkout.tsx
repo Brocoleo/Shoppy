@@ -253,6 +253,16 @@ export default function CheckoutScreen() {
               Despacho a {address?.comuna}, {address?.region}
             </Text>
             {rates.isLoading ? <Text style={{ color: theme.muted }}>Cargando tarifas…</Text> : null}
+            {rates.isError ? (
+              <Text style={[styles.error, { color: theme.sale }]}>
+                No pudimos cargar las tarifas. Revisa tu conexión.
+              </Text>
+            ) : null}
+            {!rates.isLoading && !rates.isError && (rates.data ?? []).length === 0 ? (
+              <Text style={[styles.error, { color: theme.sale }]}>
+                No hay tarifas para esta región. Prueba con otra comuna.
+              </Text>
+            ) : null}
             {(rates.data ?? []).map((r) => (
               <Pressable
                 key={r.id}
@@ -347,7 +357,7 @@ export default function CheckoutScreen() {
               <TotalRow label="Total" value={quote.data?.total_clp ?? 0} big />
             </View>
             <Text style={[styles.payNote, { color: theme.muted }]}>
-              Pago de prueba (mock, sin cargos). La reserva dura 15 minutos.
+              Pago seguro. La reserva dura 15 minutos.
             </Text>
             {pendingRedirect ? (
               <Pressable

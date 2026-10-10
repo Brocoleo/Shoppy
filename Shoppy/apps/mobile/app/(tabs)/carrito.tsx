@@ -43,10 +43,28 @@ export default function CartScreen() {
     );
   }
 
-  if (catalog.isLoading) {
+  if (catalog.data === undefined) {
     return (
       <Screen>
-        <ProductGridSkeleton count={3} />
+        {catalog.fetchStatus === "paused" ? (
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="No pudimos verificar precios y stock. Se actualizará solo al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => catalog.refetch()}
+          />
+        ) : catalog.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="No pudimos cargar el carrito"
+            message="Revisa tu conexión e inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => catalog.refetch()}
+          />
+        ) : (
+          <ProductGridSkeleton count={3} />
+        )}
       </Screen>
     );
   }

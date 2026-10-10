@@ -1,9 +1,13 @@
 import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Link, router } from "expo-router";
+import { useQueries } from "@tanstack/react-query";
 import { PRODUCT_IMAGES } from "@/src/data/productImages";
+import type { CatalogProduct } from "@/src/data/catalog";
 import { productCover } from "@/src/data/images";
-import { useCategories, useCollection, useProducts } from "@/src/query/hooks";
+import { catalogRepository } from "@/src/data/repository";
+import { queryKeys } from "@/src/query/client";
+import { useBrands, useCategories, useCollection, useProducts } from "@/src/query/hooks";
 import { radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ProductCard } from "@/src/components/ProductCard";
@@ -17,13 +21,69 @@ export default function HomeScreen() {
   const newcomers = useProducts("novedades");
   const trending = useProducts("tendencia");
   const categories = useCategories();
+  const brands = useBrands();
   const offers = useCollection("ofertas");
   const picks = useCollection("novedades");
 
-  const loading = newcomers.isLoading || trending.isLoading;
+  // Resolver colecciones contra backend (los ids no siempre están en las
+  // listas de tendencia/novedades).
+  const collectionIds = [...new Set([...(offers.data?.productIds ?? []), ...(picks.data?.productIds ?? [])])];
+  const collectionQueries = useQueries({
+    queries: collectionIds.map((id) => ({
+      queryKey: queryKeys.product(id),
+      queryFn: () => catalogRepository.getProduct(id),
+    })),
+  });
+  const byId = new Map(
+    collectionQueries.map((q) => q.data).filter((p): p is NonNullable<typeof p> => p !== undefined).map((p) => [p.id, p]),
+  );
+  const inList = (ids: string[], list: CatalogProduct[]): CatalogProduct[] => {
+    const fromList = ids
+      .map((id) => list.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+    if (fromList.length > 0) return fromList;
+    return ids.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => p !== undefined);
+  };
+
+  const newcomersData = newcomers.data;
+  const trendingData = trending.data;
+  const paused = !newcomersData && newcomers.fetchStatus === "paused";
+  const pausedT = !trendingData && trending.fetchStatus === "paused";
   const failed = newcomers.isError || trending.isError;
 
-  if (loading) {
+  if (!newcomersData || !trendingData) {
+    if (paused || pausedT) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <EmptyState
+            icon="wifi-outline"
+            title="Sin conexión"
+            message="No pudimos actualizar la tienda. Se cargará sola al reconectar."
+            actionLabel="Reintentar"
+            onAction={() => {
+              newcomers.refetch();
+              trending.refetch();
+            }}
+          />
+        </View>
+      );
+    }
+    if (failed) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="No pudimos cargar la tienda"
+            message="Revisa tu conexión e inténtalo de nuevo."
+            actionLabel="Reintentar"
+            onAction={() => {
+              newcomers.refetch();
+              trending.refetch();
+            }}
+          />
+        </View>
+      );
+    }
     return (
       <ScrollView style={{ flex: 1, backgroundColor: theme.background }}>
         <View style={{ padding: spacing.lg }}>
@@ -34,35 +94,16 @@ export default function HomeScreen() {
     );
   }
 
-  if (failed || !newcomers.data || !trending.data) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="No pudimos cargar la tienda"
-          message="Revisa tu conexión e inténtalo de nuevo."
-          actionLabel="Reintentar"
-          onAction={() => {
-            newcomers.refetch();
-            trending.refetch();
-          }}
-        />
-      </View>
-    );
-  }
-
   const heroGallery = PRODUCT_IMAGES[HERO_PRODUCT_SLUG];
-  const heroProduct = [...newcomers.data, ...trending.data].find(
-    (p) => p.slug === HERO_PRODUCT_SLUG,
-  );
+  const heroProduct =
+    [...newcomersData, ...trendingData].find((p) => p.slug === HERO_PRODUCT_SLUG) ??
+    newcomersData[0];
   const heroSource = heroProduct ? productCover(heroProduct) : heroGallery?.cover;
-  const offerProducts = (offers.data?.productIds ?? [])
-    .map((id) => trending.data.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
-  const pickProducts = (picks.data?.productIds ?? [])
-    .map((id) => newcomers.data.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+  const offerProducts = inList(offers.data?.productIds ?? [], trendingData);
+  const pickProducts = inList(picks.data?.productIds ?? [], newcomersData);
   const parentCategories = (categories.data ?? []).filter((c) => c.parentSlug === null);
+  const brandSlugs = (brands.data ?? []).map((b) => b.slug);
+  const visibleBrands = (brandSlugs.length > 0 ? brandSlugs : ["levis", "nike", "adidas", "zara", "lacoste"]).slice(0, 8);
 
   return (
     <ScrollView
@@ -96,11 +137,11 @@ export default function HomeScreen() {
       </Link>
 
       <SectionRow title="Recién llegados" href="/catalogo">
-        <ProductRail products={newcomers.data.slice(0, 8)} />
+        <ProductRail products={newcomersData.slice(0, 8)} />
       </SectionRow>
 
       <SectionRow title="Tendencias" href="/catalogo">
-        <ProductRail products={trending.data.slice(0, 8)} />
+        <ProductRail products={trendingData.slice(0, 8)} />
       </SectionRow>
 
       <View>
@@ -126,7 +167,7 @@ export default function HomeScreen() {
       <View>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Marcas destacadas</Text>
         <View style={styles.chipGrid}>
-          {["levis", "nike", "adidas", "zara", "lacoste"].map((slug) => (
+          {visibleBrands.map((slug) => (
             <Pressable
               key={slug}
               accessibilityRole="button"

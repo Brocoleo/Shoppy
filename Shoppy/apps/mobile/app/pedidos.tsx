@@ -34,6 +34,7 @@ export default function OrdersScreen() {
     queryFn: listMyOrders,
     enabled: isSupabaseConfigured && Boolean(session),
   });
+  const ordersError = session && realOrders.isError;
 
   // Sin backend: mock Fase 3.
   if (!isSupabaseConfigured) {
@@ -70,8 +71,13 @@ export default function OrdersScreen() {
           {session && realOrders.isLoading ? (
             <Text style={{ color: theme.muted }}>Cargando…</Text>
           ) : null}
-          {session && !realOrders.isLoading && (realOrders.data ?? []).length === 0 ? (
+          {session && !realOrders.isLoading && (realOrders.data ?? []).length === 0 && !ordersError ? (
             <Text style={{ color: theme.muted }}>Aún no tienes pedidos.</Text>
+          ) : null}
+          {ordersError ? (
+            <Text style={{ color: theme.sale }}>
+              No pudimos cargar tus pedidos. Revisa tu conexión o tu sesión.
+            </Text>
           ) : null}
           <View style={styles.tracker}>
             <Text style={[styles.trackerTitle, { color: theme.text }]}>

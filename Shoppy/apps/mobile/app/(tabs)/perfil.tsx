@@ -8,6 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { MOCK_ORDERS } from "@/src/data/catalog";
 import { useFavoriteIds } from "@/src/data/favorites";
 import { useAuth } from "@/src/auth/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { isSupabaseConfigured } from "@/src/lib/supabase";
+import { listMyOrders } from "@/src/lib/checkout";
 import { radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { Screen } from "@/src/components/Screen";
 
@@ -24,6 +27,17 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const { isConfigured, session, loading, signIn, signUp, signOut } = useAuth();
   const favIds = useFavoriteIds();
+  const myOrders = useQuery({
+    queryKey: ["my-orders", session?.user.id ?? "guest"],
+    queryFn: listMyOrders,
+    enabled: isSupabaseConfigured && Boolean(session),
+    staleTime: 60_000,
+  });
+  const orderCount = !isSupabaseConfigured
+    ? MOCK_ORDERS.length
+    : session
+      ? (myOrders.data?.length ?? 0)
+      : null;
   const [mode, setMode] = useState<"in" | "up">("in");
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -47,7 +61,7 @@ export default function ProfileScreen() {
     {
       icon: "receipt-outline",
       label: "Mis pedidos",
-      detail: `${MOCK_ORDERS.length} pedidos`,
+      detail: orderCount === null ? undefined : `${orderCount} pedidos`,
       onPress: () => router.push("/pedidos"),
     },
     {
