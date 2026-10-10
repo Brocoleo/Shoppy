@@ -193,6 +193,7 @@ function DetailView({
                 style={[styles.thumb, { backgroundColor: theme.imageFallback }]}
                 contentFit="cover"
                 cachePolicy="memory-disk"
+                onError={(e) => console.log(`[img-order-error] ${e.error}`)}
               />
             ) : (
               <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: theme.imageFallback }]}>

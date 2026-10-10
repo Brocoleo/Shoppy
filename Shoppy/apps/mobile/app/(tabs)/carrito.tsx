@@ -109,6 +109,7 @@ export default function CartScreen() {
                   style={[styles.thumb, { backgroundColor: theme.imageFallback }]}
                   contentFit="cover"
                   cachePolicy="memory-disk"
+                  onError={(e) => console.log(`[img-cart-error] ${e.error}`)}
                 />
               ) : (
                 <View style={[styles.thumb, { backgroundColor: theme.imageFallback }]} />

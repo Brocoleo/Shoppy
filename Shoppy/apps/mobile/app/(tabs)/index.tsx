@@ -113,6 +113,7 @@ export default function HomeScreen() {
               style={styles.heroImage}
               contentFit="cover"
               transition={200}
+              onError={(e) => console.log(`[img-hero-error] ${e.error}`)}
             />
           ) : null}
           <View style={styles.heroOverlay}>

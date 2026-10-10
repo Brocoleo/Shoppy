@@ -30,6 +30,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
               cachePolicy="memory-disk"
               recyclingKey={product.id}
               transition={200}
+              onError={(e) => console.log(`[img-error] ${product.slug}: ${e.error}`)}
             />
           ) : (
             <View style={[styles.image, styles.imageFallback, { backgroundColor: theme.imageFallback }]}>

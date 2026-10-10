@@ -117,6 +117,7 @@ export default function ProductScreen() {
                     style={styles.photo}
                     contentFit="cover"
                     transition={200}
+                    onError={(e) => console.log(`[img-detail-error] ${e.error}`)}
                   />
                   {item.isDefect ? (
                     <View style={[styles.defectTag, { backgroundColor: theme.sale }]}>
