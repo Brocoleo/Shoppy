@@ -1,13 +1,10 @@
 import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Link, router, type Href } from "expo-router";
-import { useQueries } from "@tanstack/react-query";
 import { PRODUCT_IMAGES } from "@/src/data/productImages";
 import type { CatalogProduct } from "@/src/data/catalog";
 import { productCover } from "@/src/data/images";
-import { catalogRepository } from "@/src/data/repository";
-import { queryKeys } from "@/src/query/client";
-import { useBrands, useCategories, useCollection, useProducts } from "@/src/query/hooks";
+import { useBrands, useCategories, useCollection, useProducts, useProductsByIds } from "@/src/query/hooks";
 import { radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ProductCard } from "@/src/components/ProductCard";
@@ -25,18 +22,10 @@ export default function HomeScreen() {
   const offers = useCollection("ofertas");
   const picks = useCollection("novedades");
 
-  // Resolver colecciones contra backend (los ids no siempre están en las
-  // listas de tendencia/novedades).
+  // Resolver colecciones contra backend con 1 sola query (no N+1).
   const collectionIds = [...new Set([...(offers.data?.productIds ?? []), ...(picks.data?.productIds ?? [])])];
-  const collectionQueries = useQueries({
-    queries: collectionIds.map((id) => ({
-      queryKey: queryKeys.product(id),
-      queryFn: () => catalogRepository.getProduct(id),
-    })),
-  });
-  const byId = new Map(
-    collectionQueries.map((q) => q.data).filter((p): p is NonNullable<typeof p> => p !== undefined).map((p) => [p.id, p]),
-  );
+  const collectionProducts = useProductsByIds(collectionIds);
+  const byId = new Map((collectionProducts.data ?? []).map((p) => [p.id, p]));
   const inList = (ids: string[], list: CatalogProduct[]): CatalogProduct[] => {
     const fromList = ids
       .map((id) => list.find((p) => p.id === id))

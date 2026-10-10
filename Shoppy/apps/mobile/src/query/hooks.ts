@@ -24,6 +24,17 @@ export function useProduct(id: string) {
   });
 }
 
+/** Colecciones/home: 1 sola query para N ids (evita N+1 y mejora fluidez). */
+export function useProductsByIds(ids: string[]) {
+  const key = [...ids].sort().join(",");
+  return useQuery({
+    queryKey: ["products-by-ids", key],
+    queryFn: () => catalogRepository.getProductsByIds(ids),
+    enabled: ids.length > 0,
+    staleTime: 60_000,
+  });
+}
+
 export function useSearchProducts(filters: ProductFilters, sort: ProductSort = "tendencia") {
   return useQuery({
     queryKey: queryKeys.search(filters, sort),

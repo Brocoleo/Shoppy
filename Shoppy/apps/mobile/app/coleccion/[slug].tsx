@@ -1,9 +1,6 @@
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useQueries } from "@tanstack/react-query";
-import { queryKeys } from "@/src/query/client";
-import { catalogRepository } from "@/src/data/repository";
-import { useCollection } from "@/src/query/hooks";
+import { useCollection, useProductsByIds } from "@/src/query/hooks";
 import { spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ProductCard } from "@/src/components/ProductCard";
@@ -15,18 +12,10 @@ export default function CollectionScreen() {
   const collection = useCollection(Array.isArray(slug) ? (slug[0] ?? "") : (slug ?? ""));
 
   const ids = collection.data?.productIds ?? [];
-  const productQueries = useQueries({
-    queries: ids.map((id) => ({
-      queryKey: queryKeys.product(id),
-      queryFn: () => catalogRepository.getProduct(id),
-    })),
-  });
-  const products = productQueries
-    .map((q) => q.data)
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
-  const productsPending =
-    collection.isLoading || productQueries.some((q) => q.isPending);
-  const productsError = productQueries.some((q) => q.isError);
+  const productsQuery = useProductsByIds(ids);
+  const products = productsQuery.data ?? [];
+  const productsPending = collection.isLoading || productsQuery.isPending;
+  const productsError = productsQuery.isError;
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.background }]}>
@@ -43,7 +32,7 @@ export default function CollectionScreen() {
           actionLabel="Reintentar"
           onAction={() => {
             collection.refetch();
-            productQueries.forEach((q) => q.refetch());
+            productsQuery.refetch();
           }}
         />
       ) : !collection.data ? (

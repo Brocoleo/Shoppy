@@ -29,6 +29,7 @@ export interface ProductFilters {
 export interface CatalogRepository {
   listProducts(sort?: ProductSort): Promise<CatalogProduct[]>;
   getProduct(id: string): Promise<CatalogProduct | null>;
+  getProductsByIds(ids: string[]): Promise<CatalogProduct[]>;
   searchProducts(filters: ProductFilters, sort?: ProductSort): Promise<CatalogProduct[]>;
   listCategories(): Promise<CatalogCategory[]>;
   listBrands(): Promise<{ slug: string; name: string }[]>;
@@ -73,6 +74,10 @@ export class MockCatalogRepository implements CatalogRepository {
 
   async getProduct(id: string): Promise<CatalogProduct | null> {
     return delay(PRODUCT_MAP[id] ?? null, 250);
+  }
+
+  async getProductsByIds(ids: string[]): Promise<CatalogProduct[]> {
+    return delay(ids.map((id) => PRODUCT_MAP[id]).filter((p): p is CatalogProduct => p !== undefined), 250);
   }
 
   async searchProducts(filters: ProductFilters, sort: ProductSort = "tendencia"): Promise<CatalogProduct[]> {

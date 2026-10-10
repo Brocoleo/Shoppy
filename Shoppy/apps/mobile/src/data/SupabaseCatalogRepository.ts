@@ -34,6 +34,7 @@ interface DbProductRow {
   trending_score: number | string;
   is_featured: boolean;
   brand: { slug: string; name: string } | null;
+  product_images: DbImageRow[] | null;
 }
 
 interface DbImageRow {
@@ -49,6 +50,7 @@ const PRODUCT_COLUMNS = [
   "condition", "size", "color", "stock", "published_at", "tags",
   "view_count", "favorite_count", "trending_score", "is_featured",
   "brand:brands(slug,name)",
+  "product_images(storage_path,sort_order,is_cover,is_defect_detail)",
 ].join(",");
 
 export class SupabaseCatalogRepository implements CatalogRepository {
@@ -86,6 +88,14 @@ export class SupabaseCatalogRepository implements CatalogRepository {
     }
   }
 
+  private toImages(row: DbProductRow): RemoteImage[] | undefined {
+    const imgs = row.product_images;
+    if (!imgs || imgs.length === 0) return undefined;
+    return [...imgs]
+      .sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.sort_order - b.sort_order)
+      .map((i) => ({ url: publicImageUrl(i.storage_path), isDefect: i.is_defect_detail }));
+  }
+
   private toProduct(row: DbProductRow, images?: RemoteImage[]): CatalogProduct {
     return {
       id: row.id,
@@ -110,7 +120,7 @@ export class SupabaseCatalogRepository implements CatalogRepository {
       favoriteCount: row.favorite_count,
       trendingScore: Number(row.trending_score),
       isFeatured: row.is_featured,
-      remoteImages: images,
+      remoteImages: images ?? this.toImages(row),
     };
   }
 
@@ -151,18 +161,24 @@ export class SupabaseCatalogRepository implements CatalogRepository {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    const row = data as unknown as DbProductRow;
+    return this.toProduct(data as unknown as DbProductRow);
+  }
 
-    const { data: imgs, error: imgError } = await supabase
-      .from("product_images")
-      .select("storage_path,sort_order,is_cover,is_defect_detail")
-      .eq("product_id", id)
-      .order("sort_order");
-    if (imgError) throw imgError;
-    const images: RemoteImage[] = ((imgs ?? []) as DbImageRow[])
-      .sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.sort_order - b.sort_order)
-      .map((i) => ({ url: publicImageUrl(i.storage_path), isDefect: i.is_defect_detail }));
-    return this.toProduct(row, images);
+  /** Una sola query para N productos (colecciones/home): evita N+1. */
+  async getProductsByIds(ids: string[]): Promise<CatalogProduct[]> {
+    if (ids.length === 0) return [];
+    await this.taxonomy();
+    const { data, error } = await getSupabase()
+      .from("products")
+      .select(PRODUCT_COLUMNS)
+      .in("id", ids)
+      .not("published_at", "is", null)
+      .neq("availability", "ARCHIVED");
+    if (error) throw error;
+    const byId = new Map(
+      ((data ?? []) as unknown as DbProductRow[]).map((r) => [r.id, this.toProduct(r)]),
+    );
+    return ids.map((id) => byId.get(id)).filter((p): p is CatalogProduct => p !== undefined);
   }
 
   async searchProducts(
