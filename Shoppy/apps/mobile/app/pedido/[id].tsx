@@ -121,6 +121,18 @@ export default function OrderDetailScreen() {
   );
 }
 
+function formatStepDate(raw: string): string {
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("es-CL", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function DetailView({
   title,
   status,
@@ -169,14 +181,9 @@ function DetailView({
               </View>
               <View style={styles.stepInfo}>
                 <Text style={[styles.stepTitle, { color: theme.text }]}>{s.title}</Text>
-                {s.date ? (
+                {formatStepDate(s.date) ? (
                   <Text style={[styles.stepDate, { color: theme.muted }]}>
-                    {new Date(s.date).toLocaleDateString("es-CL", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatStepDate(s.date)}
                   </Text>
                 ) : null}
               </View>

@@ -53,6 +53,14 @@ export default function CatalogScreen() {
             <ProductGridSkeleton />
           </View>
         )
+      ) : (products.data ?? []).length === 0 ? (
+        <EmptyState
+          icon="shirt-outline"
+          title="Sin prendas por aquí"
+          message="Prueba con otro orden o vuelve más tarde: el catálogo cambia todos los días."
+          actionLabel="Reintentar"
+          onAction={() => products.refetch()}
+        />
       ) : (
         <FlatList
           data={products.data ?? []}

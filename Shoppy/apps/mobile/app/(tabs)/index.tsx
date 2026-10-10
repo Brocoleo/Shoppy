@@ -174,15 +174,17 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <SectionRow title="Selección Shopy" href="/coleccion/novedades">
-        <View style={styles.grid}>
-          {pickProducts.map((p) => (
-            <View key={p.id} style={styles.gridCell}>
-              <ProductCard product={p} />
-            </View>
-          ))}
-        </View>
-      </SectionRow>
+      {pickProducts.length > 0 ? (
+        <SectionRow title="Selección Shopy" href="/coleccion/novedades">
+          <View style={styles.grid}>
+            {pickProducts.map((p) => (
+              <View key={p.id} style={styles.gridCell}>
+                <ProductCard product={p} />
+              </View>
+            ))}
+          </View>
+        </SectionRow>
+      ) : null}
 
       {offerProducts.length > 0 ? (
         <SectionRow title="Ofertas" href="/coleccion/ofertas">

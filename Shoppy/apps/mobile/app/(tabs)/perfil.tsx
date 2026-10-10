@@ -35,9 +35,11 @@ export default function ProfileScreen() {
   });
   const orderCount = !isSupabaseConfigured
     ? MOCK_ORDERS.length
-    : session
-      ? (myOrders.data?.length ?? 0)
-      : null;
+    : !session
+      ? null
+      : myOrders.isError
+        ? undefined
+        : (myOrders.data?.length ?? 0);
   const [mode, setMode] = useState<"in" | "up">("in");
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export default function ProfileScreen() {
     {
       icon: "receipt-outline",
       label: "Mis pedidos",
-      detail: orderCount === null ? undefined : `${orderCount} pedidos`,
+      detail: typeof orderCount === "number" ? `${orderCount} pedidos` : undefined,
       onPress: () => router.push("/pedidos"),
     },
     {

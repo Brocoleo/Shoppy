@@ -41,6 +41,17 @@ export default function CollectionScreen() {
           title="Colección no encontrada"
           message="Es posible que ya no esté disponible."
         />
+      ) : products.length === 0 ? (
+        <EmptyState
+          icon="albums-outline"
+          title="Colección vacía por ahora"
+          message="Estamos preparando la selección. Vuelve pronto."
+          actionLabel="Reintentar"
+          onAction={() => {
+            collection.refetch();
+            productsQuery.refetch();
+          }}
+        />
       ) : (
         <FlatList
           data={products}
