@@ -155,7 +155,7 @@ export default function HomeScreen() {
             >
               <Pressable
                 accessibilityRole="button"
-                style={[styles.categoryCard, { backgroundColor: theme.surface }]}
+                style={StyleSheet.flatten([styles.categoryCard, { backgroundColor: theme.surface }])}
               >
                 <Text style={[styles.categoryName, { color: theme.text }]}>{c.name}</Text>
               </Pressable>
