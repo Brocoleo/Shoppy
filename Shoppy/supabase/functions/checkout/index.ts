@@ -180,7 +180,11 @@ async function computeQuote(
   if (rErr || !rate) throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inválida.");
   const typedRate = rate as unknown as { region: string; price_clp: number; is_active: boolean };
   if (!typedRate.is_active) throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inactiva.");
-  if (typedRate.region !== input.region && typedRate.region !== "OTRAS") {
+  // Comparación insensible a mayúsculas/tildes/espacios ("Metropolitana" =
+  // "METROPOLITANA "). "OTRAS" sigue como comodín.
+  const normRegion = (s: string) =>
+    s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (normRegion(typedRate.region) !== normRegion(input.region) && normRegion(typedRate.region) !== "otras") {
     throw new CheckoutError(400, "INVALID_RATE", "La tarifa no corresponde a tu región.");
   }
 
@@ -329,25 +333,34 @@ async function handleCreate(db: SupabaseClient, userId: string | null, body: unk
 
   const provider = getPaymentProvider();
   const webhookBase = (Deno.env.get("FUNCTIONS_PUBLIC_URL") ?? "").replace(/\/$/, "");
-  const payment = await provider.createPayment(
-    {
-      orderId: typedOrder.id,
-      orderNumber: typedOrder.order_number,
-      amountClp: typedOrder.total_clp,
-      returnUrl: input.return_url ?? undefined,
-      webhookUrl: webhookBase ? `${webhookBase}/functions/v1/checkout` : undefined,
-      email: input.address.email,
-    },
-    typedOrder.id,
-  );
-  await db.from("payments").insert({
-    order_id: typedOrder.id,
-    provider: provider.name,
-    provider_payment_id: payment.providerPaymentId,
-    amount_clp: typedOrder.total_clp,
-    status: "pending",
-    idempotency_key: typedOrder.id,
-  });
+  // Si el provider falla (ej. secreto faltante), borrar la orden igual que
+  // en el catch de arriba: las reservas se liberan solas por expiración+cron.
+  let payment: Awaited<ReturnType<typeof provider.createPayment>>;
+  try {
+    payment = await provider.createPayment(
+      {
+        orderId: typedOrder.id,
+        orderNumber: typedOrder.order_number,
+        amountClp: typedOrder.total_clp,
+        returnUrl: input.return_url ?? undefined,
+        webhookUrl: webhookBase ? `${webhookBase}/functions/v1/checkout` : undefined,
+        email: input.address.email,
+      },
+      typedOrder.id,
+    );
+    const { error: payErr } = await db.from("payments").insert({
+      order_id: typedOrder.id,
+      provider: provider.name,
+      provider_payment_id: payment.providerPaymentId,
+      amount_clp: typedOrder.total_clp,
+      status: "pending",
+      idempotency_key: typedOrder.id,
+    });
+    if (payErr) throw new CheckoutError(500, "DB_ERROR", "No se pudo registrar el pago.");
+  } catch (e) {
+    await db.from("orders").delete().eq("id", typedOrder.id);
+    throw e;
+  }
 
   // Email transaccional best-effort (nunca falla el checkout).
   try {
