@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import { Link } from "expo-router";
+import { Link, type Href } from "expo-router";
 import { spacing, typeScale, useTheme } from "../theme/tokens";
 
 export function Chip({
@@ -36,7 +36,7 @@ export function SectionHeader({
   href,
 }: {
   title: string;
-  href?: string;
+  href?: Href;
 }) {
   const theme = useTheme();
   return (

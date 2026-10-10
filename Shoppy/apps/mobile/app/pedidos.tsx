@@ -53,7 +53,7 @@ export default function OrdersScreen() {
           }
           renderItem={({ item: order }) => (
             <Link href={{ pathname: "/pedido/[id]", params: { id: order.id } }} asChild>
-              <Pressable accessibilityRole="button" style={[styles.card, { backgroundColor: theme.surface }]}>
+              <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.card, { backgroundColor: theme.surface }])}>
                 <View style={styles.head}>
                   <Text style={[styles.number, { color: theme.text }]}>{order.order_number}</Text>
                   <Text style={[styles.status, { color: theme.text }]}>{statusLabel(order.status)}</Text>
@@ -148,7 +148,7 @@ function MockOrdersList() {
           const firstProduct = first ? PRODUCT_MAP[first.productId] : undefined;
           return (
             <Link href={{ pathname: "/pedido/[id]", params: { id: order.id } }} asChild>
-              <Pressable accessibilityRole="button" style={[styles.card, { backgroundColor: theme.surface }]}>
+              <Pressable accessibilityRole="button" style={StyleSheet.flatten([styles.card, { backgroundColor: theme.surface }])}>
                 <View style={styles.head}>
                   <Text style={[styles.number, { color: theme.text }]}>{order.orderNumber}</Text>
                   <Text style={[styles.status, { color: theme.text }]}>{statusLabel(order.status)}</Text>

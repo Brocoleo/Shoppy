@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Link, router } from "expo-router";
+import { Link, router, type Href } from "expo-router";
 import { useQueries } from "@tanstack/react-query";
 import { PRODUCT_IMAGES } from "@/src/data/productImages";
 import type { CatalogProduct } from "@/src/data/catalog";
@@ -213,7 +213,7 @@ function SectionRow({
   children,
 }: {
   title: string;
-  href: string;
+  href: Href;
   children: React.ReactNode;
 }) {
   const theme = useTheme();

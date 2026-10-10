@@ -13,3 +13,4 @@ packages/*/dist/
 .DS_Store
 ios/
 android/
+mobile-dev.log
