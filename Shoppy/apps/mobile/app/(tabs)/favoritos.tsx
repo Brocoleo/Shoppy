@@ -1,7 +1,7 @@
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useFavoriteIds } from "@/src/data/favorites";
-import { useProducts } from "@/src/query/hooks";
+import { useProductsByIds } from "@/src/query/hooks";
 import { spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { Screen } from "@/src/components/Screen";
 import { ProductCard } from "@/src/components/ProductCard";
@@ -11,8 +11,22 @@ import { ProductGridSkeleton } from "@/src/components/Skeletons";
 export default function FavoritesScreen() {
   const theme = useTheme();
   const favoriteIds = useFavoriteIds();
-  const catalog = useProducts("tendencia");
-  const products = (catalog.data ?? []).filter((p) => favoriteIds.includes(p.id));
+  const catalog = useProductsByIds(favoriteIds);
+  const products = catalog.data ?? [];
+
+  if (favoriteIds.length === 0) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="heart-outline"
+          title="Aún no guardas favoritos"
+          message="Toca el corazón en las prendas que te gusten y aparecerán aquí."
+          actionLabel="Explorar catálogo"
+          onAction={() => router.push("/catalogo")}
+        />
+      </Screen>
+    );
+  }
 
   if (catalog.data === undefined) {
     return (
@@ -45,8 +59,8 @@ export default function FavoritesScreen() {
       <Screen>
         <EmptyState
           icon="heart-outline"
-          title="Aún no guardas favoritos"
-          message="Toca el corazón en las prendas que te gusten y aparecerán aquí."
+          title="Tus favoritos ya no están disponibles"
+          message="Esas prendas se vendieron o archivaron."
           actionLabel="Explorar catálogo"
           onAction={() => router.push("/catalogo")}
         />

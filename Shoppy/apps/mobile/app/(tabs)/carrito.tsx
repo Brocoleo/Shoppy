@@ -4,7 +4,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { productCover } from "@/src/data/images";
 import { isSupabaseConfigured } from "@/src/lib/supabase";
-import { useProducts, useValidatedCart } from "@/src/query/hooks";
+import { useProducts, useProductsByIds, useValidatedCart } from "@/src/query/hooks";
 import { useShopStore } from "@/src/stores/useShopStore";
 import { formatCLP, radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { Screen } from "@/src/components/Screen";
@@ -24,9 +24,18 @@ export default function CartScreen() {
   const setQty = useShopStore((s) => s.setQty);
   const catalog = useProducts("tendencia");
   const validation = useValidatedCart(cart);
+  // Líneas fuera del lote de tendencia: fetch individual (evita "no disponible" falso).
+  const cartIds = cart.map((l) => l.productId);
+  const missingIds = cartIds.filter(
+    (id) => !(catalog.data ?? []).some((p) => p.id === id),
+  );
+  const missing = useProductsByIds(missingIds);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const productsById = new Map((catalog.data ?? []).map((p) => [p.id, p]));
+  const productsById = new Map([
+    ...(catalog.data ?? []).map((p) => [p.id, p] as const),
+    ...((missing.data ?? []).map((p) => [p.id, p] as const)),
+  ]);
   const validatedById = new Map((validation.data?.lines ?? []).map((l) => [l.productId, l]));
 
   if (cart.length === 0) {

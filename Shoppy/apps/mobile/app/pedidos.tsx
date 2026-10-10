@@ -28,6 +28,8 @@ export default function OrdersScreen() {
   const { session } = useAuth();
   const [guestId, setGuestId] = useState("");
   const [guestToken, setGuestToken] = useState("");
+  const [trackError, setTrackError] = useState<string | null>(null);
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   const realOrders = useQuery({
     queryKey: ["my-orders", session?.user.id ?? "guest"],
@@ -104,15 +106,23 @@ export default function OrdersScreen() {
               placeholderTextColor={theme.muted}
               style={[styles.input, { borderColor: theme.border, color: theme.text }]}
             />
+            {trackError ? (
+              <Text style={{ color: theme.sale }}>{trackError}</Text>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               disabled={!guestId.trim() || !guestToken.trim()}
-              onPress={() =>
+              onPress={() => {
+                if (!UUID_RE.test(guestId.trim())) {
+                  setTrackError("El identificador debe ser un uuid válido (cópialo del comprobante).");
+                  return;
+                }
+                setTrackError(null);
                 router.push({
                   pathname: "/pedido/[id]",
                   params: { id: guestId.trim(), token: guestToken.trim() },
-                })
-              }
+                });
+              }}
               style={[styles.cta, { backgroundColor: theme.accent, opacity: !guestId.trim() || !guestToken.trim() ? 0.5 : 1 }]}
             >
               <Text style={[styles.ctaText, { color: theme.onAccent }]}>Rastrear</Text>

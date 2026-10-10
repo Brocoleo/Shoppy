@@ -35,10 +35,11 @@ export function useProductsByIds(ids: string[]) {
   });
 }
 
-export function useSearchProducts(filters: ProductFilters, sort: ProductSort = "tendencia") {
+export function useSearchProducts(filters: ProductFilters, sort: ProductSort = "tendencia", enabled = true) {
   return useQuery({
     queryKey: queryKeys.search(filters, sort),
     queryFn: () => catalogRepository.searchProducts(filters, sort),
+    enabled,
   });
 }
 

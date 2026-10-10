@@ -25,7 +25,7 @@ export default function OrderDetailScreen() {
   const guestToken = Array.isArray(token) ? token[0] : token;
 
   const guestOrder = useQuery({
-    queryKey: ["guest-order", orderId],
+    queryKey: ["guest-order", orderId, guestToken ?? ""],
     queryFn: () => trackGuestOrder(orderId, guestToken ?? ""),
     enabled: isSupabaseConfigured && Boolean(guestToken && orderId),
     retry: false,

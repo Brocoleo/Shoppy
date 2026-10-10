@@ -15,8 +15,7 @@ import { productGallery } from "@/src/data/images";
 import { trackProductView } from "@/src/lib/analytics";
 import { useIsFavorite, useToggleFavorite } from "@/src/data/favorites";
 import { useProduct, useSearchProducts } from "@/src/query/hooks";
-import { useShopStore } from "@/src/stores/useShopStore";
-import { formatCLP, radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
+import { useShopStore } from "@/src/stores/useShopStore";import { formatCLP, radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { ConditionBadge } from "@/src/components/ConditionBadge";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ProductRail } from "@/src/components/ProductRail";
@@ -39,8 +38,9 @@ export default function ProductScreen() {
   }, [productId]);
 
   const related = useSearchProducts(
-    product.data ? { categorySlug: product.data.categorySlug } : { query: "__none__" },
+    { categorySlug: product.data?.categorySlug ?? "" },
     "tendencia",
+    Boolean(product.data?.categorySlug),
   );
 
   if (product.data === undefined) {
@@ -89,6 +89,7 @@ export default function ProductScreen() {
   const relatedItems = (related.data ?? []).filter((r) => r.id !== p.id).slice(0, 6);
 
   const handleAdd = () => {
+    if (p.stock <= 0) return;
     addToCart(p.id, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -196,11 +197,13 @@ export default function ProductScreen() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={p.stock <= 0 ? "Agotado" : "Agregar al carrito"}
+          disabled={p.stock <= 0}
           onPress={handleAdd}
-          style={[styles.cta, { backgroundColor: theme.accent }]}
+          style={[styles.cta, { backgroundColor: theme.accent, opacity: p.stock <= 0 ? 0.5 : 1 }]}
         >
           <Text style={[styles.ctaText, { color: theme.onAccent }]}>
-            {added ? "¡Agregado al carrito!" : "Agregar al carrito"}
+            {p.stock <= 0 ? "Agotado" : added ? "¡Agregado al carrito!" : "Agregar al carrito"}
           </Text>
         </Pressable>
       </View>

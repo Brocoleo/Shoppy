@@ -302,6 +302,16 @@ export default function CheckoutScreen() {
                 <Text style={{ color: theme.text }}>Aplicar</Text>
               </Pressable>
             </View>
+            {appliedCode && quote.data && quote.data.discount_clp > 0 ? (
+              <Text style={[styles.applied, { color: theme.success }]}>
+                Cupón {appliedCode} aplicado (−{formatCLP(quote.data.discount_clp)})
+              </Text>
+            ) : null}
+            {appliedCode && !quote.isPending && (quote.data?.discount_clp ?? -1) === 0 ? (
+              <Text style={[styles.error, { color: theme.sale }]}>
+                El cupón {appliedCode} no aplica a este pedido.
+              </Text>
+            ) : null}
             {quote.data ? (
               <View style={styles.totals}>
                 <TotalRow label="Subtotal" value={quote.data.subtotal_clp} />
@@ -446,6 +456,7 @@ const styles = StyleSheet.create({
   label: { fontSize: typeScale.caption, marginTop: spacing.sm },
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.lg, minHeight: 48, fontSize: typeScale.body },
   error: { fontSize: typeScale.caption },
+  applied: { fontSize: typeScale.caption, fontWeight: "600" },
   cta: { borderRadius: radius.pill, minHeight: 52, alignItems: "center", justifyContent: "center", marginTop: spacing.md },
   ctaText: { fontSize: typeScale.body, fontWeight: "700" },
   ctaSmall: { borderRadius: radius.pill, paddingHorizontal: spacing.xl, minHeight: 48, alignItems: "center", justifyContent: "center" },
