@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
+import { QueryState, slugify } from "../../components/QueryState";
 
 interface Row {
   id: string;
@@ -20,13 +21,13 @@ export default function BrandsPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: rows = [] } = useQuery({ queryKey: ["admin-brands"], queryFn: fetchBrands });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-brands"], queryFn: fetchBrands });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-brands"] });
 
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Nombre obligatorio.");
-      const slug = name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const slug = slugify(name);
       const { error } = await supabase.from("brands").insert({ slug, name: name.trim() });
       if (error) throw error;
     },
@@ -50,6 +51,7 @@ export default function BrandsPage() {
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight">Marcas · {rows.length}</h1>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      <QueryState isLoading={isLoading} isError={isError} isEmpty={!isLoading && !isError && rows.length === 0} emptyText="Sin marcas todavía." onRetry={() => refetch()} />
       <div className="flex gap-2">
         <input aria-label="Nombre marca" placeholder="Nombre…" className="rounded border border-zinc-300 px-3 h-11 text-sm flex-1" value={name} onChange={(e) => setName(e.target.value)} />
         <button onClick={() => create.mutate()} className="rounded-full bg-zinc-900 text-white px-5 h-11 text-sm font-semibold">Agregar</button>

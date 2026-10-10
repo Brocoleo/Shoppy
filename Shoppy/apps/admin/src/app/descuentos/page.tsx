@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatCLP, supabase } from "../../lib/supabase";
+import { QueryState } from "../../components/QueryState";
 
 interface Row {
   id: string;
@@ -25,7 +26,7 @@ export default function DiscountsPage() {
   const [form, setForm] = useState({ code: "", kind: "percent" as "percent" | "fixed", value: 10, min_subtotal_clp: 0, usage_limit: "", is_active: true });
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: rows = [] } = useQuery({ queryKey: ["admin-discounts"], queryFn: fetchDiscounts });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-discounts"], queryFn: fetchDiscounts });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
 
   const create = useMutation({
@@ -62,6 +63,7 @@ export default function DiscountsPage() {
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight">Descuentos · {rows.length}</h1>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      <QueryState isLoading={isLoading} isError={isError} isEmpty={!isLoading && !isError && rows.length === 0} emptyText="Sin descuentos todavía." onRetry={() => refetch()} />
       <div className="rounded border border-zinc-200 bg-white p-4 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
         <input aria-label="Código" placeholder="CÓDIGO" className="rounded border border-zinc-300 px-3 h-11 uppercase" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
         <select aria-label="Tipo" className="rounded border border-zinc-300 px-3 h-11" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as "percent" | "fixed" })}>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
+import { QueryState } from "../../components/QueryState";
 
 interface Row {
   id: string;
@@ -22,13 +23,14 @@ async function fetchSections(): Promise<Row[]> {
 export default function HomeSectionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const { data: rows = [] } = useQuery({ queryKey: ["admin-home"], queryFn: fetchSections });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-home"], queryFn: fetchSections });
 
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight">Contenido del home</h1>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {saved ? <p className="text-sm text-green-700">Guardado.</p> : null}
+      <QueryState isLoading={isLoading} isError={isError} isEmpty={!isLoading && !isError && rows.length === 0} emptyText="Sin secciones todavía." onRetry={() => refetch()} />
       {rows.map((r) => (
         <SectionEditor
           key={r.id}

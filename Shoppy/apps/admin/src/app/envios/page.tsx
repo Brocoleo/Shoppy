@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatCLP, supabase } from "../../lib/supabase";
+import { QueryState } from "../../components/QueryState";
 
 interface Row {
   id: string;
@@ -25,7 +26,7 @@ export default function ShippingPage() {
   const [form, setForm] = useState({ region: "", comuna: "", carrier: "Chilexpress", price_clp: 3990, eta_min: "", eta_max: "" });
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: rows = [] } = useQuery({ queryKey: ["admin-rates"], queryFn: fetchRates });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-rates"], queryFn: fetchRates });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-rates"] });
 
   const create = useMutation({
@@ -70,6 +71,7 @@ export default function ShippingPage() {
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight">Tarifas de despacho · {rows.length}</h1>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      <QueryState isLoading={isLoading} isError={isError} isEmpty={!isLoading && !isError && rows.length === 0} emptyText="Sin tarifas todavía." onRetry={() => refetch()} />
       <div className="rounded border border-zinc-200 bg-white p-4 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
         <input aria-label="Región" placeholder="Región (u OTRAS)" className="rounded border border-zinc-300 px-3 h-11" value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
         <input aria-label="Comuna" placeholder="Comuna (vacío = toda)" className="rounded border border-zinc-300 px-3 h-11" value={form.comuna} onChange={(e) => setForm({ ...form, comuna: e.target.value })} />

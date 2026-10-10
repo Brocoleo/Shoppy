@@ -62,7 +62,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const { data, isLoading } = useQuery({ queryKey: ["admin-order", id], queryFn: () => fetchDetail(id) });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["admin-order", id], queryFn: () => fetchDetail(id) });
 
   const [notifyNote, setNotifyNote] = useState<string | null>(null);
 
@@ -102,7 +102,20 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     onError: (e) => setError(e instanceof Error ? e.message : "Error"),
   });
 
-  if (isLoading || !data) return <p className="text-sm text-zinc-500">Cargando…</p>;
+  if (isLoading || !data) {
+    if (isError) {
+      return (
+        <div className="rounded border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-medium text-red-800">No se pudo cargar el pedido</p>
+          <p className="text-red-600">Revisa tu conexión y tu rol admin.</p>
+          <button type="button" onClick={() => refetch()} className="mt-2 rounded bg-red-700 px-3 h-9 text-white text-sm">
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+    return <p className="text-sm text-zinc-500">Cargando…</p>;
+  }
   const { order, items, history, shipment } = data;
   if (!order) return <p className="text-sm text-red-700">Pedido no encontrado.</p>;
   const status = String(order["status"] ?? "");

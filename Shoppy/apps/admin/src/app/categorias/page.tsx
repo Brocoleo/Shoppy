@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
+import { QueryState, slugify } from "../../components/QueryState";
 
 interface Row {
   id: string;
@@ -19,16 +20,12 @@ async function fetchCategories(): Promise<Row[]> {
   return (data ?? []) as Row[];
 }
 
-function slugify(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
-
 export default function CategoriesPage() {
   const [name, setName] = useState("");
   const [parent, setParent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: rows = [] } = useQuery({ queryKey: ["admin-categories"], queryFn: fetchCategories });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-categories"], queryFn: fetchCategories });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
 
   const create = useMutation({
@@ -74,6 +71,7 @@ export default function CategoriesPage() {
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight">Categorías · {rows.length}</h1>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      <QueryState isLoading={isLoading} isError={isError} isEmpty={!isLoading && !isError && rows.length === 0} emptyText="Sin categorías todavía." onRetry={() => refetch()} />
       <div className="flex gap-2">
         <input aria-label="Nombre categoría" placeholder="Nombre…" className="rounded border border-zinc-300 px-3 h-11 text-sm flex-1" value={name} onChange={(e) => setName(e.target.value)} />
         <select aria-label="Padre" className="rounded border border-zinc-300 px-3 h-11 text-sm" value={parent} onChange={(e) => setParent(e.target.value)}>

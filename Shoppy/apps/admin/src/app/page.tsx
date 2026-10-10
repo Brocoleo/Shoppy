@@ -25,11 +25,16 @@ interface Product {
 const PAIDISH = new Set(["PAID", "PREPARING", "SHIPPED", "DELIVERED"]);
 
 async function fetchDashboard() {
-  const [{ data: o }, { data: p }, { data: items }] = await Promise.all([
+  const [oRes, pRes, iRes] = await Promise.all([
     supabase.from("orders").select("id,order_number,status,total_clp,created_at").order("created_at", { ascending: false }).limit(400),
     supabase.from("products").select("id,name,price_clp,stock,availability,view_count,favorite_count").order("trending_score", { ascending: false }).limit(200),
     supabase.from("order_items").select("qty"),
   ]);
+  const firstError = oRes.error ?? pRes.error ?? iRes.error;
+  if (firstError) throw firstError;
+  const { data: o } = oRes;
+  const { data: p } = pRes;
+  const { data: items } = iRes;
   const orders = ((o ?? []) as Order[]).map((r) => ({ ...r, day: r.created_at.slice(0, 10), ts: Date.parse(r.created_at) }));
   const now = Date.now();
   const dayMs = 86_400_000;
@@ -50,8 +55,21 @@ async function fetchDashboard() {
 }
 
 export default function DashboardPage() {
-  const { data, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: fetchDashboard });
-  if (isLoading || !data) return <p className="text-sm text-zinc-500">Cargando dashboard…</p>;
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["dashboard"], queryFn: fetchDashboard });
+  if (isLoading || !data) {
+    if (isError) {
+      return (
+        <div className="rounded border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-medium text-red-800">No se pudo cargar el dashboard</p>
+          <p className="text-red-600">Revisa tu conexión y tu rol admin (RLS oculta los datos).</p>
+          <button type="button" onClick={() => refetch()} className="mt-2 rounded bg-red-700 px-3 h-9 text-white text-sm">
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+    return <p className="text-sm text-zinc-500">Cargando dashboard…</p>;
+  }
 
   const { orders, products, soldQty, last7, now } = data;
   const day = 86_400_000;
