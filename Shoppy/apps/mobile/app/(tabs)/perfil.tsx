@@ -73,12 +73,12 @@ export default function ProfileScreen() {
     {
       icon: "location-outline",
       label: "Mis direcciones",
-      onPress: () => setNotice("Direcciones disponible en Fase 6."),
+      onPress: () => setNotice("Mis direcciones (próximamente)."),
     },
     {
       icon: "help-circle-outline",
       label: "Ayuda y despachos",
-      onPress: () => setNotice("Ayuda disponible en Fase 6."),
+      onPress: () => setNotice("Ayuda y despachos (próximamente)."),
     },
   ];
 
@@ -105,7 +105,7 @@ export default function ProfileScreen() {
 
         {!isConfigured ? (
           <Text style={[styles.sub, { color: theme.muted }]}>
-            Conecta Supabase (apps/mobile/.env) para activar el inicio de sesión.
+            Falta configuración del backend para activar el inicio de sesión.
           </Text>
         ) : loading ? (
           <Text style={[styles.sub, { color: theme.muted }]}>Cargando sesión…</Text>

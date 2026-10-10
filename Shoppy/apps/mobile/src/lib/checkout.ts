@@ -62,7 +62,7 @@ export class CheckoutApiError extends Error {
 const CHECKOUT_TIMEOUT_MS = 20_000;
 
 async function callCheckout<T>(action: string, payload: Record<string, unknown>): Promise<T> {
-  if (!isSupabaseConfigured) throw new CheckoutApiError(0, "NO_BACKEND", "Conecta Supabase primero.");
+  if (!isSupabaseConfigured) throw new CheckoutApiError(0, "NO_BACKEND", "Falta configuración del backend.");
   const supabase = getSupabase();
   let session: { access_token: string } | null = null;
   try {

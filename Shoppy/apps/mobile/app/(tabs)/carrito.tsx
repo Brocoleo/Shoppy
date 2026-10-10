@@ -166,7 +166,7 @@ export default function CartScreen() {
                   return;
                 }
                 if (!isSupabaseConfigured) {
-                  setNotice("Conecta Supabase (apps/mobile/.env) para comprar.");
+                  setNotice("Falta configuración del backend para comprar.");
                   return;
                 }
                 setNotice(null);

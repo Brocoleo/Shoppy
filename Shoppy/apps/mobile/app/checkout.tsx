@@ -174,7 +174,7 @@ export default function CheckoutScreen() {
         <EmptyState
           icon="cloud-offline-outline"
           title="Checkout no disponible"
-          message="Conecta Supabase (apps/mobile/.env) para comprar."
+          message="Falta configuración del backend para comprar."
           actionLabel="Volver al carrito"
           onAction={() => router.back()}
         />
