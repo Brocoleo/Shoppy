@@ -21,17 +21,15 @@ async function fetchCollections(): Promise<{ cols: Row[]; members: Record<string
   const { data: cols, error } = await supabase.from("collections").select("*").order("sort_order");
   if (error) throw error;
   const list = (cols ?? []) as Row[];
+  // Una sola query para todos los miembros (antes: N+1, una por colección).
+  const { data: items, error: itemsError } = await supabase
+    .from("collection_products")
+    .select("collection_id,product_id,products!inner(slug)")
+    .order("sort_order");
+  if (itemsError) throw itemsError;
   const map: Record<string, Member[]> = {};
-  for (const c of list) {
-    const { data: items } = await supabase
-      .from("collection_products")
-      .select("product_id,products!inner(slug)")
-      .eq("collection_id", c.id)
-      .order("sort_order");
-    map[c.id] = ((items ?? []) as unknown as { product_id: string; products: { slug: string } }[]).map((i) => ({
-      product_id: i.product_id,
-      slug: i.products.slug,
-    }));
+  for (const i of (items ?? []) as unknown as { collection_id: string; product_id: string; products: { slug: string } }[]) {
+    (map[i.collection_id] ??= []).push({ product_id: i.product_id, slug: i.products.slug });
   }
   return { cols: list, members: map };
 }
@@ -41,7 +39,7 @@ export default function CollectionsPage() {
   const [addSlug, setAddSlug] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data } = useQuery({ queryKey: ["admin-collections"], queryFn: fetchCollections });
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["admin-collections"], queryFn: fetchCollections });
   const rows = data?.cols ?? [];
   const members = data?.members ?? {};
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-collections"] });
@@ -82,6 +80,15 @@ export default function CollectionsPage() {
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-2xl font-bold tracking-tight">Colecciones · {rows.length}</h1>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {isLoading ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
+      {isError ? (
+        <div className="rounded border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-medium text-red-800">No se pudieron cargar las colecciones</p>
+          <button type="button" onClick={() => refetch()} className="mt-2 rounded bg-red-700 px-3 h-9 text-white text-sm">
+            Reintentar
+          </button>
+        </div>
+      ) : null}
       <div className="flex gap-2">
         <input aria-label="Nombre colección" placeholder="Nombre…" className="rounded border border-zinc-300 px-3 h-11 text-sm flex-1" value={name} onChange={(e) => setName(e.target.value)} />
         <button onClick={create} className="rounded-full bg-zinc-900 text-white px-5 h-11 text-sm font-semibold">Agregar</button>

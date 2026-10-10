@@ -27,7 +27,7 @@ async function fetchOrders(): Promise<Row[]> {
 
 export default function OrdersPage() {
   const [filter, setFilter] = useState("all");
-  const { data: rows = [], isLoading } = useQuery({ queryKey: ["admin-orders"], queryFn: fetchOrders });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-orders"], queryFn: fetchOrders });
   const filtered = filter === "all" ? rows : rows.filter((r) => r.status === filter);
 
   return (
@@ -40,6 +40,15 @@ export default function OrdersPage() {
         ))}
       </select>
       {isLoading ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
+      {isError ? (
+        <div className="rounded border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-medium text-red-800">No se pudieron cargar los pedidos</p>
+          <p className="text-red-600">Si tu usuario no es admin, RLS los oculta: revisa tu rol en profiles.</p>
+          <button type="button" onClick={() => refetch()} className="mt-2 rounded bg-red-700 px-3 h-9 text-white text-sm">
+            Reintentar
+          </button>
+        </div>
+      ) : null}
       <div className="rounded border border-zinc-200 bg-white divide-y divide-zinc-100">
         {filtered.map((r) => (
           <Link key={r.id} href={`/pedidos/${r.id}`} className="flex items-center gap-3 p-3 text-sm hover:bg-zinc-50">

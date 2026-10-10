@@ -31,7 +31,7 @@ export default function ProductsPage() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { data: rows = [], isLoading } = useQuery({ queryKey: ["admin-products"], queryFn: fetchProducts });
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-products"], queryFn: fetchProducts });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-products"] });
 
@@ -86,6 +86,15 @@ export default function ProductsPage() {
       </div>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {isLoading ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
+      {isError ? (
+        <div className="rounded border border-red-200 bg-red-50 p-4 text-sm">
+          <p className="font-medium text-red-800">No se pudieron cargar los productos</p>
+          <p className="text-red-600">Revisa tu conexión y tu rol (RLS oculta el catálogo a no-admin si las policies lo exigen).</p>
+          <button type="button" onClick={() => refetch()} className="mt-2 rounded bg-red-700 px-3 h-9 text-white text-sm">
+            Reintentar
+          </button>
+        </div>
+      ) : null}
       <div className="rounded border border-zinc-200 bg-white divide-y divide-zinc-100">
         {filtered.map((r) => (
           <div key={r.id} className="flex items-center gap-3 p-3 text-sm">
