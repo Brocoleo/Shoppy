@@ -225,8 +225,9 @@ export async function getProductsByIds(ids: string[]): Promise<CatalogProduct[]>
   return ids.map((id) => byId.get(id)).filter((p): p is CatalogProduct => p !== undefined);
 }
 
-export async function searchProducts(filters: ProductFilters, sort: ProductSort = "tendencia"): Promise<CatalogProduct[]> {
-  await taxonomy();
+/** Construye la query base con filtros por atributos (sin texto ni orden).
+ *  Devuelve null cuando los filtros son imposibles (categoría/marca inexistente). */
+function filteredQuery(filters: ProductFilters) {
   const supabase = getSupabase();
   let query = supabase
     .from("products")
@@ -234,9 +235,6 @@ export async function searchProducts(filters: ProductFilters, sort: ProductSort 
     .not("published_at", "is", null)
     .neq("availability", "ARCHIVED");
 
-  if (filters.query) {
-    query = query.textSearch("search_vector", filters.query, { type: "plain", config: "spanish" });
-  }
   if (filters.categorySlug && categoriesCache) {
     const wanted = filters.categorySlug;
     const children = categoriesCache.filter((c) => c.parentSlug === wanted).map((c) => c.slug);
@@ -248,22 +246,56 @@ export async function searchProducts(filters: ProductFilters, sort: ProductSort 
       const list = ids.join(",");
       query = query.or(`category_id.in.(${list}),subcategory_id.in.(${list})`);
     } else {
-      return [];
+      return null;
     }
   }
   if (filters.brandSlug) {
     const brandId = brandIdBySlug.get(filters.brandSlug);
-    if (!brandId) return [];
+    if (!brandId) return null;
     query = query.eq("brand_id", brandId);
   }
   if (filters.condition) query = query.eq("condition", filters.condition);
   if (filters.size) query = query.eq("size", filters.size);
   if (filters.maxPriceClp !== undefined) query = query.lte("price_clp", filters.maxPriceClp);
+  return query;
+}
 
+/**
+ * Patrón difuso insensible a apóstrofes y guiones: "levis" matchea "Levi's".
+ * Solo como fallback cuando el full-text no devuelve nada; exige ≥3 caracteres
+ * alfanuméricos por palabra para no barrer el catálogo.
+ */
+function fuzzyWordPattern(word: string): string | null {
+  const chars = word.toLowerCase().replace(/[^a-z0-9ñáéíóúü]/g, "");
+  if (chars.length < 3) return null;
+  return `%${[...chars].join("%")}%`;
+}
+
+export async function searchProducts(filters: ProductFilters, sort: ProductSort = "tendencia"): Promise<CatalogProduct[]> {
+  await taxonomy();
   const spec = sortSpec(sort);
-  const { data, error } = await query.order(spec.column, { ascending: spec.ascending });
-  if (error) throw error;
-  return (data as unknown as DbProductRow[]).map(toProduct);
+
+  const run = async (mode: "ts" | "ilike"): Promise<CatalogProduct[]> => {
+    const base = filteredQuery(filters);
+    if (!base) return [];
+    let withSearch = base;
+    if (filters.query) {
+      if (mode === "ts") {
+        withSearch = base.textSearch("search_vector", filters.query, { type: "plain", config: "spanish" });
+      } else {
+        const patterns = filters.query.split(/\s+/).map(fuzzyWordPattern).filter((p): p is string => p !== null);
+        if (patterns.length === 0) return [];
+        for (const pattern of patterns) withSearch = withSearch.ilike("name", pattern);
+      }
+    }
+    const { data, error } = await withSearch.order(spec.column, { ascending: spec.ascending });
+    if (error) throw error;
+    return (data as unknown as DbProductRow[]).map(toProduct);
+  };
+
+  const primary = await run("ts");
+  if (primary.length > 0 || !filters.query) return primary;
+  return run("ilike");
 }
 
 export async function listCategories(): Promise<CatalogCategory[]> {
