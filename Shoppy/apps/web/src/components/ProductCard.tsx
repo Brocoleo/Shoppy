@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatCLP } from "../lib/format";
 import { productCover, type CatalogProduct } from "../lib/catalog";
+import { EmptyState } from "./States";
 
 const CONDITION_LABEL: Record<string, string> = {
   como_nuevo: "Como nuevo",
@@ -14,51 +15,82 @@ const CONDITION_LABEL: Record<string, string> = {
 
 export function ProductCard({ product }: { product: CatalogProduct }) {
   const cover = productCover(product);
+  const onSale = (product.compareAtPriceClp ?? 0) > product.priceClp;
+  const soldOut = product.stock <= 0;
+
   return (
-    <Link
-      href={`/producto/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white transition hover:shadow-md"
-    >
-      <div className="relative aspect-[3/4] w-full bg-zinc-100">
-        {cover ? (
-          <Image src={cover} alt={product.name} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover" />
-        ) : null}
-        {product.compareAtPriceClp && product.compareAtPriceClp > product.priceClp ? (
-          <span className="absolute left-2 top-2 rounded bg-red-700 px-2 py-0.5 text-xs font-semibold text-white">
-            Oferta
-          </span>
-        ) : null}
-        {product.stock <= 0 ? (
-          <span className="absolute inset-x-0 bottom-0 bg-zinc-900/70 py-1 text-center text-xs font-medium text-white">
-            Agotado
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">{product.brand}</p>
-        <p className="line-clamp-2 text-sm font-medium leading-snug">{product.name}</p>
-        <p className="text-xs text-zinc-500">
-          {CONDITION_LABEL[product.condition] ?? product.condition} · Talla {product.size}
-        </p>
-        <div className="mt-auto flex items-baseline gap-2 pt-1">
-          <span className="text-base font-bold">{formatCLP(product.priceClp)}</span>
-          {product.compareAtPriceClp && product.compareAtPriceClp > product.priceClp ? (
-            <span className="text-xs text-zinc-400 line-through">{formatCLP(product.compareAtPriceClp)}</span>
+    <li className="[content-visibility:auto]">
+      <Link
+        href={`/producto/${product.slug}`}
+        aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${soldOut ? ", agotada" : ""}`}
+        className="group flex h-full flex-col"
+      >
+        <span className="relative block aspect-[3/4] w-full overflow-hidden bg-parchment">
+          {cover ? (
+            <Image
+              src={cover}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              loading="lazy"
+            />
           ) : null}
-        </div>
-      </div>
-    </Link>
+          {onSale && !soldOut ? (
+            <span className="absolute bottom-0 left-0 bg-carbon px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-ivory">
+              Oferta
+            </span>
+          ) : null}
+          {soldOut ? (
+            <span className="absolute inset-x-0 bottom-0 bg-carbon/80 py-1.5 text-center text-xs uppercase tracking-[0.14em] text-ivory">
+              Agotada
+            </span>
+          ) : null}
+        </span>
+        <span className="flex flex-1 flex-col gap-0.5 pt-2.5">
+          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">{product.brand}</span>
+          <span className="line-clamp-2 min-h-[2.75em] font-display text-base leading-snug text-carbon">
+            {product.name}
+          </span>
+          <span className="text-xs text-muted">
+            Talla {product.size} · {CONDITION_LABEL[product.condition] ?? product.condition}
+          </span>
+          <span className="flex items-baseline gap-2 pt-0.5">
+            <span className="text-[15px] font-bold text-carbon">{formatCLP(product.priceClp)}</span>
+            {onSale ? (
+              <span className="text-xs text-muted line-through">{formatCLP(product.compareAtPriceClp!)}</span>
+            ) : null}
+          </span>
+        </span>
+      </Link>
+    </li>
   );
 }
 
 export function ProductGrid({ products }: { products: CatalogProduct[] }) {
   if (products.length === 0) {
-    return <p className="py-10 text-center text-sm text-zinc-500">No hay prendas aquí por ahora.</p>;
+    return <EmptyState message="No hay prendas aquí por ahora." />;
   }
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <ul aria-label="Productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
       {products.map((p) => (
         <ProductCard key={p.id} product={p} />
+      ))}
+    </ul>
+  );
+}
+
+/** Esqueleto 3:4 con la misma retícula que el grid real (evita saltos de layout). */
+export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex animate-pulse flex-col">
+          <div className="aspect-[3/4] w-full bg-parchment" />
+          <div className="mt-2.5 h-3 w-1/3 bg-parchment" />
+          <div className="mt-1.5 h-4 w-4/5 bg-parchment" />
+          <div className="mt-1.5 h-3 w-1/2 bg-parchment" />
+        </div>
       ))}
     </div>
   );

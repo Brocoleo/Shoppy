@@ -1,5 +1,53 @@
 @import "tailwindcss";
 
+/* ——— Shopy editorial tokens (Tailwind v4 semánticos) ——— */
+@theme {
+  --color-ivory: #f8f7f4;
+  --color-parchment: #efede7;
+  --color-carbon: #191919;
+  --color-carbon-soft: #2a2a2a;
+  --color-taupe: #b5a89a;
+  --color-taupe-deep: #6f6455;
+  --color-muted: #5f5a52;
+  --color-line: #e3dfd6;
+
+  --font-display: "Didot", "Bodoni MT", "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-ivory);
+  color: var(--color-carbon);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visible AA en toda la tienda */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-taupe-deep);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--color-taupe);
+  color: var(--color-carbon);
+}
+
+/* Respeta movimiento reducido (WCAG 2.2 AA §2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

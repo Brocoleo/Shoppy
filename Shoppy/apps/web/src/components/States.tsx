@@ -3,16 +3,27 @@
 import type { ReactNode } from "react";
 
 export function LoadingState({ message = "Cargando…" }: { message?: string }) {
-  return <p className="py-10 text-center text-sm text-zinc-500">{message}</p>;
+  return (
+    <p role="status" className="py-10 text-center font-display text-lg italic text-muted">
+      {message}
+    </p>
+  );
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-      <p className="font-medium text-red-800">No se pudo cargar</p>
-      <p className="text-sm text-red-600">{message}</p>
+    <div
+      role="alert"
+      className="mx-auto flex max-w-md flex-col items-center gap-3 border border-carbon/25 bg-ivory p-6 text-center"
+    >
+      <p className="font-display text-xl text-carbon">No se pudo cargar</p>
+      <p className="text-sm text-muted">{message}</p>
       {onRetry ? (
-        <button type="button" onClick={onRetry} className="rounded bg-red-700 px-4 py-2 text-sm text-white">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="bg-carbon px-5 py-2 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft"
+        >
           Reintentar
         </button>
       ) : null}
@@ -20,10 +31,24 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
-export function SectionTitle({ title, action }: { title: string; action?: ReactNode }) {
+export function EmptyState({ message, action }: { message: string; action?: ReactNode }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between">
-      <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+    <div className="flex flex-col items-center gap-3 py-12 text-center">
+      <p aria-hidden="true" className="font-display text-4xl italic text-taupe">
+        —
+      </p>
+      <p role="status" className="max-w-sm text-sm text-muted">
+        {message}
+      </p>
+      {action}
+    </div>
+  );
+}
+
+export function SectionTitle({ title, action, id }: { title: string; action?: ReactNode; id?: string }) {
+  return (
+    <div className="mb-4 flex items-baseline justify-between border-b border-carbon/20 pb-2">
+      <h2 id={id} className="font-display text-2xl tracking-tight text-carbon sm:text-3xl">{title}</h2>
       {action}
     </div>
   );

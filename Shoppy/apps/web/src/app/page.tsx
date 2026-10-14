@@ -9,6 +9,7 @@ import {
   listCategories,
   listProducts,
 } from "../lib/catalog";
+import { EditorialHero } from "../components/EditorialHero";
 import { ProductGrid } from "../components/ProductCard";
 import { ErrorState, LoadingState, SectionTitle, backendErrorMessage } from "../components/States";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -44,52 +45,48 @@ export default function HomePage() {
     );
   }
 
-  const hero = newcomers.data?.[0] ?? trending.data?.[0];
+  const withImage = (newcomers.data ?? []).find((p) => (p.remoteImages ?? []).some((i) => !i.isDefect));
+  const hero = withImage ?? newcomers.data?.[0] ?? trending.data?.[0];
   const parents = (categories.data ?? []).filter((c) => c.parentSlug === null);
   const topBrands = (brands.data ?? []).slice(0, 8);
 
   return (
-    <div className="flex flex-col gap-10">
-      <section className="overflow-hidden rounded-xl bg-zinc-900 p-8 text-white sm:p-12">
-        <p className="text-sm uppercase tracking-widest text-zinc-300">Segunda mano verificada</p>
-        <h1 className="mt-2 max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
-          Prendas únicas, precios justos
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-zinc-300">
-          {hero ? `Destacado: ${hero.name}.` : ""} Cada prenda es única: si te gusta, no la dejes pasar.
-        </p>
-        <div className="mt-5 flex gap-3">
-          <Link href="/catalogo" className="rounded bg-white px-4 py-2 text-sm font-semibold text-zinc-900">
-            Ver catálogo
-          </Link>
-          <Link href="/coleccion/ofertas" className="rounded border border-zinc-600 px-4 py-2 text-sm text-white">
-            Ver ofertas
-          </Link>
-        </div>
-      </section>
+    <div className="flex flex-col gap-8 sm:gap-12 md:gap-16">
+      <EditorialHero product={hero} />
 
       {parents.length > 0 ? (
-        <section>
-          <SectionTitle title="Categorías" />
-          <div className="flex flex-wrap gap-2">
-            {parents.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`}
-                className="rounded-full border border-zinc-300 bg-white px-4 py-1.5 text-sm hover:border-zinc-900"
-              >
-                {c.name}
-              </Link>
+        <section aria-labelledby="categorias-titulo">
+          <SectionTitle title="Categorías" id="categorias-titulo" />
+          <ol className="divide-y divide-line border-y border-line">
+            {parents.map((c, i) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`}
+                  className="group flex items-baseline gap-4 py-3 transition-colors hover:bg-parchment"
+                  aria-label={`Explorar categoría ${c.name}`}
+                >
+                  <span aria-hidden="true" className="w-8 shrink-0 font-display text-sm italic text-taupe-deep">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="flex-1 font-display text-2xl tracking-tight text-carbon sm:text-3xl">
+                    {c.name}
+                  </span>
+                  <span aria-hidden="true" className="pr-1 text-muted transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
       ) : null}
 
-      <section>
+      <section aria-labelledby="novedades-titulo">
         <SectionTitle
           title="Novedades"
+          id="novedades-titulo"
           action={
-            <Link href="/catalogo?orden=novedades" className="text-sm text-zinc-500 underline">
+            <Link href="/catalogo?orden=novedades" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
               Ver todas
             </Link>
           }
@@ -98,11 +95,12 @@ export default function HomePage() {
       </section>
 
       {offerProducts.data && offerProducts.data.length > 0 ? (
-        <section>
+        <section aria-labelledby="ofertas-titulo" className="bg-parchment p-4 sm:p-8">
           <SectionTitle
             title={offers.data?.name ?? "Ofertas"}
+            id="ofertas-titulo"
             action={
-              <Link href="/coleccion/ofertas" className="text-sm text-zinc-500 underline">
+              <Link href="/coleccion/ofertas" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
                 Ver colección
               </Link>
             }
@@ -111,25 +109,26 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <section>
-        <SectionTitle title="Tendencia" />
+      <section aria-labelledby="tendencia-titulo">
+        <SectionTitle title="Tendencia" id="tendencia-titulo" />
         <ProductGrid products={(trending.data ?? []).slice(0, 8)} />
       </section>
 
       {topBrands.length > 0 ? (
-        <section>
-          <SectionTitle title="Marcas" />
-          <div className="flex flex-wrap gap-2">
+        <section aria-labelledby="marcas-titulo">
+          <SectionTitle title="Marcas" id="marcas-titulo" />
+          <ul className="flex flex-wrap gap-2">
             {topBrands.map((b) => (
-              <Link
-                key={b.slug}
-                href={`/catalogo?marca=${encodeURIComponent(b.slug)}`}
-                className="rounded-full bg-zinc-900 px-4 py-1.5 text-sm text-white"
-              >
-                {b.name}
-              </Link>
+              <li key={b.slug}>
+                <Link
+                  href={`/catalogo?marca=${encodeURIComponent(b.slug)}`}
+                  className="block border border-carbon/30 px-4 py-1.5 font-display text-base italic text-carbon transition-colors hover:bg-carbon hover:text-ivory"
+                >
+                  {b.name}
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
     </div>

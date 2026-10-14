@@ -23,9 +23,9 @@ export default function CarritoPage() {
   if (lines.length === 0) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="text-lg font-bold">Tu carrito está vacío</p>
-        <p className="text-sm text-zinc-500">Explora el catálogo: cada prenda es única.</p>
-        <Link href="/catalogo" className="rounded bg-zinc-900 px-4 py-2 text-sm text-white">
+        <p className="font-display text-2xl text-carbon">Tu carrito está vacío</p>
+        <p className="text-sm text-muted">Explora el catálogo: cada prenda es única.</p>
+        <Link href="/catalogo" className="mt-1 bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
           Explorar catálogo
         </Link>
       </div>
@@ -39,45 +39,45 @@ export default function CarritoPage() {
   const total = lines.reduce((n, l) => n + (byId.get(l.productId)?.priceClp ?? 0) * l.qty, 0);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Carrito</h1>
-        <button type="button" onClick={clear} className="text-sm text-zinc-500 underline">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 sm:gap-5">
+      <div className="flex items-baseline justify-between border-b border-carbon/20 pb-3">
+        <h1 className="font-display text-3xl tracking-tight text-carbon">Carrito</h1>
+        <button type="button" onClick={clear} className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
           Vaciar
         </button>
       </div>
       {lines.map((l) => {
         const p = byId.get(l.productId);
         return (
-          <div key={l.productId} className="flex gap-4 rounded-lg border border-zinc-200 bg-white p-3">
+          <div key={l.productId} className="flex gap-4 border border-line bg-ivory p-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{p?.name ?? "Prenda no disponible"}</p>
-              <p className="text-xs text-zinc-500">
+              <p className="truncate font-display text-base text-carbon">{p?.name ?? "Prenda no disponible"}</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-muted">
                 {p ? `${p.brand} · Talla ${p.size}` : "Ya no se puede comprar"}
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <button type="button" aria-label="Quitar uno" onClick={() => setQty(l.productId, l.qty - 1)} className="h-8 w-8 rounded border border-zinc-300">
+                <button type="button" aria-label={`Quitar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty - 1)} className="h-8 w-8 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
                   −
                 </button>
-                <span className="w-6 text-center text-sm">{l.qty}</span>
-                <button type="button" aria-label="Agregar uno" onClick={() => setQty(l.productId, l.qty + 1)} className="h-8 w-8 rounded border border-zinc-300">
+                <span className="w-6 text-center text-sm text-carbon" role="status" aria-label="Cantidad">{l.qty}</span>
+                <button type="button" aria-label={`Agregar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty + 1)} className="h-8 w-8 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
                   +
                 </button>
-                <button type="button" onClick={() => remove(l.productId)} className="ml-2 text-sm text-zinc-500 underline">
+                <button type="button" onClick={() => remove(l.productId)} className="ml-2 text-sm text-muted underline underline-offset-4 hover:text-carbon">
                   Quitar
                 </button>
               </div>
             </div>
-            <p className="text-sm font-bold">{formatCLP((p?.priceClp ?? 0) * l.qty)}</p>
+            <p className="shrink-0 text-sm font-bold text-carbon">{formatCLP((p?.priceClp ?? 0) * l.qty)}</p>
           </div>
         );
       })}
-      <div className="flex items-center justify-between rounded-lg bg-zinc-900 p-4 text-white">
-        <span className="text-sm">Subtotal</span>
-        <span className="text-xl font-bold">{formatCLP(total)}</span>
+      <div className="flex items-center justify-between bg-carbon p-4 text-ivory">
+        <span className="text-xs uppercase tracking-[0.18em] text-ivory/70">Subtotal</span>
+        <span className="font-display text-2xl">{formatCLP(total)}</span>
       </div>
-      <p className="text-xs text-zinc-500">El despacho y los descuentos se calculan en el checkout.</p>
-      <Link href="/checkout" className="rounded bg-zinc-900 py-3 text-center text-sm font-semibold text-white">
+      <p className="text-xs text-muted">El despacho y los descuentos se calculan en el checkout.</p>
+      <Link href="/checkout" className="bg-carbon py-3.5 text-center text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
         Ir al checkout
       </Link>
     </div>

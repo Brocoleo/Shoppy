@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatCLP } from "../../../lib/format";
 import { getProductBySlug } from "../../../lib/catalog";
@@ -16,12 +16,13 @@ const CONDITION_LABEL: Record<string, string> = {
   con_detalles: "Con detalles",
 };
 
-export default function ProductoPage({ params }: { params: { slug: string } }) {
+export default function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const { add } = useCart();
   const [added, setAdded] = useState(false);
   const product = useQuery({
-    queryKey: ["web", "product", params.slug],
-    queryFn: () => getProductBySlug(params.slug),
+    queryKey: ["web", "product", slug],
+    queryFn: () => getProductBySlug(slug),
     enabled: isSupabaseConfigured,
   });
 
@@ -34,35 +35,46 @@ export default function ProductoPage({ params }: { params: { slug: string } }) {
   const images = p.remoteImages?.filter((i) => !i.isDefect) ?? [];
   const cover = images[0]?.url ?? null;
   const soldOut = p.stock <= 0;
+  const onSale = (p.compareAtPriceClp ?? 0) > p.priceClp;
 
   return (
-    <div className="grid gap-8 md:grid-cols-2">
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-zinc-100">
+    <div className="grid gap-6 md:grid-cols-2 md:gap-10">
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-parchment">
         {cover ? <Image src={cover} alt={p.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority /> : null}
+        {onSale && !soldOut ? (
+          <span className="absolute bottom-0 left-0 bg-carbon px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-ivory">
+            Oferta
+          </span>
+        ) : null}
+        {soldOut ? (
+          <span className="absolute inset-x-0 bottom-0 bg-carbon/80 py-1.5 text-center text-xs uppercase tracking-[0.14em] text-ivory">
+            Agotada
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-col gap-4">
         <div>
-          <p className="text-sm uppercase tracking-wide text-zinc-500">{p.brand}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">{p.name}</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {CONDITION_LABEL[p.condition] ?? p.condition} · Talla {p.size}
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">{p.brand}</p>
+          <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
+          <p className="mt-1.5 text-sm text-muted">
+            Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}
             {p.color ? ` · ${p.color}` : ""}
           </p>
         </div>
-        <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-bold">{formatCLP(p.priceClp)}</span>
-          {p.compareAtPriceClp && p.compareAtPriceClp > p.priceClp ? (
-            <span className="text-base text-zinc-400 line-through">{formatCLP(p.compareAtPriceClp)}</span>
+        <div className="flex items-baseline gap-3 border-y border-line py-3">
+          <span className="text-3xl font-bold text-carbon">{formatCLP(p.priceClp)}</span>
+          {onSale ? (
+            <span className="text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span>
           ) : null}
         </div>
-        <p className={`text-sm font-medium ${soldOut ? "text-red-700" : "text-green-700"}`}>
+        <p className={`text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
           {soldOut ? "Agotada" : p.stock === 1 ? "¡Última unidad!" : `Stock: ${p.stock}`}
         </p>
-        {p.description ? <p className="text-sm leading-relaxed text-zinc-700">{p.description}</p> : null}
+        {p.description ? <p className="text-sm leading-relaxed text-carbon/80">{p.description}</p> : null}
         {p.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {p.tags.map((t) => (
-              <span key={t} className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600">
+              <span key={t} className="bg-parchment px-2.5 py-1 text-xs text-muted">
                 #{t}
               </span>
             ))}
@@ -76,7 +88,7 @@ export default function ProductoPage({ params }: { params: { slug: string } }) {
             setAdded(true);
             setTimeout(() => setAdded(false), 2500);
           }}
-          className="mt-2 h-11 rounded bg-zinc-900 text-sm font-semibold text-white disabled:opacity-40"
+          className="mt-2 h-12 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-40"
         >
           {soldOut ? "Agotada" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
         </button>
