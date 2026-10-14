@@ -49,7 +49,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 
 export default function CheckoutPage() {
   const { user, loading } = useSession();
-  if (loading) return <p className="py-10 text-center text-sm text-zinc-500">Cargando sesión…</p>;
+  if (loading) return <p className="py-10 text-center text-sm text-muted">Cargando sesión…</p>;
   const owner = user?.id ?? "guest";
   return <CheckoutFlow key={owner} owner={owner} authed={Boolean(user)} />;
 }
@@ -287,9 +287,9 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
   if (lines.length === 0 && !result && !pending) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="text-lg font-bold">Nada que pagar</p>
-        <p className="text-sm text-zinc-500">Tu carrito está vacío.</p>
-        <Link href="/catalogo" className="rounded bg-zinc-900 px-4 py-2 text-sm text-white">
+        <p className="font-display text-2xl text-carbon">Nada que pagar</p>
+        <p className="text-sm text-muted">Tu carrito está vacío.</p>
+        <Link href="/catalogo" className="bg-carbon px-4 py-2 text-sm text-white">
           Explorar catálogo
         </Link>
       </div>
@@ -299,12 +299,12 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Checkout</h1>
-        <p className="text-sm text-zinc-500">
+        <h1 className="font-display text-3xl tracking-tight text-carbon">Checkout</h1>
+        <p className="text-sm text-muted">
           {step === 3 ? "¡Listo!" : `Paso ${step + 1} de 3: ${["Dirección", "Despacho", "Revisar y pagar"][step]}`}
         </p>
-        <p className="mt-1 text-xs text-zinc-500">Beta de prueba · no uses tarjetas reales.</p>
-        {!restored ? <p className="text-xs text-zinc-500">Recuperando pedido pendiente…</p> : null}
+        <p className="mt-1 text-xs text-muted">Beta de prueba · no uses tarjetas reales.</p>
+        {!restored ? <p className="text-xs text-muted">Recuperando pedido pendiente…</p> : null}
       </div>
 
       {step === 0 ? (
@@ -318,7 +318,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
         >
           {FIELDS.map((f) => (
             <label key={f.name} className="flex flex-col gap-1 text-sm">
-              <span className="text-zinc-500">{f.label}</span>
+              <span className="text-muted">{f.label}</span>
               <Controller
                 control={control}
                 name={f.name}
@@ -330,14 +330,14 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                     onChange={onChange}
                     value={(value as string) ?? ""}
                     placeholder={f.placeholder}
-                    className="h-11 rounded border border-zinc-300 bg-white px-3"
+                    className="h-11 border border-carbon/30 bg-ivory px-3"
                   />
                 )}
               />
               {errors[f.name] ? <span className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
             </label>
           ))}
-          <button type="submit" className="mt-2 h-11 rounded bg-zinc-900 text-sm font-semibold text-white">
+          <button type="submit" className="mt-2 h-11 bg-carbon text-sm font-semibold text-white">
             Continuar al despacho
           </button>
         </form>
@@ -346,7 +346,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
       {step === 1 ? (
         <div className="flex flex-col gap-3">
           <p className="font-medium">Despacho a {address?.comuna}, {address?.region}</p>
-          {rates.isPending ? <p className="text-sm text-zinc-500">Cargando tarifas…</p> : null}
+          {rates.isPending ? <p className="text-sm text-muted">Cargando tarifas…</p> : null}
           {rates.isError ? <p className="text-sm text-red-700">No pudimos cargar las tarifas. Revisa tu conexión.</p> : null}
           {!rates.isPending && !rates.isError && (rates.data ?? []).length === 0 ? (
             <p className="text-sm text-red-700">No hay tarifas para esta región. Prueba con otra comuna.</p>
@@ -362,22 +362,22 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
             >
               <span>
                 <span className="block font-semibold">{r.carrier}</span>
-                <span className="block text-xs text-zinc-500">{r.eta_days_min ?? "?"}–{r.eta_days_max ?? "?"} días hábiles</span>
+                <span className="block text-xs text-muted">{r.eta_days_min ?? "?"}–{r.eta_days_max ?? "?"} días hábiles</span>
               </span>
               <span className="font-bold">{formatCLP(r.price_clp)}</span>
             </button>
           ))}
           <label className="mt-2 flex flex-col gap-1 text-sm">
-            <span className="text-zinc-500">Cupón (opcional)</span>
+            <span className="text-muted">Cupón (opcional)</span>
             <span className="flex gap-2">
               <input
                 aria-label="Cupón de descuento"
                 value={discountCode}
                 onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                 placeholder="BIENVENIDA10"
-                className="h-10 flex-1 rounded border border-zinc-300 bg-white px-3 uppercase"
+                className="h-10 flex-1 border border-carbon/30 bg-ivory px-3 uppercase"
               />
-              <button type="button" onClick={() => setAppliedCode(discountCode.trim() || undefined)} className="rounded border border-zinc-300 px-4 text-sm">
+              <button type="button" onClick={() => setAppliedCode(discountCode.trim() || undefined)} className="border border-carbon/30 px-4 text-sm">
                 Aplicar
               </button>
             </span>
@@ -403,14 +403,14 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
             </p>
           ) : null}
           <div className="mt-2 flex items-center justify-between">
-            <button type="button" onClick={() => setStep(0)} className="text-sm text-zinc-500">
+            <button type="button" onClick={() => setStep(0)} className="text-sm text-muted">
               Atrás
             </button>
             <button
               type="button"
               disabled={!rateId || !quote.data || quote.isError || quote.isFetching}
               onClick={() => setStep(2)}
-              className="rounded bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="bg-carbon px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             >
               Revisar pedido
             </button>
@@ -440,7 +440,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               />
             </>
           )}
-          <p className="text-xs text-zinc-500">La reserva dura 15 minutos. El proveedor confirma el resultado.</p>
+          <p className="text-xs text-muted">La reserva dura 15 minutos. El proveedor confirma el resultado.</p>
           {pending ? (
             <p className="text-sm">Hay un intento guardado. Continúa o verifica este pago antes de iniciar otro.</p>
           ) : (
@@ -470,20 +470,20 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               type="button"
               disabled={verifying}
               onClick={() => checkPayment(pendingRedirect.order_id, pendingRedirect.guest_token)}
-              className="h-11 rounded bg-zinc-900 text-sm font-semibold text-white disabled:opacity-60"
+              className="h-11 bg-carbon text-sm font-semibold text-white disabled:opacity-60"
             >
               {verifying ? "Verificando…" : "Ya pagué, verificar pago"}
             </button>
           ) : null}
           {pending ? (
-            <button type="button" disabled={pay.isPending || verifying} onClick={() => void closePending()} className="text-sm text-zinc-500 underline">
+            <button type="button" disabled={pay.isPending || verifying} onClick={() => void closePending()} className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
               Cerrar intento rechazado o vencido
             </button>
           ) : null}
           {pending?.created ? (
             <Link
               href={pending.created.guest_token ? `/pedido/${pending.created.order_id}?token=${encodeURIComponent(pending.created.guest_token)}` : `/pedido/${pending.created.order_id}`}
-              className="text-sm text-zinc-900 underline"
+              className="text-sm text-carbon underline underline-offset-4"
             >
               Ver pedido guardado
             </Link>
@@ -497,7 +497,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 setPayError(null);
                 setStep(1);
               }}
-              className="text-sm text-zinc-500"
+              className="text-sm text-muted"
             >
               Atrás
             </button>
@@ -508,7 +508,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 setPayError(null);
                 pay.mutate();
               }}
-              className="rounded bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="bg-carbon px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             >
               {pay.isPending ? "Procesando…" : pending ? "Continuar pago pendiente" : `Pagar ${formatCLP(quote.data?.total_clp ?? 0)}`}
             </button>
@@ -518,7 +518,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
 
       {step === 3 && result ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <p className="text-lg font-bold">¡Pedido confirmado!</p>
+          <p className="font-display text-2xl text-carbon">¡Pedido confirmado!</p>
           <p className="text-2xl font-extrabold tracking-widest">{result.order_number}</p>
           {result.guest_token ? (
             <p className="max-w-md text-sm">
@@ -532,7 +532,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 ? router.replace(`/pedido/${result.order_id}?token=${encodeURIComponent(result.guest_token)}`)
                 : router.replace("/pedidos")
             }
-            className="rounded bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white"
+            className="bg-carbon px-5 py-2.5 text-sm font-semibold text-white"
           >
             {!authed && result.guest_token ? "Ver mi pedido" : "Ver mis pedidos"}
           </button>
@@ -544,12 +544,12 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
 
 function Totals({ subtotal, discount, shipping, total, code }: { subtotal: number; discount: number; shipping: number; total: number; code?: string }) {
   return (
-    <dl className="flex flex-col gap-1 rounded-lg bg-white p-4 text-sm">
-      <div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{formatCLP(subtotal)}</dd></div>
+    <dl className="flex flex-col gap-1 border border-line bg-ivory p-4 text-sm">
+      <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatCLP(subtotal)}</dd></div>
       {discount > 0 ? (
-        <div className="flex justify-between"><dt className="text-zinc-500">Descuento{code ? ` (${code})` : ""}</dt><dd>−{formatCLP(discount)}</dd></div>
+        <div className="flex justify-between"><dt className="text-muted">Descuento{code ? ` (${code})` : ""}</dt><dd>−{formatCLP(discount)}</dd></div>
       ) : null}
-      <div className="flex justify-between"><dt className="text-zinc-500">Despacho</dt><dd>{formatCLP(shipping)}</dd></div>
+      <div className="flex justify-between"><dt className="text-muted">Despacho</dt><dd>{formatCLP(shipping)}</dd></div>
       <div className="flex justify-between text-base font-bold"><dt>Total</dt><dd>{formatCLP(total)}</dd></div>
     </dl>
   );
