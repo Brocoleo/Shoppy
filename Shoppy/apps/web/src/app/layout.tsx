@@ -13,6 +13,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
+      <head>
+        <link rel="preconnect" href="https://evzlqwiipdjgtrqjlwba.supabase.co" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full bg-ivory font-sans text-carbon antialiased">
         <WebQueryProvider>
           <SessionProvider>

@@ -32,7 +32,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="card-zoom object-cover"
               loading="lazy"
             />
           ) : null}
@@ -56,7 +56,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
             Talla {product.size} · {CONDITION_LABEL[product.condition] ?? product.condition}
           </span>
           <span className="flex items-baseline gap-2 pt-0.5">
-            <span className="text-[15px] font-bold text-carbon">{formatCLP(product.priceClp)}</span>
+            <span className="tnum text-[15px] font-bold text-carbon">{formatCLP(product.priceClp)}</span>
             {onSale ? (
               <span className="text-xs text-muted line-through">{formatCLP(product.compareAtPriceClp!)}</span>
             ) : null}
@@ -85,11 +85,11 @@ export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
     <div aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex animate-pulse flex-col">
-          <div className="aspect-[3/4] w-full bg-parchment" />
-          <div className="mt-2.5 h-3 w-1/3 bg-parchment" />
-          <div className="mt-1.5 h-4 w-4/5 bg-parchment" />
-          <div className="mt-1.5 h-3 w-1/2 bg-parchment" />
+        <div key={i} className="flex flex-col">
+          <div className="shimmer aspect-[3/4] w-full animate-shimmer" />
+          <div className="shimmer mt-2.5 h-3 w-1/3 animate-shimmer" />
+          <div className="shimmer mt-1.5 h-4 w-4/5 animate-shimmer" />
+          <div className="shimmer mt-1.5 h-3 w-1/2 animate-shimmer" />
         </div>
       ))}
     </div>

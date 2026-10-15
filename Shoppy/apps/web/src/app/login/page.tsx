@@ -53,7 +53,7 @@ export default function LoginPage() {
           <input type="password" required minLength={6} autoComplete={mode === "in" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 border border-carbon/30 bg-ivory px-3 text-carbon placeholder:text-muted focus:border-carbon" />
         </label>
         {error ? <p role="alert" className="border border-red-700/30 bg-red-700/5 p-3 text-sm text-red-700">{error}</p> : null}
-        <button type="submit" disabled={busy} className="h-11 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-60">
+        <button type="submit" disabled={busy} className="btn-press h-11 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-60">
           {busy ? "Cargando…" : mode === "in" ? "Entrar" : "Crear cuenta"}
         </button>
       </form>

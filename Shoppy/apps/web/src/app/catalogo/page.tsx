@@ -200,18 +200,21 @@ function CatalogoInner() {
       </div>
 
       {/* Panel de filtros móvil (colapsable y accesible) */}
-      {panelOpen ? (
+      <div className={`collapse sm:hidden ${panelOpen ? "collapse-open" : ""}`}>
         <fieldset
           id="panel-filtros"
+          inert={!panelOpen}
           onKeyDown={(e) => {
             if (e.key === "Escape") setPanelOpen(false);
           }}
-          className="flex gap-3 border border-line bg-parchment p-3 sm:hidden"
+          className="border border-line bg-parchment"
         >
           <legend className="sr-only">Filtrar por categoría y marca</legend>
-          {selects("panel-m")}
+          <div className="flex gap-3 p-3">
+            {selects("panel-m")}
+          </div>
         </fieldset>
-      ) : null}
+      </div>
 
       {/* Filtros desktop */}
       <fieldset className="hidden flex-wrap items-end gap-x-4 gap-y-3 sm:flex">

@@ -77,7 +77,7 @@ export default function CarritoPage() {
         <span className="font-display text-2xl">{formatCLP(total)}</span>
       </div>
       <p className="text-xs text-muted">El despacho y los descuentos se calculan en el checkout.</p>
-      <Link href="/checkout" className="bg-carbon py-3.5 text-center text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
+      <Link href="/checkout" className="btn-press bg-carbon py-3.5 text-center text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
         Ir al checkout
       </Link>
     </div>

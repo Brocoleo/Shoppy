@@ -85,11 +85,12 @@ export function Header() {
         </button>
       </div>
 
-      {open ? (
+      <div className={`collapse md:hidden ${open ? "collapse-open" : ""}`}>
         <nav
           id="menu-movil"
           aria-label="Móvil"
-          className="border-t border-line bg-ivory px-4 py-3 md:hidden"
+          inert={!open}
+          className="border-t border-line bg-ivory px-4 py-3"
         >
           <ul className="flex flex-col gap-1">
             {NAV.map((item) => (
@@ -127,7 +128,7 @@ export function Header() {
             </li>
           </ul>
         </nav>
-      ) : null}
+      </div>
     </header>
   );
 }

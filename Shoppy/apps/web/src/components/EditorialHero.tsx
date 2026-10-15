@@ -54,30 +54,30 @@ export function EditorialHero({ product }: { product: CatalogProduct | undefined
       </div>
 
       <div className="flex flex-col justify-center gap-3 bg-carbon p-6 text-ivory sm:gap-4 sm:p-8 md:p-12">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-taupe">
+        <p className="animate-fade-up text-[11px] uppercase tracking-[0.28em] text-taupe">
           Segunda mano verificada
         </p>
         <h1
           id="hero-titulo"
-          className="font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl md:text-5xl"
+          className="animate-fade-up font-display text-3xl leading-[1.05] tracking-tight [animation-delay:80ms] sm:text-4xl md:text-5xl"
         >
           Prendas únicas,
           <br />
           precios justos.
         </h1>
-        <p className="max-w-md text-sm leading-relaxed text-ivory/70">
+        <p className="animate-fade-up max-w-md text-sm leading-relaxed text-ivory/70 [animation-delay:160ms]">
           Prendas únicas verificadas. Si te gusta, no la dejes pasar.
         </p>
-        <div className="flex flex-wrap gap-2.5 pt-1 sm:gap-3">
+        <div className="animate-fade-up flex flex-wrap gap-2.5 pt-1 [animation-delay:240ms] sm:gap-3">
           <Link
             href="/catalogo"
-            className="bg-ivory px-5 py-2 text-xs uppercase tracking-[0.12em] text-carbon transition-colors hover:bg-taupe sm:px-6 sm:py-2.5 sm:text-sm"
+            className="btn-press bg-ivory px-5 py-2 text-xs uppercase tracking-[0.12em] text-carbon transition-colors hover:bg-taupe sm:px-6 sm:py-2.5 sm:text-sm"
           >
             Ver catálogo
           </Link>
           <Link
             href="/coleccion/ofertas"
-            className="border border-ivory/40 px-5 py-2 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:border-ivory sm:px-6 sm:py-2.5 sm:text-sm"
+            className="btn-press border border-ivory/40 px-5 py-2 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:border-ivory sm:px-6 sm:py-2.5 sm:text-sm"
           >
             Ver ofertas
           </Link>

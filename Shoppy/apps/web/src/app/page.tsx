@@ -10,6 +10,7 @@ import {
   listProducts,
 } from "../lib/catalog";
 import { EditorialHero } from "../components/EditorialHero";
+import { Reveal } from "../components/Reveal";
 import { ProductGrid } from "../components/ProductCard";
 import { ErrorState, LoadingState, SectionTitle, backendErrorMessage } from "../components/States";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -55,7 +56,8 @@ export default function HomePage() {
       <EditorialHero product={hero} />
 
       {parents.length > 0 ? (
-        <section aria-labelledby="categorias-titulo">
+        <Reveal>
+          <section aria-labelledby="categorias-titulo">
           <SectionTitle title="Categorías" id="categorias-titulo" />
           <ol className="divide-y divide-line border-y border-line">
             {parents.map((c, i) => (
@@ -78,10 +80,12 @@ export default function HomePage() {
               </li>
             ))}
           </ol>
-        </section>
+          </section>
+        </Reveal>
       ) : null}
 
-      <section aria-labelledby="novedades-titulo">
+      <Reveal>
+        <section aria-labelledby="novedades-titulo">
         <SectionTitle
           title="Novedades"
           id="novedades-titulo"
@@ -92,10 +96,12 @@ export default function HomePage() {
           }
         />
         <ProductGrid products={(newcomers.data ?? []).slice(0, 8)} />
-      </section>
+        </section>
+      </Reveal>
 
       {offerProducts.data && offerProducts.data.length > 0 ? (
-        <section aria-labelledby="ofertas-titulo" className="bg-parchment p-4 sm:p-8">
+        <Reveal>
+          <section aria-labelledby="ofertas-titulo" className="bg-parchment p-4 sm:p-8">
           <SectionTitle
             title={offers.data?.name ?? "Ofertas"}
             id="ofertas-titulo"
@@ -106,16 +112,20 @@ export default function HomePage() {
             }
           />
           <ProductGrid products={offerProducts.data} />
-        </section>
+          </section>
+        </Reveal>
       ) : null}
 
-      <section aria-labelledby="tendencia-titulo">
+      <Reveal>
+        <section aria-labelledby="tendencia-titulo">
         <SectionTitle title="Tendencia" id="tendencia-titulo" />
         <ProductGrid products={(trending.data ?? []).slice(0, 8)} />
-      </section>
+        </section>
+      </Reveal>
 
       {topBrands.length > 0 ? (
-        <section aria-labelledby="marcas-titulo">
+        <Reveal>
+          <section aria-labelledby="marcas-titulo">
           <SectionTitle title="Marcas" id="marcas-titulo" />
           <ul className="flex flex-wrap gap-2">
             {topBrands.map((b) => (
@@ -129,7 +139,8 @@ export default function HomePage() {
               </li>
             ))}
           </ul>
-        </section>
+          </section>
+        </Reveal>
       ) : null}
     </div>
   );

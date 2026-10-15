@@ -88,7 +88,7 @@ export default function ProductoPage({ params }: { params: Promise<{ slug: strin
             setAdded(true);
             setTimeout(() => setAdded(false), 2500);
           }}
-          className="mt-2 h-12 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-40"
+          className="btn-press mt-2 h-12 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-40"
         >
           {soldOut ? "Agotada" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
         </button>

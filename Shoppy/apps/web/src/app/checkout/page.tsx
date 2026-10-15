@@ -337,7 +337,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               {errors[f.name] ? <span className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
             </label>
           ))}
-          <button type="submit" className="mt-2 h-11 bg-carbon text-sm font-semibold text-white">
+          <button type="submit" className="btn-press mt-2 h-11 bg-carbon text-sm font-semibold text-white transition-colors hover:bg-carbon-soft">
             Continuar al despacho
           </button>
         </form>
@@ -410,7 +410,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               type="button"
               disabled={!rateId || !quote.data || quote.isError || quote.isFetching}
               onClick={() => setStep(2)}
-              className="bg-carbon px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="btn-press bg-carbon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-carbon-soft disabled:opacity-50"
             >
               Revisar pedido
             </button>
@@ -470,7 +470,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               type="button"
               disabled={verifying}
               onClick={() => checkPayment(pendingRedirect.order_id, pendingRedirect.guest_token)}
-              className="h-11 bg-carbon text-sm font-semibold text-white disabled:opacity-60"
+              className="btn-press h-11 bg-carbon text-sm font-semibold text-white transition-colors hover:bg-carbon-soft disabled:opacity-60"
             >
               {verifying ? "Verificando…" : "Ya pagué, verificar pago"}
             </button>
@@ -508,7 +508,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 setPayError(null);
                 pay.mutate();
               }}
-              className="bg-carbon px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="btn-press bg-carbon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-carbon-soft disabled:opacity-50"
             >
               {pay.isPending ? "Procesando…" : pending ? "Continuar pago pendiente" : `Pagar ${formatCLP(quote.data?.total_clp ?? 0)}`}
             </button>
@@ -532,7 +532,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 ? router.replace(`/pedido/${result.order_id}?token=${encodeURIComponent(result.guest_token)}`)
                 : router.replace("/pedidos")
             }
-            className="bg-carbon px-5 py-2.5 text-sm font-semibold text-white"
+            className="btn-press bg-carbon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-carbon-soft"
           >
             {!authed && result.guest_token ? "Ver mi pedido" : "Ver mis pedidos"}
           </button>

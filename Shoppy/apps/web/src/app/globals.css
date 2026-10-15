@@ -13,6 +13,34 @@
 
   --font-display: "Didot", "Bodoni MT", "Playfair Display", Georgia, "Times New Roman", serif;
   --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+
+  /* ——— Motion System v2.1: solo transform/opacity, todo interrumpible ——— */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --animate-fade-up: fade-up 0.48s var(--ease-entrance) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
 }
 
 html {
@@ -36,6 +64,71 @@ body {
 ::selection {
   background: var(--color-taupe);
   color: var(--color-carbon);
+}
+
+/* Feedback press en CTAs: solo transform + background (nunca `transition: all`). */
+.btn-press {
+  transition:
+    transform 160ms var(--ease-standard),
+    background-color 200ms var(--ease-standard),
+    border-color 200ms var(--ease-standard);
+}
+.btn-press:active {
+  transform: scale(0.98);
+}
+
+/* Zoom de tarjeta solo con puntero fino (en táctil el hover de tap da falsos positivos). */
+.card-zoom {
+  transition: transform 240ms var(--ease-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .card-zoom {
+    transform: scale(1.04);
+  }
+}
+
+/* Colapso reversible e interrumpible (menú móvil, panel de filtros). */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 360ms var(--ease-entrance),
+    opacity 240ms var(--ease-standard);
+}
+.collapse-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.collapse > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Shimmer discreto para skeletons (dimensiones idénticas al contenido). */
+.shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--color-parchment) 40%,
+    var(--color-ivory) 50%,
+    var(--color-parchment) 60%
+  );
+  background-size: 200% 100%;
+}
+
+/* Números tabulares: los precios no bailan al cambiar. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2 {
+  text-wrap: balance;
+}
+
+a,
+button {
+  touch-action: manipulation;
 }
 
 /* Respeta movimiento reducido (WCAG 2.2 AA §2.3.3) */
