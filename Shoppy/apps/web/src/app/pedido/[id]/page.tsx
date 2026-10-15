@@ -3,7 +3,7 @@
 import { Suspense, use, useState } from "react";
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatCLP } from "../../../lib/format";
 import { getMyOrderDetail, trackGuestOrder } from "../../../lib/checkout";
 import { useSession } from "../../../lib/session";
@@ -21,6 +21,7 @@ export default function PedidoPage({ params }: { params: Promise<{ id: string }>
 
 function PedidoInner({ id }: { id: string }) {
   const search = useSearchParams();
+  const router = useRouter();
   const { user, loading } = useSession();
   const [token, setToken] = useState(search.get("token") ?? "");
   const [submittedToken, setSubmittedToken] = useState<string | null>(search.get("token"));
@@ -38,7 +39,7 @@ function PedidoInner({ id }: { id: string }) {
   });
 
   if (loading) return <LoadingState message="Cargando sesión…" />;
-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend." />;
+  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
 
   if (id === "guest" || (guest && !submittedToken)) {
     return (
@@ -47,15 +48,17 @@ function PedidoInner({ id }: { id: string }) {
         onSubmit={(e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
-          setSubmittedTokenFromForm(data, setSubmittedToken);
+          const orderId = String(data.get("orderId") ?? "").trim();
+          const code = String(data.get("token") ?? "").trim();
+          router.push(`/pedido/${encodeURIComponent(orderId)}?token=${encodeURIComponent(code)}`);
         }}
       >
         <h1 className="font-display text-3xl tracking-tight text-carbon">Rastrear pedido</h1>
         <p className="text-sm text-muted">Ingresa el ID del pedido y el código que recibiste al comprar.</p>
         <GuestIdField defaultId={id === "guest" ? "" : id} />
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Código guest</span>
-          <input name="token" defaultValue={token} onChange={(e) => setToken(e.target.value)} placeholder="Código de rastreo" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
+          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Código de rastreo</span>
+          <input name="token" required autoComplete="off" spellCheck={false} defaultValue={token} onChange={(e) => setToken(e.target.value)} placeholder="Código de rastreo" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
         </label>
         <button type="submit" className="h-11 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
           Rastrear
@@ -123,18 +126,11 @@ function PedidoInner({ id }: { id: string }) {
   );
 }
 
-function setSubmittedTokenFromForm(data: FormData, set: (v: string | null) => void) {
-  const id = String(data.get("orderId") ?? "");
-  const token = String(data.get("token") ?? "");
-  if (id) window.location.href = `/pedido/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`;
-  else set(token || null);
-}
-
 function GuestIdField({ defaultId }: { defaultId: string }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-[11px] uppercase tracking-[0.18em] text-muted">ID del pedido</span>
-      <input name="orderId" defaultValue={defaultId} placeholder="UUID del pedido" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
+      <input name="orderId" required autoComplete="off" spellCheck={false} defaultValue={defaultId} placeholder="UUID del pedido" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
     </label>
   );
 }

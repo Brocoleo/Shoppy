@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useCart } from "../lib/cart";
 import { useSession } from "../lib/session";
 
@@ -15,24 +16,35 @@ export function Header() {
   const { count } = useCart();
   const { user, loading, signOut } = useSession();
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+    <header
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          setOpen(false);
+          menuButton.current?.focus();
+        }
+      }}
+      className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur"
+    >
+      <div className="mx-auto flex w-full max-w-[1440px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-14">
         <Link
           href="/"
           aria-label="Shopy, inicio"
-          className="font-display text-2xl tracking-[0.18em] text-carbon"
+          className="inline-flex min-h-11 items-center font-display text-[2rem] tracking-[-0.07em] text-carbon"
         >
           SHOPY
         </Link>
 
-        <nav aria-label="Principal" className="hidden flex-1 items-center gap-6 text-sm md:flex">
+        <nav aria-label="Principal" className="hidden flex-1 items-center justify-center gap-8 text-sm md:flex">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="uppercase tracking-[0.12em] text-muted transition-colors hover:text-carbon"
+              aria-current={pathname === item.href ? "page" : undefined}
+              className="inline-flex min-h-11 items-center border-b border-transparent font-medium text-muted transition-colors hover:text-carbon aria-[current=page]:border-carbon aria-[current=page]:text-carbon"
             >
               {item.label}
             </Link>
@@ -43,7 +55,8 @@ export function Header() {
         <Link
           href="/carrito"
           aria-label={count > 0 ? `Carrito, ${count} prenda(s)` : "Carrito vacío"}
-          className="rounded-full border border-carbon/30 px-3 py-1 text-sm text-carbon transition-colors hover:border-carbon"
+          aria-current={pathname === "/carrito" ? "page" : undefined}
+          className="inline-flex min-h-11 items-center px-2 py-1 text-sm text-carbon transition-colors hover:border-carbon"
         >
           Carrito{count > 0 ? ` (${count})` : ""}
         </Link>
@@ -52,14 +65,14 @@ export function Header() {
           <button
             type="button"
             onClick={() => signOut()}
-            className="hidden text-sm text-muted underline underline-offset-4 hover:text-carbon sm:block"
+            className="hidden min-h-11 text-sm text-muted underline underline-offset-4 hover:text-carbon sm:block"
           >
             Salir
           </button>
         ) : (
           <Link
             href="/login"
-            className="hidden bg-carbon px-4 py-1.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft sm:block"
+            className="hidden min-h-11 items-center px-2 py-1.5 text-sm text-carbon underline-offset-4 hover:underline sm:inline-flex"
           >
             Entrar
           </Link>
@@ -67,11 +80,12 @@ export function Header() {
 
         <button
           type="button"
+          ref={menuButton}
           aria-expanded={open}
           aria-controls="menu-movil"
           aria-label={open ? "Cerrar menú" : "Abrir menú"}
           onClick={() => setOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded border border-carbon/30 text-carbon md:hidden"
+          className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center text-carbon md:ml-0 md:hidden"
         >
           <span aria-hidden="true" className="relative block h-3.5 w-4">
             <span
@@ -85,7 +99,8 @@ export function Header() {
         </button>
       </div>
 
-      <div className={`collapse md:hidden ${open ? "collapse-open" : ""}`}>
+      <div className={`disclosure md:hidden ${open ? "disclosure-open" : ""}`}>
+        <div>
         <nav
           id="menu-movil"
           aria-label="Móvil"
@@ -98,7 +113,8 @@ export function Header() {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="block py-2 text-sm uppercase tracking-[0.12em] text-carbon"
+                  aria-current={pathname === item.href ? "page" : undefined}
+                  className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
                 >
                   {item.label}
                 </Link>
@@ -112,7 +128,7 @@ export function Header() {
                     setOpen(false);
                     signOut();
                   }}
-                  className="block py-2 text-sm uppercase tracking-[0.12em] text-muted"
+                  className="flex min-h-11 items-center py-2 text-sm font-medium text-muted"
                 >
                   Salir
                 </button>
@@ -120,7 +136,8 @@ export function Header() {
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}
-                  className="block py-2 text-sm uppercase tracking-[0.12em] text-carbon"
+                  aria-current={pathname === "/login" ? "page" : undefined}
+                  className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
                 >
                   Entrar
                 </Link>
@@ -128,6 +145,7 @@ export function Header() {
             </li>
           </ul>
         </nav>
+        </div>
       </div>
     </header>
   );

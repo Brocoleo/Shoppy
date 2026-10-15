@@ -32,13 +32,13 @@ import { ErrorState } from "../../components/States";
 
 type FieldName = keyof AddressInput;
 
-const FIELDS: { name: FieldName; label: string; placeholder: string; type?: string }[] = [
-  { name: "fullName", label: "Nombre completo", placeholder: "María González" },
-  { name: "email", label: "Email", placeholder: "maria@email.cl", type: "email" },
-  { name: "phone", label: "Teléfono", placeholder: "+56912345678", type: "tel" },
-  { name: "street", label: "Calle y número", placeholder: "Av. Providencia 1234, dpto 56" },
-  { name: "comuna", label: "Comuna", placeholder: "Providencia" },
-  { name: "region", label: "Región", placeholder: "Metropolitana" },
+const FIELDS: { name: FieldName; label: string; placeholder: string; autoComplete: string; type?: string }[] = [
+  { name: "fullName", autoComplete: "name", label: "Nombre completo", placeholder: "María González" },
+  { name: "email", autoComplete: "email", label: "Email", placeholder: "maria@email.cl", type: "email" },
+  { name: "phone", autoComplete: "tel", label: "Teléfono", placeholder: "+56912345678", type: "tel" },
+  { name: "street", autoComplete: "street-address", label: "Calle y número", placeholder: "Av. Providencia 1234, dpto 56" },
+  { name: "comuna", autoComplete: "address-level2", label: "Comuna", placeholder: "Providencia" },
+  { name: "region", autoComplete: "address-level1", label: "Región", placeholder: "Metropolitana" },
 ];
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -49,7 +49,8 @@ const PROVIDER_LABEL: Record<string, string> = {
 
 export default function CheckoutPage() {
   const { user, loading } = useSession();
-  if (loading) return <p className="py-10 text-center text-sm text-muted">Cargando sesión…</p>;
+  const { ready } = useCart();
+  if (loading || !ready) return <p className="py-10 text-center text-sm text-muted">Cargando sesión…</p>;
   const owner = user?.id ?? "guest";
   return <CheckoutFlow key={owner} owner={owner} authed={Boolean(user)} />;
 }
@@ -82,7 +83,6 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
 
   useEffect(() => {
     active.current = true;
-    setRestoreError(false);
     loadPendingCheckout(owner)
       .then((saved) => {
         if (!active.current) return;
@@ -277,17 +277,20 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
     return (
       <ErrorState
         message="No se pudo recuperar el pedido guardado. Reintenta antes de comprar."
-        onRetry={() => setRestoreRetry((n) => n + 1)}
+        onRetry={() => {
+          setRestoreError(false);
+          setRestoreRetry((n) => n + 1);
+        }}
       />
     );
   }
   if (!isSupabaseConfigured) {
-    return <ErrorState message="Falta la configuración del backend para comprar." />;
+    return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
   }
   if (lines.length === 0 && !result && !pending) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-display text-2xl text-carbon">Nada que pagar</p>
+        <h1 className="font-display text-3xl text-carbon">Nada que pagar</h1>
         <p className="text-sm text-muted">Tu carrito está vacío.</p>
         <Link href="/catalogo" className="bg-carbon px-4 py-2 text-sm text-white">
           Explorar catálogo
@@ -322,9 +325,14 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               <Controller
                 control={control}
                 name={f.name}
-                render={({ field: { onChange, onBlur, value } }) => (
+                render={({ field: { onChange, onBlur, value, ref, name } }) => (
                   <input
-                    aria-label={f.label}
+                    ref={ref}
+                    name={name}
+                    id={`address-${name}`}
+                    autoComplete={f.autoComplete}
+                    aria-invalid={Boolean(errors[f.name])}
+                    aria-describedby={errors[f.name] ? `error-${name}` : undefined}
                     type={f.type ?? "text"}
                     onBlur={onBlur}
                     onChange={onChange}
@@ -334,7 +342,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                   />
                 )}
               />
-              {errors[f.name] ? <span className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
+              {errors[f.name] ? <span id={`error-${f.name}`} role="alert" className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
             </label>
           ))}
           <button type="submit" className="btn-press mt-2 h-11 bg-carbon text-sm font-semibold text-white transition-colors hover:bg-carbon-soft">
@@ -352,20 +360,17 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
             <p className="text-sm text-red-700">No hay tarifas para esta región. Prueba con otra comuna.</p>
           ) : null}
           {(rates.data ?? []).map((r) => (
-            <button
+            <label
               key={r.id}
-              type="button"
-              role="radio"
-              aria-checked={rateId === r.id}
-              onClick={() => setRateId(r.id)}
               className={`flex items-center justify-between rounded-lg border bg-white p-4 text-left ${rateId === r.id ? "border-zinc-900" : "border-zinc-300"}`}
             >
-              <span>
+              <input type="radio" name="shippingRate" value={r.id} checked={rateId === r.id} onChange={() => setRateId(r.id)} className="mr-3 h-5 w-5 shrink-0 accent-carbon" />
+              <span className="flex-1">
                 <span className="block font-semibold">{r.carrier}</span>
                 <span className="block text-xs text-muted">{r.eta_days_min ?? "?"}–{r.eta_days_max ?? "?"} días hábiles</span>
               </span>
               <span className="font-bold">{formatCLP(r.price_clp)}</span>
-            </button>
+            </label>
           ))}
           <label className="mt-2 flex flex-col gap-1 text-sm">
             <span className="text-muted">Cupón (opcional)</span>
@@ -375,7 +380,9 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 value={discountCode}
                 onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                 placeholder="BIENVENIDA10"
-                className="h-10 flex-1 border border-carbon/30 bg-ivory px-3 uppercase"
+                name="discountCode"
+                autoComplete="off"
+                className="h-11 min-w-0 flex-1 border border-carbon/30 bg-ivory px-3 uppercase"
               />
               <button type="button" onClick={() => setAppliedCode(discountCode.trim() || undefined)} className="border border-carbon/30 px-4 text-sm">
                 Aplicar
@@ -452,16 +459,13 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 </button>
               ) : null}
               {(providers.data?.providers ?? []).map((name) => (
-                <button
+                <label
                   key={name}
-                  type="button"
-                  role="radio"
-                  aria-checked={provider === name}
-                  onClick={() => setProvider(name)}
                   className={`rounded-lg border bg-white p-3 text-left text-sm ${provider === name ? "border-zinc-900 font-semibold" : "border-zinc-300"}`}
                 >
+                  <input type="radio" name="paymentProvider" value={name} checked={provider === name} onChange={() => setProvider(name)} className="mr-3 h-5 w-5 align-middle accent-carbon" />
                   {PROVIDER_LABEL[name] ?? name}
-                </button>
+                </label>
               ))}
             </div>
           )}

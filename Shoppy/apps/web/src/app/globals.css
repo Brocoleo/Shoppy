@@ -88,7 +88,8 @@ body {
 }
 
 /* Colapso reversible e interrumpible (menú móvil, panel de filtros). */
-.collapse {
+@layer components {
+.disclosure {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
@@ -96,13 +97,15 @@ body {
     grid-template-rows 360ms var(--ease-entrance),
     opacity 240ms var(--ease-standard);
 }
-.collapse-open {
+.disclosure-open {
   grid-template-rows: 1fr;
   opacity: 1;
 }
-.collapse > * {
+.disclosure > * {
   overflow: hidden;
   min-height: 0;
+}
+
 }
 
 /* Shimmer discreto para skeletons (dimensiones idénticas al contenido). */
@@ -143,4 +146,72 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Keep keyboard destinations clear of the sticky navigation. */
+#contenido, h1, h2 {
+  scroll-margin-top: 6rem;
+}
+
+/* Preserve readable controls without automatic zoom on mobile Safari. */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* La composición editorial mantiene texto y fotografías en el HTML inicial. */
+.editorial-hero { position: relative; display: grid; grid-template-columns: 1.12fr 1fr; min-height: 650px; isolation: isolate; }
+.editorial-copy { z-index: 2; align-self: start; padding-top: clamp(65px, 9vw, 125px); padding-right: 16px; }
+.editorial-title { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(3.5rem, 6.25vw, 5.8rem); line-height: .98; letter-spacing: -.065em; text-wrap: nowrap; }
+.editorial-title span, .editorial-title em { display: block; }
+.editorial-title em { font-weight: 400; }
+.editorial-link { display: inline-flex; align-items: center; justify-content: space-between; gap: 38px; min-height: 44px; border-bottom: 1px solid currentColor; font-size: 14px; }
+.editorial-link span { font-size: 25px; transition: transform 220ms var(--ease-standard); }
+.editorial-link:hover span { transform: translateX(5px); }
+.editorial-action { margin-top: 42px; }
+.editorial-main-photo { position: relative; min-height: 650px; background: var(--color-parchment); }
+.editorial-secondary-photo { position: absolute; width: 23%; height: 310px; left: 35%; bottom: 0; z-index: 3; background: var(--color-parchment); }
+@media (min-width: 768px) and (max-width: 1023px) {
+ .editorial-hero, .editorial-main-photo { min-height: 540px; }
+ .editorial-title { font-size: 5.8vw; }
+ .editorial-secondary-photo { height: 230px; }
+}
+@media (max-width: 767px) {
+ .editorial-hero { display: flex; flex-direction: column; min-height: 0; }
+ .editorial-copy { padding: 22px 0 28px; }
+ .editorial-title { font-size: clamp(2.4rem, 10.7vw, 4.9rem); line-height: 1.02; letter-spacing: -.06em; }
+ .editorial-action { margin-top: 20px; }
+ .editorial-main-photo { width: 100%; min-height: 0; height: clamp(300px, 96vw, 530px); }
+ .editorial-main-photo img { object-position: center 30%; }
+ .editorial-secondary-photo { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+ .editorial-title span { animation: editorial-enter 600ms var(--ease-entrance) both; }
+ .editorial-title em { animation: editorial-enter 600ms 70ms var(--ease-entrance) both; }
+ .editorial-action { animation: editorial-enter 500ms 140ms var(--ease-entrance) both; }
+ .editorial-main-photo { animation: editorial-enter 600ms 100ms var(--ease-entrance) both; }
+ .editorial-secondary-photo { animation: editorial-enter 500ms 200ms var(--ease-entrance) both; }
+}
+@keyframes editorial-enter { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cabecera compartida: catálogo y colecciones continúan la dirección editorial. */
+.listing-intro { display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 32px; padding: 12px 0 8px; }
+.listing-title { margin: 8px 0 18px; font-family: var(--font-display); font-size: clamp(4rem, 8vw, 7.5rem); font-weight: 400; line-height: .95; letter-spacing: -.065em; overflow-wrap: anywhere; }
+.listing-photo { position: relative; height: 220px; background: var(--color-parchment); }
+.listing-photo img { object-position: center top; }
+@media (max-width: 767px) {
+ .listing-intro { grid-template-columns: minmax(0, 1fr) 100px; gap: 16px; padding-top: 0; }
+ .listing-title { margin: 8px 0 14px; font-size: clamp(2.7rem, 11vw, 4.5rem); }
+ .listing-photo { height: 155px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+ .listing-title { animation: editorial-enter 500ms var(--ease-entrance) both; }
+ .listing-photo { animation: editorial-enter 550ms 80ms var(--ease-entrance) both; }
 }

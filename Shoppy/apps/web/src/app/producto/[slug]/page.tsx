@@ -18,80 +18,72 @@ const CONDITION_LABEL: Record<string, string> = {
 
 export default function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { add } = useCart();
+  const { add, ready } = useCart();
   const [added, setAdded] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(0);
   const product = useQuery({
     queryKey: ["web", "product", slug],
     queryFn: () => getProductBySlug(slug),
     enabled: isSupabaseConfigured,
   });
 
-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
+  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
   if (product.isPending) return <LoadingState message="Cargando prenda…" />;
   if (product.isError) return <ErrorState message={backendErrorMessage()} onRetry={() => product.refetch()} />;
   if (!product.data) return <ErrorState message="Esta prenda ya no está disponible." />;
 
   const p = product.data;
-  const images = p.remoteImages?.filter((i) => !i.isDefect) ?? [];
-  const cover = images[0]?.url ?? null;
-  const soldOut = p.stock <= 0;
+  const images = p.remoteImages ?? [];
+  const currentImage = images[selectedImage] ?? images[0];
+  const cover = currentImage?.url ?? null;
+  const soldOut = p.stock <= 0 || p.isDemo;
   const onSale = (p.compareAtPriceClp ?? 0) > p.priceClp;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 md:gap-10">
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-parchment">
-        {cover ? <Image src={cover} alt={p.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority /> : null}
-        {onSale && !soldOut ? (
-          <span className="absolute bottom-0 left-0 bg-carbon px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-ivory">
-            Oferta
-          </span>
-        ) : null}
-        {soldOut ? (
-          <span className="absolute inset-x-0 bottom-0 bg-carbon/80 py-1.5 text-center text-xs uppercase tracking-[0.14em] text-ivory">
-            Agotada
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">{p.brand}</p>
-          <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
-          <p className="mt-1.5 text-sm text-muted">
-            Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}
-            {p.color ? ` · ${p.color}` : ""}
-          </p>
+    <div className="grid min-w-0 gap-5 md:grid-cols-2 md:items-start md:gap-x-12 md:gap-y-6">
+      <div className="min-w-0 md:col-start-2 md:row-start-1">
+        <p className="text-sm text-muted">{p.isDemo ? "Producto de demostración · Imagen generada" : p.brand}</p>
+        <h1 className="mt-1 font-display text-3xl leading-tight tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
+        <p className="mt-2 text-sm text-muted">Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}{p.color ? ` · ${p.color}` : ""}</p>
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="tnum text-2xl font-semibold text-carbon sm:text-3xl">{formatCLP(p.priceClp)}</span>
+          {onSale ? <span className="tnum text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span> : null}
         </div>
-        <div className="flex items-baseline gap-3 border-y border-line py-3">
-          <span className="text-3xl font-bold text-carbon">{formatCLP(p.priceClp)}</span>
-          {onSale ? (
-            <span className="text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span>
-          ) : null}
-        </div>
-        <p className={`text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
-          {soldOut ? "Agotada" : p.stock === 1 ? "¡Última unidad!" : `Stock: ${p.stock}`}
+        <p className={`mt-2 text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
+          {p.isDemo ? "No disponible para compra · Precio ilustrativo" : soldOut ? "Agotada" : p.stock === 1 ? "Última unidad disponible" : `${p.stock} unidades disponibles`}
         </p>
-        {p.description ? <p className="text-sm leading-relaxed text-carbon/80">{p.description}</p> : null}
-        {p.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {p.tags.map((t) => (
-              <span key={t} className="bg-parchment px-2.5 py-1 text-xs text-muted">
-                #{t}
-              </span>
+      </div>
+
+      <div className="min-w-0 md:col-start-1 md:row-span-2 md:row-start-1">
+        <div className="relative h-[min(85vw,340px)] w-full overflow-hidden bg-parchment md:h-auto md:aspect-[3/4]">
+          {cover ? <Image src={cover} alt={`${p.name}${currentImage?.isDefect ? ": detalle del estado" : ""}`} fill sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1199px) 50vw, 528px" className="object-contain" priority /> : <p className="flex h-full items-center justify-center text-sm text-muted">Imagen no disponible</p>}
+          {onSale && !soldOut ? <span className="absolute bottom-3 left-3 bg-carbon px-3 py-1 text-xs text-ivory">Oferta</span> : null}
+        </div>
+        {images.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Fotos de la prenda">
+            {images.map((image, index) => (
+              <button key={image.url} type="button" aria-pressed={selectedImage === index} aria-label={`Ver foto ${index + 1}${image.isDefect ? ", detalle del estado" : ""}`} onClick={() => setSelectedImage(index)} className="relative h-16 w-14 overflow-hidden border-2 border-transparent bg-parchment aria-pressed:border-carbon">
+                <Image src={image.url} alt="" fill sizes="56px" className="object-contain" />
+                {image.isDefect ? <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-carbon py-0.5 text-[10px] text-ivory">Detalle</span> : null}
+              </button>
             ))}
           </div>
         ) : null}
-        <button
-          type="button"
-          disabled={soldOut}
-          onClick={() => {
-            add(p.id, 1);
-            setAdded(true);
-            setTimeout(() => setAdded(false), 2500);
-          }}
-          className="btn-press mt-2 h-12 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-40"
-        >
-          {soldOut ? "Agotada" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
+        <p role="status" className="mt-2 min-h-5 text-xs text-muted">{currentImage?.isDefect ? "Detalle del estado de la prenda" : images.length > 1 ? `Foto ${selectedImage + 1} de ${images.length}` : ""}</p>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-5 md:col-start-2 md:row-start-2">
+        <button type="button" disabled={soldOut || !ready} onClick={() => {
+          add(p.id, 1); setAdded(true); setTimeout(() => setAdded(false), 2500);
+        }} className="btn-press h-12 bg-carbon text-sm font-medium text-ivory hover:bg-carbon-soft disabled:opacity-40">
+          {p.isDemo ? "Producto de demostración" : soldOut ? "Agotada" : !ready ? "Cargando carrito…" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
         </button>
+        <p role="status" className="sr-only">{added ? "Prenda agregada al carrito" : ""}</p>
+        {p.description ? <section aria-labelledby="descripcion-prenda" className="border-t border-line pt-5">
+          <h2 id="descripcion-prenda" className="mb-2 text-sm font-semibold">Sobre esta prenda</h2>
+          <p className="break-words text-sm leading-relaxed text-carbon/80">{p.description}</p>
+        </section> : null}
+        {p.tags.length > 0 ? <ul aria-label="Etiquetas" className="flex flex-wrap gap-2">{p.tags.map((tag) => <li key={tag} className="bg-parchment px-3 py-1.5 text-xs text-muted">#{tag}</li>)}</ul> : null}
       </div>
     </div>
   );

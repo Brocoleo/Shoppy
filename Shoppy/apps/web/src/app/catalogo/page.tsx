@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { listBrands, listCategories, searchProducts, type ProductSort } from "../../lib/catalog";
+import { EditorialListingHeader } from "../../components/EditorialListingHeader";
 import { ProductGrid, ProductGridSkeleton } from "../../components/ProductCard";
 import { EmptyState, ErrorState, LoadingState, backendErrorMessage } from "../../components/States";
 import { isSupabaseConfigured } from "../../lib/supabase";
@@ -27,12 +28,19 @@ function CatalogoInner() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [q, setQ] = useState(params.get("q") ?? "");
-  const [query, setQuery] = useState(params.get("q") ?? "");
-  const [categoria, setCategoria] = useState(params.get("categoria") ?? "");
-  const [marca, setMarca] = useState(params.get("marca") ?? "");
-  const [orden, setOrden] = useState<ProductSort>((params.get("orden") as ProductSort) || "tendencia");
+  const query = params.get("q") ?? "";
+  const categoria = params.get("categoria") ?? "";
+  const marca = params.get("marca") ?? "";
+  const orden = SORTS.find((sort) => sort.value === params.get("orden"))?.value ?? "novedades";
+  const filterButton = useRef<HTMLButtonElement>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const restoreSearchFocus = useRef(false);
+  useEffect(() => {
+    if (restoreSearchFocus.current) {
+      document.getElementById("buscar-prenda")?.focus();
+      restoreSearchFocus.current = false;
+    }
+  }, [query, categoria, marca]);
 
   const filters = useMemo(
     () => ({
@@ -51,7 +59,7 @@ function CatalogoInner() {
   const categories = useQuery({ queryKey: ["web", "categories"], queryFn: listCategories, enabled: isSupabaseConfigured });
   const brands = useQuery({ queryKey: ["web", "brands"], queryFn: listBrands, enabled: isSupabaseConfigured });
 
-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
+  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
 
   /** Refleja el estado de filtros en la URL (reemplazo, sin recargar). */
   const syncUrl = (next: { query: string; categoria: string; marca: string; orden: ProductSort }) => {
@@ -59,50 +67,43 @@ function CatalogoInner() {
     if (next.query) sp.set("q", next.query);
     if (next.categoria) sp.set("categoria", next.categoria);
     if (next.marca) sp.set("marca", next.marca);
-    if (next.orden !== "tendencia") sp.set("orden", next.orden);
+    if (next.orden !== "novedades") sp.set("orden", next.orden);
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
   const applySearch = (value: string) => {
     const next = value.trim();
-    setQuery(next);
     syncUrl({ query: next, categoria, marca, orden });
   };
   const applyCategoria = (value: string) => {
-    setCategoria(value);
     syncUrl({ query, categoria: value, marca, orden });
   };
   const applyMarca = (value: string) => {
-    setMarca(value);
     syncUrl({ query, categoria, marca: value, orden });
   };
   const applyOrden = (value: ProductSort) => {
-    setOrden(value);
     syncUrl({ query, categoria, marca, orden: value });
   };
 
   const activeCount = (categoria ? 1 : 0) + (marca ? 1 : 0);
   const hasFilters = query !== "" || categoria !== "" || marca !== "";
   const clearFilters = () => {
-    setQ("");
-    setQuery("");
-    setCategoria("");
-    setMarca("");
+    restoreSearchFocus.current = true;
     syncUrl({ query: "", categoria: "", marca: "", orden });
   };
 
   const selects = (prefix: string) => (
     <>
       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
-        <label htmlFor={`${prefix}-categoria`} className="text-[11px] uppercase tracking-[0.18em] text-muted">
+        <label htmlFor={`${prefix}-categoria`} className="text-xs text-muted">
           Categoría
         </label>
         <select
           id={`${prefix}-categoria`}
           value={categoria}
           onChange={(e) => applyCategoria(e.target.value)}
-          className="h-10 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+          className="h-11 w-full border-b border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
         >
           <option value="">Todas</option>
           {(categories.data ?? []).map((c) => (
@@ -113,14 +114,14 @@ function CatalogoInner() {
         </select>
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
-        <label htmlFor={`${prefix}-marca`} className="text-[11px] uppercase tracking-[0.18em] text-muted">
+        <label htmlFor={`${prefix}-marca`} className="text-xs text-muted">
           Marca
         </label>
         <select
           id={`${prefix}-marca`}
           value={marca}
           onChange={(e) => applyMarca(e.target.value)}
-          className="h-10 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+          className="h-11 w-full border-b border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
         >
           <option value="">Todas</option>
           {(brands.data ?? []).map((b) => (
@@ -133,161 +134,90 @@ function CatalogoInner() {
     </>
   );
 
+  const activeFilters = [
+    ...(query ? [{ key: "query", label: `Búsqueda: ${query}`, remove: () => applySearch("") }] : []),
+    ...(categoria ? [{ key: "categoria", label: `Categoría: ${categories.data?.find((item) => item.slug === categoria)?.name ?? categoria}`, remove: () => applyCategoria("") }] : []),
+    ...(marca ? [{ key: "marca", label: `Marca: ${brands.data?.find((item) => item.slug === marca)?.name ?? marca}`, remove: () => applyMarca("") }] : []),
+  ];
+
   return (
-    <div className="flex flex-col gap-4 sm:gap-6">
-      <div className="border-b border-carbon/20 pb-3 sm:pb-4">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-taupe-deep">La tienda</p>
-        <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">Catálogo</h1>
-      </div>
+    <div className="flex flex-col gap-7 sm:gap-9">
+      <EditorialListingHeader title="Catálogo" image="secundario">
+        <p role="status" className="text-sm text-muted">
+          {results.isPending ? "Buscando prendas…" : results.isError ? "" : `${results.data.length} ${results.data.length === 1 ? "prenda" : "prendas"}`}
+        </p>
+      </EditorialListingHeader>
 
-      <form
-        role="search"
-        aria-label="Buscar prendas"
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          applySearch(q);
-        }}
-      >
-        <label htmlFor="buscar-prenda" className="sr-only">
-          Buscar prendas
-        </label>
-        <input
-          id="buscar-prenda"
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar: chaqueta, Levi's, vestido…"
-          autoComplete="off"
-          className="h-11 min-w-0 flex-1 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon"
-        />
-        <button
-          type="submit"
-          className="h-11 shrink-0 bg-carbon px-4 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft sm:px-5 sm:text-sm"
-        >
-          Buscar
-        </button>
-      </form>
+      <section aria-label="Buscar y filtrar prendas" className="flex flex-col gap-3 border-y border-line py-5">
+        <form role="search" aria-label="Buscar prendas" className="flex gap-2" onSubmit={(event) => {
+          event.preventDefault();
+          restoreSearchFocus.current = true;
+          applySearch(String(new FormData(event.currentTarget).get("q") ?? ""));
+        }}>
+          <label htmlFor="buscar-prenda" className="sr-only">Buscar prendas</label>
+          <input id="buscar-prenda" type="search" key={query} name="q" defaultValue={query} placeholder="Buscar prendas o marcas…" autoComplete="off" className="h-12 min-w-0 flex-1 border-b border-carbon/40 bg-ivory px-1 text-base text-carbon placeholder:text-muted focus:border-carbon" />
+          <button type="submit" className="btn-press h-12 shrink-0 border-b border-carbon px-4 text-sm font-medium text-carbon hover:bg-parchment">Buscar</button>
+        </form>
 
-      {/* Barra compacta móvil: Filtros + Ordenar */}
-      <div className="flex gap-2 sm:hidden">
-        <button
-          type="button"
-          aria-expanded={panelOpen}
-          aria-controls="panel-filtros"
-          onClick={() => setPanelOpen((v) => !v)}
-          className={`h-10 flex-1 border px-3 text-xs uppercase tracking-[0.12em] transition-colors ${panelOpen || activeCount > 0 ? "border-carbon bg-carbon text-ivory" : "border-carbon/30 text-carbon"}`}
-        >
-          Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
-        </button>
-        <span className="flex h-10 flex-1 items-center gap-1 border border-carbon/30 px-2">
-          <label htmlFor="orden-compacto" className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-muted">
-            Orden
-          </label>
-          <select
-            id="orden-compacto"
-            value={orden}
-            onChange={(e) => applyOrden(e.target.value as ProductSort)}
-            className="h-full min-w-0 flex-1 bg-transparent text-xs text-carbon"
-          >
-            {SORTS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </span>
-      </div>
-
-      {/* Panel de filtros móvil (colapsable y accesible) */}
-      <div className={`collapse sm:hidden ${panelOpen ? "collapse-open" : ""}`}>
-        <fieldset
-          id="panel-filtros"
-          inert={!panelOpen}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setPanelOpen(false);
-          }}
-          className="border border-line bg-parchment"
-        >
-          <legend className="sr-only">Filtrar por categoría y marca</legend>
-          <div className="flex gap-3 p-3">
-            {selects("panel-m")}
-          </div>
-        </fieldset>
-      </div>
-
-      {/* Filtros desktop */}
-      <fieldset className="hidden flex-wrap items-end gap-x-4 gap-y-3 sm:flex">
-        <legend className="sr-only">Filtrar y ordenar</legend>
-        {selects("filtro")}
-        <span className="flex flex-col gap-1">
-          <label htmlFor="filtro-orden" className="text-[11px] uppercase tracking-[0.18em] text-muted">
-            Orden
-          </label>
-          <select
-            id="filtro-orden"
-            value={orden}
-            onChange={(e) => applyOrden(e.target.value as ProductSort)}
-            className="h-10 border border-carbon/30 bg-ivory px-2 text-sm text-carbon"
-          >
-            {SORTS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </span>
-        {hasFilters ? (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="pb-2.5 text-sm text-muted underline underline-offset-4 hover:text-carbon"
-          >
-            Limpiar filtros
+        <div className="flex gap-2 sm:hidden">
+          <button type="button" ref={filterButton} aria-expanded={panelOpen} aria-controls="panel-filtros" onClick={() => setPanelOpen((value) => !value)} className={`h-11 flex-1 border px-3 text-sm transition-colors ${panelOpen || activeCount > 0 ? "border-carbon bg-carbon text-ivory" : "border-carbon/40 text-carbon"}`}>
+            Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
           </button>
-        ) : null}
-      </fieldset>
-      {hasFilters && panelOpen ? (
-        <button
-          type="button"
-          onClick={clearFilters}
-          className="self-start text-sm text-muted underline underline-offset-4 hover:text-carbon sm:hidden"
-        >
-          Limpiar filtros
-        </button>
-      ) : null}
+          <span className="flex h-11 min-w-0 flex-1 items-center gap-2 border border-carbon/40 px-2">
+            <label htmlFor="orden-compacto" className="text-xs text-muted">Orden</label>
+            <select id="orden-compacto" value={orden} onChange={(event) => applyOrden(event.target.value as ProductSort)} className="h-full min-w-0 flex-1 bg-ivory text-sm text-carbon">
+              {SORTS.map((sort) => <option key={sort.value} value={sort.value}>{sort.label}</option>)}
+            </select>
+          </span>
+        </div>
 
-      {results.isPending ? (
-        <ProductGridSkeleton />
-      ) : results.isError ? (
-        <ErrorState message={backendErrorMessage()} onRetry={() => results.refetch()} />
-      ) : results.data.length === 0 ? (
-        <EmptyState
-          message={
-            hasFilters
-              ? "Sin resultados con esos filtros. Prueba con otra búsqueda o limpia los filtros."
-              : "No hay prendas aquí por ahora."
-          }
-          action={
-            hasFilters ? (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="border border-carbon/30 px-4 py-2 text-sm uppercase tracking-[0.12em] text-carbon hover:border-carbon"
-              >
-                Limpiar filtros
+        <div className={`disclosure sm:hidden ${panelOpen ? "disclosure-open" : ""}`}>
+          <div>
+            <fieldset id="panel-filtros" inert={!panelOpen} onKeyDown={(event) => {
+              if (event.key === "Escape") { setPanelOpen(false); filterButton.current?.focus(); }
+            }} className="border border-line bg-parchment">
+              <legend className="sr-only">Filtrar por categoría y marca</legend>
+              <div className="flex gap-3 p-3">{selects("panel-m")}</div>
+            </fieldset>
+          </div>
+        </div>
+
+        <fieldset className="hidden flex-wrap items-end gap-3 sm:flex">
+          <legend className="sr-only">Filtrar y ordenar</legend>
+          {selects("filtro")}
+          <span className="flex flex-col gap-1">
+            <label htmlFor="filtro-orden" className="text-xs text-muted">Orden</label>
+            <select id="filtro-orden" value={orden} onChange={(event) => applyOrden(event.target.value as ProductSort)} className="h-11 border-b border-carbon/40 bg-ivory px-3 text-sm text-carbon">
+              {SORTS.map((sort) => <option key={sort.value} value={sort.value}>{sort.label}</option>)}
+            </select>
+          </span>
+        </fieldset>
+
+        {hasFilters ? (
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtros activos">
+            {activeFilters.map((filter) => (
+              <button key={filter.key} type="button" aria-label={`Quitar ${filter.label}`} onClick={() => {
+                restoreSearchFocus.current = true;
+                filter.remove();
+              }} className="inline-flex min-h-11 max-w-full items-center gap-3 border border-line bg-parchment px-3 py-2 text-left text-sm text-carbon hover:border-carbon">
+                <span className="min-w-0 break-words">{filter.label}</span>
+                <span aria-hidden="true" className="shrink-0 text-lg leading-none">×</span>
               </button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <>
-          <p role="status" className="text-sm text-muted">
-            {results.data.length} prenda(s)
-          </p>
-          <ProductGrid products={results.data} />
-        </>
-      )}
+            ))}
+            <button type="button" onClick={clearFilters} className="min-h-11 px-2 text-sm text-muted underline underline-offset-4 hover:text-carbon">Limpiar filtros</button>
+          </div>
+        ) : null}
+      </section>
+
+      <div aria-busy={results.isFetching}>
+        {results.isPending ? <ProductGridSkeleton /> : results.isError ? (
+          <ErrorState message={backendErrorMessage()} onRetry={() => results.refetch()} />
+        ) : results.data.length === 0 ? (
+          <EmptyState message={hasFilters ? "Sin resultados con esos filtros. Prueba con otra búsqueda o limpia los filtros." : "No hay prendas aquí por ahora."} action={hasFilters ? (
+            <button type="button" onClick={clearFilters} className="min-h-11 border border-carbon/40 px-4 py-2 text-sm text-carbon hover:border-carbon">Limpiar filtros</button>
+          ) : undefined} />
+        ) : <ProductGrid products={results.data} eager />}
+      </div>
     </div>
   );
 }

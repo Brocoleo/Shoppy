@@ -9,7 +9,7 @@ import { ErrorState, LoadingState, backendErrorMessage } from "../../components/
 import { isSupabaseConfigured } from "../../lib/supabase";
 
 export default function CarritoPage() {
-  const { lines, setQty, remove, clear } = useCart();
+  const { lines, ready, setQty, remove, clear } = useCart();
   const ids = lines.map((l) => l.productId);
   const key = [...ids].sort().join(",");
   const products = useQuery({
@@ -18,12 +18,14 @@ export default function CarritoPage() {
     enabled: isSupabaseConfigured && ids.length > 0,
   });
 
-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
+  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+
+  if (!ready) return <LoadingState message="Cargando tu carrito…" />;
 
   if (lines.length === 0) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-display text-2xl text-carbon">Tu carrito está vacío</p>
+        <h1 className="font-display text-3xl text-carbon">Tu carrito está vacío</h1>
         <p className="text-sm text-muted">Explora el catálogo: cada prenda es única.</p>
         <Link href="/catalogo" className="mt-1 bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
           Explorar catálogo
@@ -56,11 +58,11 @@ export default function CarritoPage() {
                 {p ? `${p.brand} · Talla ${p.size}` : "Ya no se puede comprar"}
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <button type="button" aria-label={`Quitar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty - 1)} className="h-8 w-8 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
+                <button type="button" aria-label={`Quitar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty - 1)} className="h-11 w-11 shrink-0 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
                   −
                 </button>
                 <span className="w-6 text-center text-sm text-carbon" role="status" aria-label="Cantidad">{l.qty}</span>
-                <button type="button" aria-label={`Agregar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty + 1)} className="h-8 w-8 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
+                <button type="button" aria-label={`Agregar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty + 1)} className="h-11 w-11 shrink-0 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
                   +
                 </button>
                 <button type="button" onClick={() => remove(l.productId)} className="ml-2 text-sm text-muted underline underline-offset-4 hover:text-carbon">

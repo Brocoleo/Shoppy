@@ -17,13 +17,13 @@ export default function PedidosPage() {
   });
 
   if (loading) return <LoadingState message="Cargando sesión…" />;
-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend." />;
+  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
   if (!user) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-display text-2xl text-carbon">Mis pedidos</p>
-        <p className="text-sm text-muted">Entra a tu cuenta para ver tus pedidos, o rastrea un pedido guest con tu código.</p>
-        <div className="flex gap-3 pt-1">
+        <h1 className="font-display text-3xl text-carbon">Mis pedidos</h1>
+        <p className="text-sm text-muted">Entra a tu cuenta para ver tus pedidos, o rastrea un pedido como visita con tu código.</p>
+        <div className="flex flex-wrap justify-center gap-3 pt-1">
           <Link href="/login" className="bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
             Entrar
           </Link>
@@ -39,7 +39,7 @@ export default function PedidosPage() {
   if (orders.data.length === 0) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-display text-2xl text-carbon">Aún no tienes pedidos</p>
+        <h1 className="font-display text-3xl text-carbon">Aún no tienes pedidos</h1>
         <Link href="/catalogo" className="mt-1 bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
           Explorar catálogo
         </Link>

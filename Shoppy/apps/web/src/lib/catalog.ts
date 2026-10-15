@@ -4,109 +4,45 @@
  * Catálogo web contra Supabase (puerto de SupabaseCatalogRepository móvil).
  * Lee con la anon key bajo RLS: solo catálogo publicado, sin ARCHIVED.
  */
-import type { ProductCondition } from "@shopy/types";
 import { getSupabase, publicImageUrl } from "./supabase";
 
-export interface RemoteImage {
-  url: string;
-  isDefect: boolean;
-}
-
-export interface CatalogProduct {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  brand: string;
-  brandSlug: string;
-  categorySlug: string;
-  subcategorySlug: string | null;
-  segment: string | null;
-  priceClp: number;
-  compareAtPriceClp: number | null;
-  condition: ProductCondition;
-  size: string;
-  color: string;
-  stock: number;
-  publishedAt: string;
-  tags: string[];
-  viewCount: number;
-  favoriteCount: number;
-  trendingScore: number;
-  isFeatured: boolean;
-  remoteImages?: RemoteImage[];
-}
-
-export interface CatalogCategory {
-  slug: string;
-  name: string;
-  parentSlug: string | null;
-}
-
-export interface CatalogCollection {
-  slug: string;
-  name: string;
-  productIds: string[];
-}
-
-export type ProductSort = "tendencia" | "novedades" | "precio-asc" | "precio-desc";
-
-export interface ProductFilters {
-  query?: string;
-  categorySlug?: string;
-  brandSlug?: string;
-  condition?: ProductCondition;
-  size?: string;
-  maxPriceClp?: number;
-}
-
-interface DbProductRow {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  brand_id: string | null;
-  category_id: string | null;
-  subcategory_id: string | null;
-  segment: string | null;
-  price_clp: number;
-  compare_at_price_clp: number | null;
-  condition: ProductCondition;
-  size: string | null;
-  color: string | null;
-  stock: number;
-  published_at: string | null;
-  tags: string[] | null;
-  view_count: number;
-  favorite_count: number;
-  trending_score: number | string;
-  is_featured: boolean;
-  brand: { slug: string; name: string } | null;
-  product_images: { storage_path: string; sort_order: number; is_cover: boolean; is_defect_detail: boolean }[] | null;
-}
-
-const PRODUCT_COLUMNS = [
-  "id", "slug", "name", "description", "brand_id", "category_id",
-  "subcategory_id", "segment", "price_clp", "compare_at_price_clp",
-  "condition", "size", "color", "stock", "published_at", "tags",
-  "view_count", "favorite_count", "trending_score", "is_featured",
-  "brand:brands(slug,name)",
-  "product_images(storage_path,sort_order,is_cover,is_defect_detail)",
-].join(",");
+import { mapProduct, PRODUCT_COLUMNS, type DbProductRow, type CatalogProduct, type CatalogCategory, type CatalogCollection, type ProductSort, type ProductFilters } from "./catalogProduct";
+export type { RemoteImage, CatalogProduct, CatalogCategory, CatalogCollection, ProductSort, ProductFilters } from "./catalogProduct";
 
 let categoriesCache: CatalogCategory[] | null = null;
 let brandsCache: { slug: string; name: string; id?: string }[] | null = null;
 const categoriesById = new Map<string, string>();
 const brandIdBySlug = new Map<string, string>();
 
+// Share taxonomy requests between the concurrent home/catalog queries.
+let taxonomyRequest: Promise<void> | null = null;
+
 async function taxonomy() {
+  if (categoriesCache && brandsCache) return;
+  if (!taxonomyRequest) {
+    taxonomyRequest = loadTaxonomy().finally(() => { taxonomyRequest = null; });
+  }
+  await taxonomyRequest;
+}
+
+async function loadTaxonomy() {
   const supabase = getSupabase();
-  if (!categoriesCache) {
-    const { data, error } = await supabase
-      .from("categories")
-      .select("id,slug,name,parent_id")
-      .eq("is_active", true)
-      .order("sort_order");
+  // En paralelo: antes eran 2 RTT secuenciales previos a cada consulta de
+  // productos (retrasa el descubrimiento de la imagen LCP del hero).
+  const [cats, brands] = await Promise.all([
+    categoriesCache
+      ? Promise.resolve(null)
+      : supabase
+          .from("categories")
+          .select("id,slug,name,parent_id")
+          .eq("is_active", true)
+          .order("sort_order"),
+    brandsCache !== null
+      ? Promise.resolve(null)
+      : supabase.from("brands").select("id,slug,name").order("name"),
+  ]);
+  if (cats) {
+    const { data, error } = cats;
     if (error) throw error;
     const idToSlug = new Map<string, string>();
     for (const c of data ?? []) idToSlug.set(c.id, c.slug);
@@ -118,11 +54,8 @@ async function taxonomy() {
       parentSlug: c.parent_id ? (idToSlug.get(c.parent_id) ?? null) : null,
     }));
   }
-  if (brandsCache === null) {
-    const { data, error } = await supabase
-      .from("brands")
-      .select("id,slug,name")
-      .order("name");
+  if (brands) {
+    const { data, error } = brands;
     if (error) throw error;
     brandsCache = data ?? [];
     brandIdBySlug.clear();
@@ -130,39 +63,8 @@ async function taxonomy() {
   }
 }
 
-function toImages(row: DbProductRow): RemoteImage[] | undefined {
-  const imgs = row.product_images;
-  if (!imgs || imgs.length === 0) return undefined;
-  return [...imgs]
-    .sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.sort_order - b.sort_order)
-    .map((i) => ({ url: publicImageUrl(i.storage_path), isDefect: i.is_defect_detail }));
-}
-
 function toProduct(row: DbProductRow): CatalogProduct {
-  return {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    description: row.description ?? "",
-    brand: row.brand?.name ?? "Sin marca",
-    brandSlug: row.brand?.slug ?? "",
-    categorySlug: (row.category_id && categoriesById.get(row.category_id)) ?? "",
-    subcategorySlug: (row.subcategory_id && categoriesById.get(row.subcategory_id)) ?? null,
-    segment: row.segment,
-    priceClp: row.price_clp,
-    compareAtPriceClp: row.compare_at_price_clp,
-    condition: row.condition,
-    size: row.size ?? "Única",
-    color: row.color ?? "",
-    stock: row.stock,
-    publishedAt: row.published_at ?? new Date(0).toISOString(),
-    tags: row.tags ?? [],
-    viewCount: row.view_count,
-    favoriteCount: row.favorite_count,
-    trendingScore: Number(row.trending_score),
-    isFeatured: row.is_featured,
-    remoteImages: toImages(row),
-  };
+  return mapProduct(row, categoriesById, publicImageUrl);
 }
 
 function sortSpec(sort: ProductSort): { column: string; ascending: boolean } {

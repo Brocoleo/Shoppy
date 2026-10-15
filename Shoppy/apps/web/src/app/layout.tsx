@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { WebQueryProvider } from "../lib/query";
 import { SessionProvider } from "../lib/session";
@@ -6,9 +6,18 @@ import { CartProvider } from "../lib/cart";
 import { Header } from "../components/Header";
 
 export const metadata: Metadata = {
-  title: "Shopy — Ropa de segunda mano",
+  title: { default: "Shopy — Ropa de segunda mano", template: "%s | Shopy" },
+  openGraph: {
+    siteName: "Shopy",
+    locale: "es_CL",
+    type: "website",
+    title: "Shopy — Ropa de segunda mano",
+    description: "Ropa de segunda mano verificada. Precios en CLP.",
+  },
   description: "Shopy: e-commerce chileno de ropa de segunda mano. Prendas únicas verificadas.",
 };
+
+export const viewport: Viewport = { themeColor: "#f8f7f4" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://evzlqwiipdjgtrqjlwba.supabase.co" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-full bg-ivory font-sans text-carbon antialiased">
+      <body className="flex min-h-dvh flex-col bg-ivory font-sans text-carbon antialiased">
         <WebQueryProvider>
           <SessionProvider>
             <CartProvider>
@@ -27,10 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Saltar al contenido
               </a>
               <Header />
-              <main id="contenido" className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6">{children}</main>
-              <footer className="bg-carbon text-ivory">
+              <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-[1440px] flex-1 px-5 pb-20 pt-3 sm:px-8 sm:pt-5 lg:px-14">{children}</main>
+              <footer className="mt-auto bg-carbon text-ivory">
                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-8 text-sm">
                   <p className="font-display text-lg tracking-wide">Shopy · Beta</p>
+                  <p className="text-xs text-ivory/70">Fotografías editoriales y productos demo con imágenes generadas.</p>
                   <p className="text-ivory/70">Ropa de segunda mano verificada · Precios en CLP · Despachos a todo Chile</p>
                 </div>
               </footer>

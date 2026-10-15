@@ -13,16 +13,16 @@ const CONDITION_LABEL: Record<string, string> = {
   con_detalles: "Con detalles",
 };
 
-export function ProductCard({ product }: { product: CatalogProduct }) {
+export function ProductCard({ product, eager = false }: { product: CatalogProduct; eager?: boolean }) {
   const cover = productCover(product);
   const onSale = (product.compareAtPriceClp ?? 0) > product.priceClp;
-  const soldOut = product.stock <= 0;
+  const soldOut = product.stock <= 0 || product.isDemo;
 
   return (
-    <li className="[content-visibility:auto]">
+    <li className="[content-visibility:auto] [contain-intrinsic-size:auto_420px]">
       <Link
         href={`/producto/${product.slug}`}
-        aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${soldOut ? ", agotada" : ""}`}
+        aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${product.isDemo ? ", producto de demostración, precio ilustrativo" : soldOut ? ", agotada" : ""}`}
         className="group flex h-full flex-col"
       >
         <span className="relative block aspect-[3/4] w-full overflow-hidden bg-parchment">
@@ -32,8 +32,8 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="card-zoom object-cover"
-              loading="lazy"
+              className="card-zoom object-contain"
+              loading={eager ? "eager" : "lazy"}
             />
           ) : null}
           {onSale && !soldOut ? (
@@ -41,22 +41,23 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
               Oferta
             </span>
           ) : null}
-          {soldOut ? (
+          {soldOut && !product.isDemo ? (
             <span className="absolute inset-x-0 bottom-0 bg-carbon/80 py-1.5 text-center text-xs uppercase tracking-[0.14em] text-ivory">
               Agotada
             </span>
           ) : null}
         </span>
-        <span className="flex flex-1 flex-col gap-0.5 pt-2.5">
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">{product.brand}</span>
-          <span className="line-clamp-2 min-h-[2.75em] font-display text-base leading-snug text-carbon">
+        <span className="flex flex-1 flex-col gap-1 pt-3">
+          {!product.isDemo ? <span className="text-xs text-muted">{product.brand}</span> : null}
+          <span className="line-clamp-2 font-display text-lg leading-snug sm:text-xl text-carbon">
             {product.name}
           </span>
-          <span className="text-xs text-muted">
+          {product.isDemo ? <span className="text-xs leading-relaxed text-muted">Producto de demostración · Imagen generada</span> : <span className="text-xs text-muted">
             Talla {product.size} · {CONDITION_LABEL[product.condition] ?? product.condition}
-          </span>
-          <span className="flex items-baseline gap-2 pt-0.5">
-            <span className="tnum text-[15px] font-bold text-carbon">{formatCLP(product.priceClp)}</span>
+          </span>}
+          <span className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-2">
+            <span className="tnum text-base font-semibold sm:text-lg text-carbon">{formatCLP(product.priceClp)}</span>
+            {product.isDemo ? <span className="text-xs text-muted">Precio ilustrativo</span> : null}
             {onSale ? (
               <span className="text-xs text-muted line-through">{formatCLP(product.compareAtPriceClp!)}</span>
             ) : null}
@@ -67,14 +68,14 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
   );
 }
 
-export function ProductGrid({ products }: { products: CatalogProduct[] }) {
+export function ProductGrid({ products, eager = false }: { products: CatalogProduct[]; eager?: boolean }) {
   if (products.length === 0) {
     return <EmptyState message="No hay prendas aquí por ahora." />;
   }
   return (
     <ul aria-label="Productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
-      {products.map((p) => (
-        <ProductCard key={p.id} product={p} />
+      {products.map((p, index) => (
+        <ProductCard key={p.id} product={p} eager={eager && index < 4} />
       ))}
     </ul>
   );
@@ -83,7 +84,7 @@ export function ProductGrid({ products }: { products: CatalogProduct[] }) {
 /** Esqueleto 3:4 con la misma retícula que el grid real (evita saltos de layout). */
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+    <div role="status" aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex flex-col">
           <div className="shimmer aspect-[3/4] w-full animate-shimmer" />
