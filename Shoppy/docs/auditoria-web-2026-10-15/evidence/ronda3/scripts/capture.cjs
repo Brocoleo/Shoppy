@@ -1,0 +1,36 @@
+const path = require('node:path');
+const evidence = process.env.AUDIT_OUTPUT || path.join(__dirname, '../results');
+require('node:fs').mkdirSync(evidence, { recursive: true });
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs = require('node:fs');
+(async () => {
+    const phase = process.argv[2];
+    const root = process.env.AUDIT_URL || 'http://127.0.0.1:3113';
+    const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/opt/google/chrome/chrome', args: ['--no-sandbox'] });
+    let report = [];
+    for (const [size, width, height] of [['mobile', 390, 844], ['desktop', 1440, 1000]]) {
+        const p = await b.newPage({ viewport: { width, height } });
+        p.on('pageerror', e => console.log('ERROR', e.message));
+        for (const [name, route, ready] of [['home', '/', 'main li a'], ['catalogo', '/catalogo', 'main li a'], ['ficha', '/producto/chaqueta-cuero-vintage', 'main button']]) {
+            await p.goto(root + route);
+            await p.locator(name === 'home' ? 'section[aria-labelledby=novedades-titulo] li a' : ready).first().waitFor();
+            await p.waitForTimeout(700);
+            await p.waitForFunction(() => [...document.images].filter(img => { const r = img.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; }).every(img => img.complete && img.naturalWidth > 0));
+            await p.screenshot({ path: `${evidence}/${phase}-${size}-${name}-viewport.png` });
+            await p.evaluate(() => document.querySelectorAll('li').forEach(e => { if (getComputedStyle(e).contentVisibility === 'auto')
+                e.style.contentVisibility = 'visible'; }));
+            for (let y = 0; y < await p.evaluate(() => document.body.scrollHeight); y += 700) {
+                await p.evaluate(y => scrollTo(0, y), y);
+                await p.waitForTimeout(80);
+            }
+            await p.evaluate(() => scrollTo(0, 0));
+            await p.waitForTimeout(700);
+            await p.screenshot({ path: `${evidence}/${phase}-${size}-${name}.png`, fullPage: true });
+            report.push({ size, route, title: await p.title(), overflow: await p.evaluate(() => document.documentElement.scrollWidth > innerWidth) });
+            console.log(phase, size, name);
+        }
+        await p.close();
+    }
+    fs.writeFileSync(`${evidence}/${phase}-screens.json`, JSON.stringify(report, null, 2));
+    await b.close();
+})().catch(e => { console.error(e); process.exit(1); });

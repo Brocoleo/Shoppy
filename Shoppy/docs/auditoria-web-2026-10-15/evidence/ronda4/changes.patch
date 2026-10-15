@@ -1,0 +1,394 @@
+--- before/apps/web/src/app/globals.css
++++ after/apps/web/src/app/globals.css
+@@ -165,3 +165,38 @@
+     outline-color: Highlight;
+   }
+ }
++
++/* La composición editorial mantiene texto y fotografías en el HTML inicial. */
++.editorial-hero { position: relative; display: grid; grid-template-columns: 1.12fr 1fr; min-height: 650px; isolation: isolate; }
++.editorial-copy { z-index: 2; align-self: start; padding-top: clamp(65px, 9vw, 125px); padding-right: 16px; }
++.editorial-title { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(3.5rem, 6.25vw, 5.8rem); line-height: .98; letter-spacing: -.065em; text-wrap: nowrap; }
++.editorial-title span, .editorial-title em { display: block; }
++.editorial-title em { font-weight: 400; }
++.editorial-link { display: inline-flex; align-items: center; justify-content: space-between; gap: 38px; min-height: 44px; border-bottom: 1px solid currentColor; font-size: 14px; }
++.editorial-link span { font-size: 25px; transition: transform 220ms var(--ease-standard); }
++.editorial-link:hover span { transform: translateX(5px); }
++.editorial-action { margin-top: 42px; }
++.editorial-main-photo { position: relative; min-height: 650px; background: var(--color-parchment); }
++.editorial-secondary-photo { position: absolute; width: 23%; height: 310px; left: 35%; bottom: 0; z-index: 3; background: var(--color-parchment); }
++@media (min-width: 768px) and (max-width: 1023px) {
++ .editorial-hero, .editorial-main-photo { min-height: 540px; }
++ .editorial-title { font-size: 5.8vw; }
++ .editorial-secondary-photo { height: 230px; }
++}
++@media (max-width: 767px) {
++ .editorial-hero { display: flex; flex-direction: column; min-height: 0; }
++ .editorial-copy { padding: 22px 0 28px; }
++ .editorial-title { font-size: clamp(2.4rem, 10.7vw, 4.9rem); line-height: 1.02; letter-spacing: -.06em; }
++ .editorial-action { margin-top: 20px; }
++ .editorial-main-photo { width: 100%; min-height: 0; height: clamp(300px, 96vw, 530px); }
++ .editorial-main-photo img { object-position: center 30%; }
++ .editorial-secondary-photo { display: none; }
++}
++@media (prefers-reduced-motion: no-preference) {
++ .editorial-title span { animation: editorial-enter 600ms var(--ease-entrance) both; }
++ .editorial-title em { animation: editorial-enter 600ms 70ms var(--ease-entrance) both; }
++ .editorial-action { animation: editorial-enter 500ms 140ms var(--ease-entrance) both; }
++ .editorial-main-photo { animation: editorial-enter 600ms 100ms var(--ease-entrance) both; }
++ .editorial-secondary-photo { animation: editorial-enter 500ms 200ms var(--ease-entrance) both; }
++}
++@keyframes editorial-enter { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+--- before/apps/web/src/app/layout.tsx
++++ after/apps/web/src/app/layout.tsx
+@@ -36,10 +36,11 @@
+                 Saltar al contenido
+               </a>
+               <Header />
+-              <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-8">{children}</main>
++              <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-[1440px] flex-1 px-5 pb-20 pt-3 sm:px-8 sm:pt-5 lg:px-14">{children}</main>
+               <footer className="mt-auto bg-carbon text-ivory">
+                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-8 text-sm">
+                   <p className="font-display text-lg tracking-wide">Shopy · Beta</p>
++                  <p className="text-xs text-ivory/70">Fotografías editoriales y productos demo con imágenes generadas.</p>
+                   <p className="text-ivory/70">Ropa de segunda mano verificada · Precios en CLP · Despachos a todo Chile</p>
+                 </div>
+               </footer>
+--- before/apps/web/src/app/producto/[slug]/page.tsx
++++ after/apps/web/src/app/producto/[slug]/page.tsx
+@@ -36,13 +36,13 @@
+   const images = p.remoteImages ?? [];
+   const currentImage = images[selectedImage] ?? images[0];
+   const cover = currentImage?.url ?? null;
+-  const soldOut = p.stock <= 0;
++  const soldOut = p.stock <= 0 || p.isDemo;
+   const onSale = (p.compareAtPriceClp ?? 0) > p.priceClp;
+ 
+   return (
+     <div className="grid min-w-0 gap-5 md:grid-cols-2 md:items-start md:gap-x-12 md:gap-y-6">
+       <div className="min-w-0 md:col-start-2 md:row-start-1">
+-        <p className="text-sm text-muted">{p.brand}</p>
++        <p className="text-sm text-muted">{p.isDemo ? "Producto de demostración · Imagen generada" : p.brand}</p>
+         <h1 className="mt-1 font-display text-3xl leading-tight tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
+         <p className="mt-2 text-sm text-muted">Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}{p.color ? ` · ${p.color}` : ""}</p>
+         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+@@ -50,7 +50,7 @@
+           {onSale ? <span className="tnum text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span> : null}
+         </div>
+         <p className={`mt-2 text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
+-          {soldOut ? "Agotada" : p.stock === 1 ? "Última unidad disponible" : `${p.stock} unidades disponibles`}
++          {p.isDemo ? "No disponible para compra · Precio ilustrativo" : soldOut ? "Agotada" : p.stock === 1 ? "Última unidad disponible" : `${p.stock} unidades disponibles`}
+         </p>
+       </div>
+ 
+@@ -76,7 +76,7 @@
+         <button type="button" disabled={soldOut || !ready} onClick={() => {
+           add(p.id, 1); setAdded(true); setTimeout(() => setAdded(false), 2500);
+         }} className="btn-press h-12 bg-carbon text-sm font-medium text-ivory hover:bg-carbon-soft disabled:opacity-40">
+-          {soldOut ? "Agotada" : !ready ? "Cargando carrito…" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
++          {p.isDemo ? "Producto de demostración" : soldOut ? "Agotada" : !ready ? "Cargando carrito…" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
+         </button>
+         <p role="status" className="sr-only">{added ? "Prenda agregada al carrito" : ""}</p>
+         {p.description ? <section aria-labelledby="descripcion-prenda" className="border-t border-line pt-5">
+--- before/apps/web/src/components/EditorialHero.tsx
++++ after/apps/web/src/components/EditorialHero.tsx
+@@ -1,42 +1,24 @@
+-"use client";
+-
+ import Image from "next/image";
+ import Link from "next/link";
+-import { productCover, type CatalogProduct } from "../lib/catalog";
+-import { formatCLP } from "../lib/format";
+ 
+-export function EditorialHero({ product }: { product: CatalogProduct | undefined }) {
+-  const cover = product ? productCover(product) : null;
++export function EditorialHero() {
+   return (
+-    <section aria-labelledby="hero-titulo" className={`grid overflow-hidden bg-carbon text-ivory ${cover ? "md:grid-cols-2" : ""}`}>
+-      <div className="flex flex-col justify-center gap-5 px-6 py-8 sm:p-10 md:min-h-[26rem] md:p-12">
+-        <p className="text-sm text-taupe">Segunda mano verificada</p>
+-        <h1 id="hero-titulo" className="max-w-sm font-display text-[2.65rem] leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
+-          Prendas únicas,<br />precios justos.
++    <section aria-labelledby="hero-titulo" className="editorial-hero">
++      <div className="editorial-copy">
++        <h1 id="hero-titulo" className="editorial-title">
++          <span>Prendas únicas,</span>
++          <em>precios justos.</em>
+         </h1>
+-        <p className="max-w-sm text-sm leading-relaxed text-ivory/80 sm:text-base">
+-          Prendas únicas verificadas. Si te gusta, no la dejes pasar.
+-        </p>
+-        <div className="flex flex-wrap items-center gap-3 pt-1">
+-          <Link href="/catalogo" className="btn-press inline-flex min-h-12 items-center justify-center bg-ivory px-6 text-sm font-medium text-carbon hover:bg-parchment">Explorar catálogo</Link>
+-          <Link href="/coleccion/ofertas" className="btn-press inline-flex min-h-12 items-center justify-center border border-ivory/50 px-5 text-sm text-ivory hover:border-ivory">Ver ofertas</Link>
+-        </div>
++        <Link href="/catalogo" className="editorial-link editorial-action">
++          Explorar prendas <span aria-hidden="true">⟶</span>
++        </Link>
+       </div>
+-      {cover && product ? (
+-        <Link href={`/producto/${product.slug}`} className="group relative flex min-w-0 items-center gap-4 bg-parchment p-4 text-carbon md:min-h-[26rem] md:p-0" aria-label={`Ver prenda destacada: ${product.name}, ${formatCLP(product.priceClp)}`}>
+-          <div className="relative h-24 w-20 shrink-0 overflow-hidden md:absolute md:inset-0 md:h-full md:w-full">
+-            <Image src={cover} alt="" fill priority sizes="(max-width: 767px) 80px, (max-width: 1199px) 50vw, 552px" className="object-contain transition-transform duration-200 motion-reduce:transition-none md:object-cover" />
+-          </div>
+-          <div className="flex min-w-0 flex-1 flex-col gap-1 md:absolute md:inset-x-4 md:bottom-4 md:bg-ivory/95 md:p-4">
+-            <p className="text-xs text-muted">Prenda destacada</p>
+-            <p className="font-display text-xl leading-tight group-hover:underline group-hover:underline-offset-4">{product.name}</p>
+-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+-              <span className="text-sm text-muted">{product.brand}</span>
+-              <span className="tnum text-lg font-semibold">{formatCLP(product.priceClp)}</span>
+-            </div>
+-          </div>
+-        </Link>
+-      ) : null}
++      <div className="editorial-main-photo">
++        <Image src="/images/editorial/modelo-principal.webp" alt="" fill priority sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1439px) calc(47.2vw - 53px), 627px" className="object-cover" />
++      </div>
++      <div className="editorial-secondary-photo">
++        <Image src="/images/editorial/modelo-secundario.webp" alt="" fill sizes="(max-width: 767px) 1px, (max-width: 1439px) 22vw, 306px" className="object-cover" />
++      </div>
+     </section>
+   );
+ }
+--- before/apps/web/src/components/Header.tsx
++++ after/apps/web/src/components/Header.tsx
+@@ -29,16 +29,16 @@
+       }}
+       className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur"
+     >
+-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
++      <div className="mx-auto flex w-full max-w-[1440px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-14">
+         <Link
+           href="/"
+           aria-label="Shopy, inicio"
+-          className="inline-flex min-h-11 items-center font-display text-2xl tracking-[0.18em] text-carbon"
++          className="inline-flex min-h-11 items-center font-display text-[2rem] tracking-[-0.07em] text-carbon"
+         >
+           SHOPY
+         </Link>
+ 
+-        <nav aria-label="Principal" className="hidden flex-1 items-center gap-6 text-sm md:flex">
++        <nav aria-label="Principal" className="hidden flex-1 items-center justify-center gap-8 text-sm md:flex">
+           {NAV.map((item) => (
+             <Link
+               key={item.href}
+@@ -56,7 +56,7 @@
+           href="/carrito"
+           aria-label={count > 0 ? `Carrito, ${count} prenda(s)` : "Carrito vacío"}
+           aria-current={pathname === "/carrito" ? "page" : undefined}
+-          className="inline-flex min-h-11 items-center rounded-full border border-carbon/30 px-3 py-1 text-sm text-carbon transition-colors hover:border-carbon"
++          className="inline-flex min-h-11 items-center px-2 py-1 text-sm text-carbon transition-colors hover:border-carbon"
+         >
+           Carrito{count > 0 ? ` (${count})` : ""}
+         </Link>
+@@ -72,7 +72,7 @@
+         ) : (
+           <Link
+             href="/login"
+-            className="hidden min-h-11 items-center bg-carbon px-4 py-1.5 text-sm font-medium text-ivory transition-colors hover:bg-carbon-soft sm:inline-flex"
++            className="hidden min-h-11 items-center px-2 py-1.5 text-sm text-carbon underline-offset-4 hover:underline sm:inline-flex"
+           >
+             Entrar
+           </Link>
+@@ -85,7 +85,7 @@
+           aria-controls="menu-movil"
+           aria-label={open ? "Cerrar menú" : "Abrir menú"}
+           onClick={() => setOpen((v) => !v)}
+-          className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded border border-carbon/30 text-carbon md:ml-0 md:hidden"
++          className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center text-carbon md:ml-0 md:hidden"
+         >
+           <span aria-hidden="true" className="relative block h-3.5 w-4">
+             <span
+--- before/apps/web/src/components/HomeContent.tsx
++++ after/apps/web/src/components/HomeContent.tsx
+@@ -33,24 +33,12 @@
+   if (!isSupabaseConfigured) {
+     return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+   }
+-  const withImage = (newcomers.data ?? []).find((p) => (p.remoteImages ?? []).some((i) => !i.isDefect));
+-  const hero = withImage ?? newcomers.data?.[0] ?? trending.data?.[0];
+   const parents = (categories.data ?? []).filter((c) => c.parentSlug === null);
+   const topBrands = (brands.data ?? []).slice(0, 8);
+ 
+   return (
+-    <div className="flex flex-col gap-6 sm:gap-10 md:gap-12">
+-      <EditorialHero product={hero} />
+-
+-      <nav aria-label="Categorías" className="flex min-h-24 flex-wrap content-start gap-2 sm:min-h-12">
+-        {categories.isPending ? Array.from({ length: 5 }, (_, index) => (
+-          <span key={index} aria-hidden="true" className="shimmer h-11 w-20 animate-shimmer rounded-full" />
+-        )) : parents.map((category) => (
+-          <Link key={category.slug} href={`/catalogo?categoria=${encodeURIComponent(category.slug)}`} className="inline-flex min-h-11 items-center rounded-full border border-carbon/25 px-5 text-sm text-carbon transition-colors hover:border-carbon hover:bg-carbon hover:text-ivory">
+-            {category.name}
+-          </Link>
+-        ))}
+-      </nav>
++    <div className="flex flex-col gap-12 sm:gap-16 md:gap-20">
++      <EditorialHero />
+ 
+       <Reveal>
+         <section aria-labelledby="novedades-titulo">
+@@ -59,7 +47,7 @@
+           id="novedades-titulo"
+           action={
+             <Link href="/catalogo?orden=novedades" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
+-              Ver novedades
++              Ver todo
+             </Link>
+           }
+         />
+@@ -69,9 +57,19 @@
+         </section>
+       </Reveal>
+ 
++      <nav aria-label="Categorías" className="flex flex-wrap items-center gap-x-7 gap-y-2 border-y border-line py-5">
++        {categories.isPending ? Array.from({ length: 5 }, (_, index) => (
++          <span key={index} aria-hidden="true" className="shimmer h-11 w-20 animate-shimmer" />
++        )) : parents.map((category) => (
++          <Link key={category.slug} href={`/catalogo?categoria=${encodeURIComponent(category.slug)}`} className="inline-flex min-h-11 items-center font-display text-2xl text-carbon underline-offset-8 hover:underline">
++            {category.name}
++          </Link>
++        ))}
++      </nav>
++
+       {offerProducts.data && offerProducts.data.length > 0 ? (
+         <Reveal>
+-          <section aria-labelledby="ofertas-titulo" className="bg-parchment p-4 sm:p-8">
++          <section aria-labelledby="ofertas-titulo" className="border-t border-line pt-8">
+           <SectionTitle
+             title={offers.data?.name ?? "Ofertas"}
+             id="ofertas-titulo"
+@@ -104,7 +102,7 @@
+               <li key={b.slug}>
+                 <Link
+                   href={`/catalogo?marca=${encodeURIComponent(b.slug)}`}
+-                  className="inline-flex min-h-11 items-center border border-carbon/30 px-4 py-1.5 text-sm text-carbon transition-colors hover:bg-carbon hover:text-ivory"
++                  className="inline-flex min-h-11 items-center px-3 py-1.5 text-sm text-carbon underline-offset-4 hover:underline"
+                 >
+                   {b.name}
+                 </Link>
+--- before/apps/web/src/components/ProductCard.tsx
++++ after/apps/web/src/components/ProductCard.tsx
+@@ -16,13 +16,13 @@
+ export function ProductCard({ product, eager = false }: { product: CatalogProduct; eager?: boolean }) {
+   const cover = productCover(product);
+   const onSale = (product.compareAtPriceClp ?? 0) > product.priceClp;
+-  const soldOut = product.stock <= 0;
++  const soldOut = product.stock <= 0 || product.isDemo;
+ 
+   return (
+     <li className="[content-visibility:auto] [contain-intrinsic-size:auto_420px]">
+       <Link
+         href={`/producto/${product.slug}`}
+-        aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${soldOut ? ", agotada" : ""}`}
++        aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${product.isDemo ? ", producto de demostración, precio ilustrativo" : soldOut ? ", agotada" : ""}`}
+         className="group flex h-full flex-col"
+       >
+         <span className="relative block aspect-[3/4] w-full overflow-hidden bg-parchment">
+@@ -41,22 +41,23 @@
+               Oferta
+             </span>
+           ) : null}
+-          {soldOut ? (
++          {soldOut && !product.isDemo ? (
+             <span className="absolute inset-x-0 bottom-0 bg-carbon/80 py-1.5 text-center text-xs uppercase tracking-[0.14em] text-ivory">
+               Agotada
+             </span>
+           ) : null}
+         </span>
+         <span className="flex flex-1 flex-col gap-1 pt-3">
+-          <span className="text-xs text-muted">{product.brand}</span>
++          {!product.isDemo ? <span className="text-xs text-muted">{product.brand}</span> : null}
+           <span className="line-clamp-2 font-display text-lg leading-snug sm:text-xl text-carbon">
+             {product.name}
+           </span>
+-          <span className="text-xs text-muted">
++          {product.isDemo ? <span className="text-xs leading-relaxed text-muted">Producto de demostración · Imagen generada</span> : <span className="text-xs text-muted">
+             Talla {product.size} · {CONDITION_LABEL[product.condition] ?? product.condition}
+-          </span>
++          </span>}
+           <span className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-2">
+             <span className="tnum text-base font-semibold sm:text-lg text-carbon">{formatCLP(product.priceClp)}</span>
++            {product.isDemo ? <span className="text-xs text-muted">Precio ilustrativo</span> : null}
+             {onSale ? (
+               <span className="text-xs text-muted line-through">{formatCLP(product.compareAtPriceClp!)}</span>
+             ) : null}
+--- before/apps/web/src/components/States.tsx
++++ after/apps/web/src/components/States.tsx
+@@ -47,8 +47,8 @@
+ 
+ export function SectionTitle({ title, action, id }: { title: string; action?: ReactNode; id?: string }) {
+   return (
+-    <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-carbon/20 pb-2">
+-      <h2 id={id} className="font-display text-2xl tracking-tight text-carbon sm:text-3xl">{title}</h2>
++    <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
++      <h2 id={id} className="font-display text-3xl tracking-tight text-carbon sm:text-4xl">{title}</h2>
+       {action}
+     </div>
+   );
+--- before/apps/web/src/lib/catalogProduct.test.ts
++++ after/apps/web/src/lib/catalogProduct.test.ts
+@@ -25,6 +25,13 @@
+     assert.equal(product.trendingScore, 1.5);
+     assert.deepEqual(product.remoteImages, [{ url: "/images/cover.png", isDefect: false }, { url: "/images/detail.png", isDefect: true }]);
+   });
++  it("identifies only explicit demo metadata and preserves real stock", () => {
++    const demo = mapProduct({ ...row, metadata: { demo: true }, stock: 0 }, new Map(), p => p);
++    assert.equal(demo.isDemo, true);
++    assert.equal(demo.stock, 0);
++    assert.equal(mapProduct({ ...row, metadata: { demo: "true" } }, new Map(), p => p).isDemo, false);
++    assert.equal(mapProduct(row, new Map(), p => p).isDemo, false);
++  });
+   it("supports the initial home without taxonomy and keeps client defaults", () => {
+     const product = mapProduct({ ...row, brand: null, product_images: null, published_at: null }, new Map(), (path) => path);
+     assert.equal(product.categorySlug, "");
+--- before/apps/web/src/lib/catalogProduct.ts
++++ after/apps/web/src/lib/catalogProduct.ts
+@@ -27,6 +27,7 @@
+   favoriteCount: number;
+   trendingScore: number;
+   isFeatured: boolean;
++  isDemo?: boolean;
+   remoteImages?: RemoteImage[];
+ }
+ 
+@@ -74,6 +75,7 @@
+   favorite_count: number;
+   trending_score: number | string;
+   is_featured: boolean;
++  metadata?: Record<string, unknown> | null;
+   brand: { slug: string; name: string } | null;
+   product_images: { storage_path: string; sort_order: number; is_cover: boolean; is_defect_detail: boolean }[] | null;
+ }
+@@ -82,7 +84,7 @@
+   "id", "slug", "name", "description", "brand_id", "category_id",
+   "subcategory_id", "segment", "price_clp", "compare_at_price_clp",
+   "condition", "size", "color", "stock", "published_at", "tags",
+-  "view_count", "favorite_count", "trending_score", "is_featured",
++  "view_count", "favorite_count", "trending_score", "is_featured", "metadata",
+   "brand:brands(slug,name)",
+   "product_images(storage_path,sort_order,is_cover,is_defect_detail)",
+ ].join(",");
+@@ -118,6 +120,7 @@
+     favoriteCount: row.favorite_count,
+     trendingScore: Number(row.trending_score),
+     isFeatured: row.is_featured,
++    isDemo: row.metadata?.demo === true,
+     remoteImages: toImages(row, imageUrl),
+   };
+ }
+--- before/eslint.config.js
++++ after/eslint.config.js
+@@ -20,6 +20,12 @@
+     languageOptions: { globals: globals.node },
+   },
+   {
++    // Los scripts de auditoría ejecutan Node y funciones dentro de Chrome.
++    files: ["docs/auditoria-web-*/**/*.{cjs,mjs}"],
++    languageOptions: { globals: { ...globals.node, ...globals.browser, axe: "readonly" } },
++    rules: { "@typescript-eslint/no-require-imports": "off" },
++  },
++  {
+     rules: {
+       "@typescript-eslint/no-explicit-any": "error",
+       "@typescript-eslint/no-unused-vars": [

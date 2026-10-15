@@ -1,0 +1,22 @@
+{
+  "base": "http://localhost:3001",
+  "results": {
+    "carrito-vacio": "PASS",
+    "persistencia-recarga": "PASS (Carrito, 2 prenda(s))",
+    "datos-invalidos": "PASS",
+    "tab-skip-primero": "PASS (a[#contenido]: Saltar al contenido)",
+    "tab-llega-nav": "PASS (a[/catalogo]: CATÁLOGO)"
+  },
+  "tabOrder": [
+    "a[#contenido]: Saltar al contenido",
+    "a[/]: Shopy, inicio",
+    "a[/catalogo]: CATÁLOGO",
+    "a[/coleccion/ofertas]: OFERTAS",
+    "a[/pedidos]: MIS PEDIDOS",
+    "a[/carrito]: Carrito vacío",
+    "a[/login]: ENTRAR",
+    "a[/producto/chaleco-tommy-hilfiger]: Ver prenda destacada: Chalec",
+    "a[/catalogo]: VER CATÁLOGO",
+    "a[/coleccion/ofertas]: VER OFERTAS"
+  ]
+}

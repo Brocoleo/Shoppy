@@ -1,0 +1,8 @@
+const path = require('node:path');
+const evidence = process.env.AUDIT_OUTPUT || path.join(__dirname, '../results');
+require('node:fs').mkdirSync(evidence, { recursive: true });
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+(async () => { const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/opt/google/chrome/chrome', args: ['--no-sandbox'] }); const c = await b.newContext(); await c.addInitScript(() => { const original = Storage.prototype.getItem; localStorage.setItem('shopy-cart-guest', JSON.stringify([{ productId: 'preserve-me', qty: 2 }])); window.__readPersistedCart = () => original.call(localStorage, 'shopy-cart-guest'); Storage.prototype.getItem = function (key) { if (key.startsWith('shopy-cart-'))
+    throw new DOMException('Read blocked', 'SecurityError'); return original.call(this, key); }; }); const p = await c.newPage(); await p.goto('http://127.0.0.1:3113/producto/chaqueta-cuero-vintage'); await p.getByRole('button', { name: 'Agregar al carrito', exact: true }).click(); await p.getByRole('link', { name: 'Carrito, 1 prenda(s)' }).waitFor(); const stored = await p.evaluate(() => window.__readPersistedCart()); console.log('Persisted cart after failed read:', stored); assert.deepEqual(JSON.parse(stored), [{ productId: 'preserve-me', qty: 2 }]); fs.writeFileSync(path.join(evidence, 'storage-read-failure.json'), JSON.stringify({ preservedUnreadData: true, memoryCartUsable: true }, null, 2)); await b.close(); })().catch(e => { console.error(e); process.exit(1); });

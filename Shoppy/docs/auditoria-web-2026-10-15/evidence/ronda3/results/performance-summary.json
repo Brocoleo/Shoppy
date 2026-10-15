@@ -1,0 +1,90 @@
+{
+  "before": {
+    "runs": [
+      {
+        "run": 1,
+        "performance": 84,
+        "lcpMs": 3741.036875,
+        "tbtMs": 248.50000000000023,
+        "cls": 0,
+        "lcpElement": "Chaleco Tommy Hilfiger",
+        "lcpSnippet": "<img alt=\"Chaleco Tommy Hilfiger\" decoding=\"async\" data-nimg=\"fill\" class=\"object-cover\" sizes=\"(max-width: 768px) 100vw, 50vw\" srcset=\"/_next/image?url=https%3A%2F%2Fevzlqwiipdjgtrqjlwba.supabase.co%2Fstorage%…\" src=\"http://127.0.0.1:3113/_next/image?url=https%3A%2F%2Fevzlqwiipdjgtrqjlwba.s…\" style=\"position: absolute; height: 100%; width: 100%; inset: 0px;\">"
+      },
+      {
+        "run": 2,
+        "performance": 86,
+        "lcpMs": 3579.6996000000004,
+        "tbtMs": 220.6910750000004,
+        "cls": 0,
+        "lcpElement": "Chaleco Tommy Hilfiger",
+        "lcpSnippet": "<img alt=\"Chaleco Tommy Hilfiger\" decoding=\"async\" data-nimg=\"fill\" class=\"object-cover\" sizes=\"(max-width: 768px) 100vw, 50vw\" srcset=\"/_next/image?url=https%3A%2F%2Fevzlqwiipdjgtrqjlwba.supabase.co%2Fstorage%…\" src=\"http://127.0.0.1:3113/_next/image?url=https%3A%2F%2Fevzlqwiipdjgtrqjlwba.s…\" style=\"position: absolute; height: 100%; width: 100%; inset: 0px;\">"
+      },
+      {
+        "run": 3,
+        "performance": 84,
+        "lcpMs": 3606.250399999999,
+        "tbtMs": 289.58679999999947,
+        "cls": 0,
+        "lcpElement": "Chaleco Tommy Hilfiger",
+        "lcpSnippet": "<img alt=\"Chaleco Tommy Hilfiger\" decoding=\"async\" data-nimg=\"fill\" class=\"object-cover\" sizes=\"(max-width: 768px) 100vw, 50vw\" srcset=\"/_next/image?url=https%3A%2F%2Fevzlqwiipdjgtrqjlwba.supabase.co%2Fstorage%…\" src=\"http://127.0.0.1:3113/_next/image?url=https%3A%2F%2Fevzlqwiipdjgtrqjlwba.s…\" style=\"position: absolute; height: 100%; width: 100%; inset: 0px;\">"
+      }
+    ],
+    "median": {
+      "performance": 84,
+      "lcpMs": 3606.250399999999,
+      "tbtMs": 248.50000000000023,
+      "cls": 0
+    }
+  },
+  "after": {
+    "runs": [
+      {
+        "run": 1,
+        "performance": 95,
+        "lcpMs": 2085.7702499999996,
+        "tbtMs": 235.50000000000045,
+        "cls": 0,
+        "lcpElement": "Prendas únicas,\nprecios justos.",
+        "lcpSnippet": "<h1 id=\"hero-titulo\" class=\"max-w-sm font-display text-[2.65rem] leading-[1.04] tracking-tight sm:text…\">"
+      },
+      {
+        "run": 2,
+        "performance": 95,
+        "lcpMs": 1787.5461,
+        "tbtMs": 258.4999999999998,
+        "cls": 0,
+        "lcpElement": "Prendas únicas,\nprecios justos.",
+        "lcpSnippet": "<h1 id=\"hero-titulo\" class=\"max-w-sm font-display text-[2.65rem] leading-[1.04] tracking-tight sm:text…\">"
+      },
+      {
+        "run": 3,
+        "performance": 94,
+        "lcpMs": 1934.82975,
+        "tbtMs": 257,
+        "cls": 0,
+        "lcpElement": "Prendas únicas,\nprecios justos.",
+        "lcpSnippet": "<h1 id=\"hero-titulo\" class=\"max-w-sm font-display text-[2.65rem] leading-[1.04] tracking-tight sm:text…\">"
+      }
+    ],
+    "median": {
+      "performance": 95,
+      "lcpMs": 1934.82975,
+      "tbtMs": 257,
+      "cls": 0
+    }
+  },
+  "method": {
+    "tool": "Lighthouse 13.5.0",
+    "url": "http://127.0.0.1:3113",
+    "throttling": {
+      "rttMs": 150,
+      "throughputKbps": 1638.4,
+      "requestLatencyMs": 562.5,
+      "downloadThroughputKbps": 1474.5600000000002,
+      "uploadThroughputKbps": 675,
+      "cpuSlowdownMultiplier": 4
+    },
+    "formFactor": "mobile",
+    "notes": "Three serial runs per version; no concurrent browser tests. Lab-local, not field data."
+  }
+}

@@ -1,0 +1,81 @@
+▲ Next.js 16.3.6
+- Local:         http://127.0.0.1:3113
+- Network:       http://127.0.0.1:3113
+✓ Ready in 165ms
+✓ Running next.config.ts took 44ms
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '1079535285'
+}

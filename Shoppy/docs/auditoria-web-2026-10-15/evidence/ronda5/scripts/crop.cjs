@@ -1,0 +1,2 @@
+const sharp=require('/home/leandro/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/sharp');
+(async()=>{for(const phase of ['before','after'])for(const [device,width,height] of [['mobile',390,844],['desktop',1440,1000]])for(const name of ['catalogo','ofertas'])await sharp(`/tmp/shopy-r5/evidence/${phase}-${device}-${name}.png`).extract({left:0,top:0,width,height}).toFile(`/tmp/shopy-r5/evidence/${phase}-${device}-${name}-viewport.png`)})();

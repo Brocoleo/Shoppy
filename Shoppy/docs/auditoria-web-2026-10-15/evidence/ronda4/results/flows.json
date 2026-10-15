@@ -1,0 +1,33 @@
+{
+  "checks": [
+    "Menu Escape closes and restores focus",
+    "Removing one chip preserves other filters",
+    "Removed chip restores focus to search",
+    "Filter Escape returns focus",
+    "Browser history updates filters",
+    "Search has empty state and reset",
+    "Mobile product heading precedes gallery",
+    "Defect photo labelled",
+    "Invalid checkout focuses first field",
+    "Shipping keyboard radio selection",
+    "Skip link focuses main",
+    "Reduced motion respected",
+    "No overflow 320px /",
+    "No overflow 320px /catalogo",
+    "No overflow 320px /producto/chaqueta-cuero-vintage",
+    "No overflow 320px /login",
+    "No overflow 320px /carrito",
+    "No overflow 768px /",
+    "No overflow 768px /catalogo",
+    "No overflow 768px /producto/chaqueta-cuero-vintage",
+    "No overflow 768px /login",
+    "No overflow 768px /carrito",
+    "No overflow 1440px /",
+    "No overflow 1440px /catalogo",
+    "No overflow 1440px /producto/chaqueta-cuero-vintage",
+    "No overflow 1440px /login",
+    "No overflow 1440px /carrito",
+    "No uncaught browser exceptions"
+  ],
+  "errors": []
+}

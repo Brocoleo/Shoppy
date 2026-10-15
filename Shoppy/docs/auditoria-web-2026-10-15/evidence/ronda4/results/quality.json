@@ -1,0 +1,66 @@
+{
+  "checks": [
+    "No-JS HTML contains eight newcomers and priority hero image",
+    "No duplicate newcomers browser fetch at 390",
+    "Expanded mobile filters hidden after desktop resize",
+    "Removing search chip by keyboard focuses new input",
+    "No duplicate newcomers browser fetch at 1440"
+  ],
+  "axe": [
+    {
+      "width": 390,
+      "route": "/",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "route": "/catalogo",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "route": "/producto/chaqueta-cuero-vintage",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "route": "/carrito",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "route": "/login",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "route": "menu and filters expanded",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/catalogo",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/producto/chaqueta-cuero-vintage",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/carrito",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/login",
+      "violations": []
+    }
+  ]
+}

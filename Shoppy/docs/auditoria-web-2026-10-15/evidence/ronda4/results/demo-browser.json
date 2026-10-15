@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "Initial home contains eight demo garments",
+    "Primary model image is eager and secondary model is lazy",
+    "Secondary photo absent from mobile layout",
+    "Hero image and preload in initial HTML",
+    "Demo product cannot be added",
+    "Demo product disclosure and illustrative price visible",
+    "Demo ficha axe clean",
+    "Editorial entrance disabled for reduced motion",
+    "Editorial entrance present for standard motion",
+    "Secondary photo visible on desktop",
+    "Secondary photo does not obscure .editorial-title",
+    "Secondary photo does not obscure .editorial-action",
+    "Demo catalogue searchable"
+  ],
+  "axe": []
+}

@@ -1,0 +1,96 @@
+[
+  {
+    "phase": "after",
+    "size": "mobile",
+    "route": "/",
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ],
+    "overflow": false,
+    "title": "Shopy — Ropa de segunda mano"
+  },
+  {
+    "phase": "after",
+    "size": "mobile",
+    "route": "/catalogo",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Catálogo | Shopy"
+  },
+  {
+    "phase": "after",
+    "size": "mobile",
+    "route": "/login",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Entrar | Shopy"
+  },
+  {
+    "phase": "after",
+    "size": "mobile",
+    "route": "/pedidos",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Mis pedidos | Shopy"
+  },
+  {
+    "phase": "after",
+    "size": "mobile",
+    "route": "/producto/chaqueta-cuero-vintage",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Shopy — Ropa de segunda mano"
+  },
+  {
+    "phase": "after",
+    "size": "desktop",
+    "route": "/",
+    "violations": [],
+    "incomplete": [
+      "color-contrast"
+    ],
+    "overflow": false,
+    "title": "Shopy — Ropa de segunda mano"
+  },
+  {
+    "phase": "after",
+    "size": "desktop",
+    "route": "/catalogo",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Catálogo | Shopy"
+  },
+  {
+    "phase": "after",
+    "size": "desktop",
+    "route": "/login",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Entrar | Shopy"
+  },
+  {
+    "phase": "after",
+    "size": "desktop",
+    "route": "/pedidos",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Mis pedidos | Shopy"
+  },
+  {
+    "phase": "after",
+    "size": "desktop",
+    "route": "/producto/chaqueta-cuero-vintage",
+    "violations": [],
+    "incomplete": [],
+    "overflow": false,
+    "title": "Shopy — Ropa de segunda mano"
+  }
+]

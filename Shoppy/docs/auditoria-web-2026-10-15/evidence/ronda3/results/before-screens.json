@@ -1,0 +1,38 @@
+[
+  {
+    "size": "mobile",
+    "route": "/",
+    "title": "Shopy — Ropa de segunda mano",
+    "overflow": false
+  },
+  {
+    "size": "mobile",
+    "route": "/catalogo",
+    "title": "Catálogo | Shopy",
+    "overflow": false
+  },
+  {
+    "size": "mobile",
+    "route": "/producto/chaqueta-cuero-vintage",
+    "title": "Chaqueta de cuero vintage · Vintage / Sin marca · Shopy | Shopy",
+    "overflow": false
+  },
+  {
+    "size": "desktop",
+    "route": "/",
+    "title": "Shopy — Ropa de segunda mano",
+    "overflow": false
+  },
+  {
+    "size": "desktop",
+    "route": "/catalogo",
+    "title": "Catálogo | Shopy",
+    "overflow": false
+  },
+  {
+    "size": "desktop",
+    "route": "/producto/chaqueta-cuero-vintage",
+    "title": "Chaqueta de cuero vintage · Vintage / Sin marca · Shopy | Shopy",
+    "overflow": false
+  }
+]

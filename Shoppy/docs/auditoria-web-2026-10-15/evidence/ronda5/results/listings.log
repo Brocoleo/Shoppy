@@ -1,0 +1,22 @@
+PASS Catalogue defaults to newest
+PASS New demo imagery visible first
+PASS Explicit trending survives reload
+PASS Newest is the canonical default URL
+PASS Filters preserve newest sorting
+PASS Editorial image 320 /catalogo
+PASS No overflow 320 /catalogo
+PASS Editorial image 320 /coleccion/ofertas
+PASS No overflow 320 /coleccion/ofertas
+PASS Editorial image 390 /catalogo
+PASS No overflow 390 /catalogo
+PASS Editorial image 390 /coleccion/ofertas
+PASS No overflow 390 /coleccion/ofertas
+PASS Editorial image 768 /catalogo
+PASS No overflow 768 /catalogo
+PASS Editorial image 768 /coleccion/ofertas
+PASS No overflow 768 /coleccion/ofertas
+PASS Editorial image 1440 /catalogo
+PASS No overflow 1440 /catalogo
+PASS Editorial image 1440 /coleccion/ofertas
+PASS No overflow 1440 /coleccion/ofertas
+PASS Reduced motion respected in collections

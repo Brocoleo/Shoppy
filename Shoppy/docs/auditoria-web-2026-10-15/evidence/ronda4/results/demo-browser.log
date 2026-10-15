@@ -1,0 +1,13 @@
+PASS Initial home contains eight demo garments
+PASS Primary model image is eager and secondary model is lazy
+PASS Secondary photo absent from mobile layout
+PASS Hero image and preload in initial HTML
+PASS Demo product cannot be added
+PASS Demo product disclosure and illustrative price visible
+PASS Demo ficha axe clean
+PASS Editorial entrance disabled for reduced motion
+PASS Editorial entrance present for standard motion
+PASS Secondary photo visible on desktop
+PASS Secondary photo does not obscure .editorial-title
+PASS Secondary photo does not obscure .editorial-action
+PASS Demo catalogue searchable

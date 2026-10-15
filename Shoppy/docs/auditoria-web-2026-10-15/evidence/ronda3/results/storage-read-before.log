@@ -1,0 +1,21 @@
+Persisted cart after failed read: [{"productId":"d0000000-0000-4000-8000-000000000018","qty":1}]
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    {
++     productId: 'd0000000-0000-4000-8000-000000000018',
++     qty: 1
+-     productId: 'preserve-me',
+-     qty: 2
+    }
+  ]
+
+    at /tmp/shopy-r3/storage-read-failure.cjs:2:902 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [Array],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}

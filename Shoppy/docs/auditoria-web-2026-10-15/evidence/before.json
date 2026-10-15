@@ -1,0 +1,772 @@
+[
+  {
+    "name": "mobile",
+    "route": "/",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCarrito\nChaleco Tommy Hilfiger\nDESTACADO · TOMMY HILFIGER\n$16.990\n\nSEGUNDA MANO VERIFICADA\n\nPrendas únicas,\nprecios justos.\n\nPrendas únicas verificadas. Si te gusta, no la dejes pasar.\n\nVER CATÁLOGO\nVER OFERTAS\nCategorías\n01\nMujer\n→\n02\nHombre\n→\n03\nAccesorios\n→\n04\nOfertas\n→\n05\nNovedades\n→\nNovedades\nVer todas\nOFERTA\nTOMMY HILFIGER\nChaleco Tommy Hilfiger\nTalla L · Como nuevo\n$16.990\n$22.990\nLEVI'S\nShorts de jean Levi's\nTalla S · Bueno\n$10.990\nVINTAGE / SIN MARCA\nChaqueta de cuero vintage\nTalla M · Con detalles\n$39.990\nLACOSTE\nCamisa Lacoste oxford\nTalla M · Excelente\n$21.990\nPUMA\nPolera Puma esencial\nTalla XL · Bueno\n$7.990\nVINTAGE / SIN MARCA\nPañuelo de seda estampado\nTalla Única · Excelente\n$4.990\nOfertas\nVer colección\nTendencia\nMarcas\nAdidas\nGap\nH&M\nLacoste\nLevi's\nMango\nNike\nPuma\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [
+      "Prendas únicas,precios justos.",
+      "Categorías",
+      "Novedades",
+      "Ofertas",
+      "Tendencia",
+      "Marcas"
+    ],
+    "links": [
+      {
+        "text": "Chaleco Tommy HilfigerDestacado · Tommy Hilfiger$16.990",
+        "href": "/producto/chaleco-tommy-hilfiger"
+      },
+      {
+        "text": "Ver catálogo",
+        "href": "/catalogo"
+      },
+      {
+        "text": "Ver ofertas",
+        "href": "/coleccion/ofertas"
+      },
+      {
+        "text": "01Mujer→",
+        "href": "/catalogo?categoria=mujer"
+      },
+      {
+        "text": "02Hombre→",
+        "href": "/catalogo?categoria=hombre"
+      },
+      {
+        "text": "03Accesorios→",
+        "href": "/catalogo?categoria=accesorios"
+      },
+      {
+        "text": "04Ofertas→",
+        "href": "/catalogo?categoria=ofertas"
+      },
+      {
+        "text": "05Novedades→",
+        "href": "/catalogo?categoria=novedades"
+      },
+      {
+        "text": "Ver todas",
+        "href": "/catalogo?orden=novedades"
+      },
+      {
+        "text": "OfertaTommy HilfigerChaleco Tommy HilfigerTalla L · Como nuevo$16.990$22.990",
+        "href": "/producto/chaleco-tommy-hilfiger"
+      },
+      {
+        "text": "Levi'sShorts de jean Levi'sTalla S · Bueno$10.990",
+        "href": "/producto/shorts-jean-levis"
+      },
+      {
+        "text": "Vintage / Sin marcaChaqueta de cuero vintageTalla M · Con detalles$39.990",
+        "href": "/producto/chaqueta-cuero-vintage"
+      },
+      {
+        "text": "LacosteCamisa Lacoste oxfordTalla M · Excelente$21.990",
+        "href": "/producto/camisa-lacoste-oxford"
+      },
+      {
+        "text": "PumaPolera Puma esencialTalla XL · Bueno$7.990",
+        "href": "/producto/polera-puma-esencial"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "",
+        "h": 36
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 12,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "route": "/catalogo",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCarrito\n\nLA TIENDA\n\nCatálogo\nBuscar prendas\nBUSCAR\nFILTROS\nORDEN\nTendencia\nNovedades\nMenor precio\nMayor precio\n\n20 prenda(s)\n\nADIDAS\nPolerón Adidas con capucha\nTalla M · Excelente\n$19.990\nOFERTA\nLEVI'S\nChaqueta trucker Levi's\nTalla M · Como nuevo\n$34.990\n$44.990\nOFERTA\nZARA\nVestido Zara midi\nTalla S · Como nuevo\n$17.990\n$24.990\nVINTAGE / SIN MARCA\nChaqueta de cuero vintage\nTalla M · Con detalles\n$39.990\nVINTAGE / SIN MARCA\nCartera de cuero genuino\nTalla Única · Excelente\n$24.990\nOFERTA\nTOMMY HILFIGER\nChaleco Tommy Hilfiger\nTalla L · Como nuevo\n$16.990\n$22.990\nLEVI'S\nJeans Levi's 501\nTalla 28 · Bueno\n$18.990\nOFERTA\nGAP\nParka Gap impermeable\nTalla L · Excelente\n$29.990\n$39.990\nZARA\nBlazer Zara sastrero\nTalla M · Como nuevo\n$22.990\nNIKE\nPolera Nike Dry-Fit\nTalla L · Excelente\n$12.990\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [
+      "Catálogo"
+    ],
+    "links": [
+      {
+        "text": "AdidasPolerón Adidas con capuchaTalla M · Excelente$19.990",
+        "href": "/producto/poleron-adidas-capucha"
+      },
+      {
+        "text": "OfertaLevi'sChaqueta trucker Levi'sTalla M · Como nuevo$34.990$44.990",
+        "href": "/producto/chaqueta-trucker-levis"
+      },
+      {
+        "text": "OfertaZaraVestido Zara midiTalla S · Como nuevo$17.990$24.990",
+        "href": "/producto/vestido-zara-midi"
+      },
+      {
+        "text": "Vintage / Sin marcaChaqueta de cuero vintageTalla M · Con detalles$39.990",
+        "href": "/producto/chaqueta-cuero-vintage"
+      },
+      {
+        "text": "Vintage / Sin marcaCartera de cuero genuinoTalla Única · Excelente$24.990",
+        "href": "/producto/cartera-cuero-genuino"
+      },
+      {
+        "text": "OfertaTommy HilfigerChaleco Tommy HilfigerTalla L · Como nuevo$16.990$22.990",
+        "href": "/producto/chaleco-tommy-hilfiger"
+      },
+      {
+        "text": "Levi'sJeans Levi's 501Talla 28 · Bueno$18.990",
+        "href": "/producto/jeans-levis-501"
+      },
+      {
+        "text": "OfertaGapParka Gap impermeableTalla L · Excelente$29.990$39.990",
+        "href": "/producto/parka-gap-impermeable"
+      },
+      {
+        "text": "ZaraBlazer Zara sastreroTalla M · Como nuevo$22.990",
+        "href": "/producto/blazer-zara-sastrero"
+      },
+      {
+        "text": "NikePolera Nike Dry-FitTalla L · Excelente$12.990",
+        "href": "/producto/polera-nike-dryfit"
+      },
+      {
+        "text": "LacosteCamisa Lacoste oxfordTalla M · Excelente$21.990",
+        "href": "/producto/camisa-lacoste-oxford"
+      },
+      {
+        "text": "Vintage / Sin marcaSweater de lana vintageTalla S · Con detalles$9.990",
+        "href": "/producto/sweater-lana-vintage"
+      },
+      {
+        "text": "WranglerJeans Wrangler rectosTalla 32 · Bueno$14.990",
+        "href": "/producto/jeans-wrangler-rectos"
+      },
+      {
+        "text": "Levi'sShorts de jean Levi'sTalla S · Bueno$10.990",
+        "href": "/producto/shorts-jean-levis"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "",
+        "h": 36
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      },
+      {
+        "text": "Filtros",
+        "h": 40
+      }
+    ],
+    "images": 6,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "route": "/carrito",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCarrito\n\nTu carrito está vacío\n\nExplora el catálogo: cada prenda es única.\n\nEXPLORAR CATÁLOGO\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [],
+    "links": [
+      {
+        "text": "Explorar catálogo",
+        "href": "/catalogo"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "",
+        "h": 36
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 0,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "route": "/login",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCarrito\n\nTU CUENTA\n\nEntrar\n\n¿No tienes cuenta? Regístrate\n\nEMAIL\nCONTRASEÑA\nENTRAR\nSeguir comprando como visita\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [
+      "Entrar"
+    ],
+    "links": [
+      {
+        "text": "Seguir comprando como visita",
+        "href": "/catalogo"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "",
+        "h": 36
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      },
+      {
+        "text": "Regístrate",
+        "h": 20
+      }
+    ],
+    "images": 0,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "route": "/pedidos",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCarrito\n\nMis pedidos\n\nEntra a tu cuenta para ver tus pedidos, o rastrea un pedido guest con tu código.\n\nENTRAR\nRASTREAR PEDIDO\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [],
+    "links": [
+      {
+        "text": "Entrar",
+        "href": "/login"
+      },
+      {
+        "text": "Rastrear pedido",
+        "href": "/pedido/guest"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "",
+        "h": 36
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 0,
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "route": "/",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCATÁLOGO\nOFERTAS\nMIS PEDIDOS\nCarrito\nENTRAR\nChaleco Tommy Hilfiger\nDESTACADO · TOMMY HILFIGER\n$16.990\n\nSEGUNDA MANO VERIFICADA\n\nPrendas únicas,\nprecios justos.\n\nPrendas únicas verificadas. Si te gusta, no la dejes pasar.\n\nVER CATÁLOGO\nVER OFERTAS\nCategorías\n01\nMujer\n→\n02\nHombre\n→\n03\nAccesorios\n→\n04\nOfertas\n→\n05\nNovedades\n→\nNovedades\nVer todas\nOFERTA\nTOMMY HILFIGER\nChaleco Tommy Hilfiger\nTalla L · Como nuevo\n$16.990\n$22.990\nLEVI'S\nShorts de jean Levi's\nTalla S · Bueno\n$10.990\nVINTAGE / SIN MARCA\nChaqueta de cuero vintage\nTalla M · Con detalles\n$39.990\nLACOSTE\nCamisa Lacoste oxford\nTalla M · Excelente\n$21.990\nPUMA\nPolera Puma esencial\nTalla XL · Bueno\n$7.990\nVINTAGE / SIN MARCA\nPañuelo de seda estampado\nTalla Única · Excelente\n$4.990\nZARA\nBlazer Zara sastrero\nTalla M · Como nuevo\n$22.990\nVINTAGE / SIN MARCA\nFalda de denim vintage\nTalla S · Con detalles\n$7.990\nOfertas\nVer colección\nOFERTA\nLEVI'S\nChaqueta trucker Levi's\nTalla M · Como nuevo\n$34.990\n$44.990\nOFERTA\nZARA\nVestido Zara midi\nTalla S · Como nuevo\n$17.990\n$24.990\nOFERTA\nGAP\nParka Gap impermeable\nTalla L · Excelente\n$29.990\n$39.990\nOFERTA\nTOMMY HILFIGER\nChaleco Tommy Hilfiger\nTalla L · Como nuevo\n$16.990\n$22.990\nTendencia\nMarcas\nAdidas\nGap\nH&M\nLacoste\nLevi's\nMango\nNike\nPuma\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [
+      "Prendas únicas,precios justos.",
+      "Categorías",
+      "Novedades",
+      "Ofertas",
+      "Tendencia",
+      "Marcas"
+    ],
+    "links": [
+      {
+        "text": "Chaleco Tommy HilfigerDestacado · Tommy Hilfiger$16.990",
+        "href": "/producto/chaleco-tommy-hilfiger"
+      },
+      {
+        "text": "Ver catálogo",
+        "href": "/catalogo"
+      },
+      {
+        "text": "Ver ofertas",
+        "href": "/coleccion/ofertas"
+      },
+      {
+        "text": "01Mujer→",
+        "href": "/catalogo?categoria=mujer"
+      },
+      {
+        "text": "02Hombre→",
+        "href": "/catalogo?categoria=hombre"
+      },
+      {
+        "text": "03Accesorios→",
+        "href": "/catalogo?categoria=accesorios"
+      },
+      {
+        "text": "04Ofertas→",
+        "href": "/catalogo?categoria=ofertas"
+      },
+      {
+        "text": "05Novedades→",
+        "href": "/catalogo?categoria=novedades"
+      },
+      {
+        "text": "Ver todas",
+        "href": "/catalogo?orden=novedades"
+      },
+      {
+        "text": "OfertaTommy HilfigerChaleco Tommy HilfigerTalla L · Como nuevo$16.990$22.990",
+        "href": "/producto/chaleco-tommy-hilfiger"
+      },
+      {
+        "text": "Levi'sShorts de jean Levi'sTalla S · Bueno$10.990",
+        "href": "/producto/shorts-jean-levis"
+      },
+      {
+        "text": "Vintage / Sin marcaChaqueta de cuero vintageTalla M · Con detalles$39.990",
+        "href": "/producto/chaqueta-cuero-vintage"
+      },
+      {
+        "text": "LacosteCamisa Lacoste oxfordTalla M · Excelente$21.990",
+        "href": "/producto/camisa-lacoste-oxford"
+      },
+      {
+        "text": "PumaPolera Puma esencialTalla XL · Bueno$7.990",
+        "href": "/producto/polera-puma-esencial"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 20
+      },
+      {
+        "text": "Ofertas",
+        "h": 20
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 20
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "Entrar",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 3,
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "route": "/catalogo",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCATÁLOGO\nOFERTAS\nMIS PEDIDOS\nCarrito\nENTRAR\n\nLA TIENDA\n\nCatálogo\nBuscar prendas\nBUSCAR\nFiltrar y ordenar\nCATEGORÍA\nTodas\nMujer\nVestidos\nChaquetas\nPoleras\nJeans\nHombre\nPolerones\nCamisas\nJeans\nPoleras\nAccesorios\nCarteras\nCinturones\nPañuelos\nOfertas\nNovedades\nMARCA\nTodas\nAdidas\nGap\nH&M\nLacoste\nLevi's\nMango\nNike\nPuma\nTommy Hilfiger\nVintage / Sin marca\nWrangler\nZara\nORDEN\nTendencia\nNovedades\nMenor precio\nMayor precio\n\n20 prenda(s)\n\nADIDAS\nPolerón Adidas con capucha\nTalla M · Excelente\n$19.990\nOFERTA\nLEVI'S\nChaqueta trucker Levi's\nTalla M · Como nuevo\n$34.990\n$44.990\nOFERTA\nZARA\nVestido Zara midi\nTalla S · Como nuevo\n$17.990\n$24.990\nVINTAGE / SIN MARCA\nChaqueta de cuero vintage\nTalla M · Con detalles\n$39.990\nVINTAGE / SIN MARCA\nCartera de cuero genuino\nTalla Única · Excelente\n$24.990\nOFERTA\nTOMMY HILFIGER\nChaleco Tommy Hilfiger\nTalla L · Como nuevo\n$16.990\n$22.990\nLEVI'S\nJeans Levi's 501\nTalla 28 · Bueno\n$18.990\nOFERTA\nGAP\nParka Gap impermeable\nTalla L · Excelente\n$29.990\n$39.990\nZARA\nBlazer Zara sastrero\nTalla M · Como nuevo\n$22.990\nNIKE\nPolera Nike Dry-Fit\nTalla L · Excelente\n$12.990\nLACOSTE\nCamisa Lacoste oxford\nTalla M · Excelente\n$21.990\nVINTAGE / SIN MARCA\nSweater de lana vintage\nTalla S · Con detalles\n$9.990\nWRANGLER\nJeans Wrangler rectos\nTalla 32 · Bueno\n$14.990\nLEVI'S\nShorts de jean Levi's\nTalla S · Bueno\n$10.990\nMANGO\nCamisa Mango de lino\nTalla M · Excelente\n$13.990\nH&M\nVestido H&M floral\nTalla XS · Bueno\n$8.990\nVINTAGE / SIN MARCA\nFalda de denim vintage\nTalla S · Con detalles\n$7.990\nPUMA\nPolera Puma esencial\nTalla XL · Bueno\n$7.990\nVINTAGE / SIN MARCA\nCinturón de cuero trenzado\nTalla M · Bueno\n$6.990\nVINTAGE / SIN MARCA\nPañuelo de seda estampado\nTalla Única · Excelente\n$4.990\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [
+      "Catálogo"
+    ],
+    "links": [
+      {
+        "text": "AdidasPolerón Adidas con capuchaTalla M · Excelente$19.990",
+        "href": "/producto/poleron-adidas-capucha"
+      },
+      {
+        "text": "OfertaLevi'sChaqueta trucker Levi'sTalla M · Como nuevo$34.990$44.990",
+        "href": "/producto/chaqueta-trucker-levis"
+      },
+      {
+        "text": "OfertaZaraVestido Zara midiTalla S · Como nuevo$17.990$24.990",
+        "href": "/producto/vestido-zara-midi"
+      },
+      {
+        "text": "Vintage / Sin marcaChaqueta de cuero vintageTalla M · Con detalles$39.990",
+        "href": "/producto/chaqueta-cuero-vintage"
+      },
+      {
+        "text": "Vintage / Sin marcaCartera de cuero genuinoTalla Única · Excelente$24.990",
+        "href": "/producto/cartera-cuero-genuino"
+      },
+      {
+        "text": "OfertaTommy HilfigerChaleco Tommy HilfigerTalla L · Como nuevo$16.990$22.990",
+        "href": "/producto/chaleco-tommy-hilfiger"
+      },
+      {
+        "text": "Levi'sJeans Levi's 501Talla 28 · Bueno$18.990",
+        "href": "/producto/jeans-levis-501"
+      },
+      {
+        "text": "OfertaGapParka Gap impermeableTalla L · Excelente$29.990$39.990",
+        "href": "/producto/parka-gap-impermeable"
+      },
+      {
+        "text": "ZaraBlazer Zara sastreroTalla M · Como nuevo$22.990",
+        "href": "/producto/blazer-zara-sastrero"
+      },
+      {
+        "text": "NikePolera Nike Dry-FitTalla L · Excelente$12.990",
+        "href": "/producto/polera-nike-dryfit"
+      },
+      {
+        "text": "LacosteCamisa Lacoste oxfordTalla M · Excelente$21.990",
+        "href": "/producto/camisa-lacoste-oxford"
+      },
+      {
+        "text": "Vintage / Sin marcaSweater de lana vintageTalla S · Con detalles$9.990",
+        "href": "/producto/sweater-lana-vintage"
+      },
+      {
+        "text": "WranglerJeans Wrangler rectosTalla 32 · Bueno$14.990",
+        "href": "/producto/jeans-wrangler-rectos"
+      },
+      {
+        "text": "Levi'sShorts de jean Levi'sTalla S · Bueno$10.990",
+        "href": "/producto/shorts-jean-levis"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 20
+      },
+      {
+        "text": "Ofertas",
+        "h": 20
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 20
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "Entrar",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 1,
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "route": "/carrito",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCATÁLOGO\nOFERTAS\nMIS PEDIDOS\nCarrito\nENTRAR\n\nTu carrito está vacío\n\nExplora el catálogo: cada prenda es única.\n\nEXPLORAR CATÁLOGO\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [],
+    "links": [
+      {
+        "text": "Explorar catálogo",
+        "href": "/catalogo"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 20
+      },
+      {
+        "text": "Ofertas",
+        "h": 20
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 20
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "Entrar",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 0,
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "route": "/login",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCATÁLOGO\nOFERTAS\nMIS PEDIDOS\nCarrito\nENTRAR\n\nTU CUENTA\n\nEntrar\n\n¿No tienes cuenta? Regístrate\n\nEMAIL\nCONTRASEÑA\nENTRAR\nSeguir comprando como visita\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [
+      "Entrar"
+    ],
+    "links": [
+      {
+        "text": "Seguir comprando como visita",
+        "href": "/catalogo"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 20
+      },
+      {
+        "text": "Ofertas",
+        "h": 20
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 20
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "Entrar",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      },
+      {
+        "text": "Regístrate",
+        "h": 20
+      }
+    ],
+    "images": 0,
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "route": "/pedidos",
+    "title": "Shopy — Ropa de segunda mano",
+    "text": "Saltar al contenido\nSHOPY\nCATÁLOGO\nOFERTAS\nMIS PEDIDOS\nCarrito\nENTRAR\n\nMis pedidos\n\nEntra a tu cuenta para ver tus pedidos, o rastrea un pedido guest con tu código.\n\nENTRAR\nRASTREAR PEDIDO\n\nShopy · Beta\n\nRopa de segunda mano verificada · Precios en CLP · Despachos a todo Chile",
+    "overflow": false,
+    "headings": [],
+    "links": [
+      {
+        "text": "Entrar",
+        "href": "/login"
+      },
+      {
+        "text": "Rastrear pedido",
+        "href": "/pedido/guest"
+      }
+    ],
+    "smallTargets": [
+      {
+        "text": "SHOPY",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 20
+      },
+      {
+        "text": "Ofertas",
+        "h": 20
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 20
+      },
+      {
+        "text": "Carrito",
+        "h": 30
+      },
+      {
+        "text": "Entrar",
+        "h": 32
+      },
+      {
+        "text": "Catálogo",
+        "h": 36
+      },
+      {
+        "text": "Ofertas",
+        "h": 36
+      },
+      {
+        "text": "Mis pedidos",
+        "h": 36
+      },
+      {
+        "text": "Entrar",
+        "h": 36
+      }
+    ],
+    "images": 0,
+    "errors": []
+  }
+]

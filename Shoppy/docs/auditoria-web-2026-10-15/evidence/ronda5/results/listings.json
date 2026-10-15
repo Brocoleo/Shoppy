@@ -1,0 +1,48 @@
+{
+  "checks": [
+    "Catalogue defaults to newest",
+    "New demo imagery visible first",
+    "Explicit trending survives reload",
+    "Newest is the canonical default URL",
+    "Filters preserve newest sorting",
+    "Editorial image 320 /catalogo",
+    "No overflow 320 /catalogo",
+    "Editorial image 320 /coleccion/ofertas",
+    "No overflow 320 /coleccion/ofertas",
+    "Editorial image 390 /catalogo",
+    "No overflow 390 /catalogo",
+    "Editorial image 390 /coleccion/ofertas",
+    "No overflow 390 /coleccion/ofertas",
+    "Editorial image 768 /catalogo",
+    "No overflow 768 /catalogo",
+    "Editorial image 768 /coleccion/ofertas",
+    "No overflow 768 /coleccion/ofertas",
+    "Editorial image 1440 /catalogo",
+    "No overflow 1440 /catalogo",
+    "Editorial image 1440 /coleccion/ofertas",
+    "No overflow 1440 /coleccion/ofertas",
+    "Reduced motion respected in collections"
+  ],
+  "axe": [
+    {
+      "width": 390,
+      "route": "/catalogo",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "route": "/coleccion/ofertas",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/catalogo",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "route": "/coleccion/ofertas",
+      "violations": []
+    }
+  ]
+}

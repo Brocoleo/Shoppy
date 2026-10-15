@@ -1,0 +1,162 @@
+--- before/apps/web/src/app/catalogo/page.tsx
++++ after/apps/web/src/app/catalogo/page.tsx
+@@ -4,6 +4,7 @@
+ import { useQuery } from "@tanstack/react-query";
+ import { usePathname, useRouter, useSearchParams } from "next/navigation";
+ import { listBrands, listCategories, searchProducts, type ProductSort } from "../../lib/catalog";
++import { EditorialListingHeader } from "../../components/EditorialListingHeader";
+ import { ProductGrid, ProductGridSkeleton } from "../../components/ProductCard";
+ import { EmptyState, ErrorState, LoadingState, backendErrorMessage } from "../../components/States";
+ import { isSupabaseConfigured } from "../../lib/supabase";
+@@ -30,7 +31,7 @@
+   const query = params.get("q") ?? "";
+   const categoria = params.get("categoria") ?? "";
+   const marca = params.get("marca") ?? "";
+-  const orden = SORTS.find((sort) => sort.value === params.get("orden"))?.value ?? "tendencia";
++  const orden = SORTS.find((sort) => sort.value === params.get("orden"))?.value ?? "novedades";
+   const filterButton = useRef<HTMLButtonElement>(null);
+   const [panelOpen, setPanelOpen] = useState(false);
+   const restoreSearchFocus = useRef(false);
+@@ -66,7 +67,7 @@
+     if (next.query) sp.set("q", next.query);
+     if (next.categoria) sp.set("categoria", next.categoria);
+     if (next.marca) sp.set("marca", next.marca);
+-    if (next.orden !== "tendencia") sp.set("orden", next.orden);
++    if (next.orden !== "novedades") sp.set("orden", next.orden);
+     const qs = sp.toString();
+     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+   };
+@@ -102,7 +103,7 @@
+           id={`${prefix}-categoria`}
+           value={categoria}
+           onChange={(e) => applyCategoria(e.target.value)}
+-          className="h-11 w-full border border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
++          className="h-11 w-full border-b border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+         >
+           <option value="">Todas</option>
+           {(categories.data ?? []).map((c) => (
+@@ -120,7 +121,7 @@
+           id={`${prefix}-marca`}
+           value={marca}
+           onChange={(e) => applyMarca(e.target.value)}
+-          className="h-11 w-full border border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
++          className="h-11 w-full border-b border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+         >
+           <option value="">Todas</option>
+           {(brands.data ?? []).map((b) => (
+@@ -140,23 +141,22 @@
+   ];
+ 
+   return (
+-    <div className="flex flex-col gap-4 sm:gap-5">
+-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+-        <h1 className="font-display text-4xl tracking-tight text-carbon sm:text-5xl">Catálogo</h1>
++    <div className="flex flex-col gap-7 sm:gap-9">
++      <EditorialListingHeader title="Catálogo" image="secundario">
+         <p role="status" className="text-sm text-muted">
+           {results.isPending ? "Buscando prendas…" : results.isError ? "" : `${results.data.length} ${results.data.length === 1 ? "prenda" : "prendas"}`}
+         </p>
+-      </div>
+-
+-      <section aria-label="Buscar y filtrar prendas" className="flex flex-col gap-3 border-y border-line py-4">
++      </EditorialListingHeader>
++
++      <section aria-label="Buscar y filtrar prendas" className="flex flex-col gap-3 border-y border-line py-5">
+         <form role="search" aria-label="Buscar prendas" className="flex gap-2" onSubmit={(event) => {
+           event.preventDefault();
+           restoreSearchFocus.current = true;
+           applySearch(String(new FormData(event.currentTarget).get("q") ?? ""));
+         }}>
+           <label htmlFor="buscar-prenda" className="sr-only">Buscar prendas</label>
+-          <input id="buscar-prenda" type="search" key={query} name="q" defaultValue={query} placeholder="Buscar prendas o marcas…" autoComplete="off" className="h-12 min-w-0 flex-1 border border-carbon/40 bg-ivory px-3 text-base text-carbon placeholder:text-muted focus:border-carbon" />
+-          <button type="submit" className="btn-press h-12 shrink-0 bg-carbon px-5 text-sm font-medium text-ivory hover:bg-carbon-soft">Buscar</button>
++          <input id="buscar-prenda" type="search" key={query} name="q" defaultValue={query} placeholder="Buscar prendas o marcas…" autoComplete="off" className="h-12 min-w-0 flex-1 border-b border-carbon/40 bg-ivory px-1 text-base text-carbon placeholder:text-muted focus:border-carbon" />
++          <button type="submit" className="btn-press h-12 shrink-0 border-b border-carbon px-4 text-sm font-medium text-carbon hover:bg-parchment">Buscar</button>
+         </form>
+ 
+         <div className="flex gap-2 sm:hidden">
+@@ -187,7 +187,7 @@
+           {selects("filtro")}
+           <span className="flex flex-col gap-1">
+             <label htmlFor="filtro-orden" className="text-xs text-muted">Orden</label>
+-            <select id="filtro-orden" value={orden} onChange={(event) => applyOrden(event.target.value as ProductSort)} className="h-11 border border-carbon/40 bg-ivory px-3 text-sm text-carbon">
++            <select id="filtro-orden" value={orden} onChange={(event) => applyOrden(event.target.value as ProductSort)} className="h-11 border-b border-carbon/40 bg-ivory px-3 text-sm text-carbon">
+               {SORTS.map((sort) => <option key={sort.value} value={sort.value}>{sort.label}</option>)}
+             </select>
+           </span>
+--- before/apps/web/src/app/coleccion/[slug]/page.tsx
++++ after/apps/web/src/app/coleccion/[slug]/page.tsx
+@@ -3,6 +3,7 @@
+ import { use } from "react";
+ import { useQuery } from "@tanstack/react-query";
+ import { getCollection, getProductsByIds } from "../../../lib/catalog";
++import { EditorialListingHeader } from "../../../components/EditorialListingHeader";
+ import { ProductGrid } from "../../../components/ProductCard";
+ import { ErrorState, LoadingState, backendErrorMessage } from "../../../components/States";
+ import { isSupabaseConfigured } from "../../../lib/supabase";
+@@ -30,11 +31,10 @@
+   if (products.isError) return <ErrorState message={backendErrorMessage()} onRetry={() => products.refetch()} />;
+ 
+   return (
+-    <div className="flex flex-col gap-5">
+-      <div className="border-b border-carbon/20 pb-3 sm:pb-4">
+-        <p className="text-[11px] uppercase tracking-[0.28em] text-taupe-deep">Colección</p>
+-        <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">{collection.data.name}</h1>
+-      </div>
++    <div className="flex flex-col gap-8 sm:gap-10">
++      <EditorialListingHeader title={collection.data.name} image="principal">
++        <p className="text-sm text-muted">{products.data?.length ?? 0} prendas en esta colección</p>
++      </EditorialListingHeader>
+       <ProductGrid products={products.data ?? []} eager />
+     </div>
+   );
+--- before/apps/web/src/app/globals.css
++++ after/apps/web/src/app/globals.css
+@@ -200,3 +200,18 @@
+  .editorial-secondary-photo { animation: editorial-enter 500ms 200ms var(--ease-entrance) both; }
+ }
+ @keyframes editorial-enter { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
++
++/* Cabecera compartida: catálogo y colecciones continúan la dirección editorial. */
++.listing-intro { display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: center; gap: 32px; padding: 12px 0 8px; }
++.listing-title { margin: 8px 0 18px; font-family: var(--font-display); font-size: clamp(4rem, 8vw, 7.5rem); font-weight: 400; line-height: .95; letter-spacing: -.065em; overflow-wrap: anywhere; }
++.listing-photo { position: relative; height: 220px; background: var(--color-parchment); }
++.listing-photo img { object-position: center top; }
++@media (max-width: 767px) {
++ .listing-intro { grid-template-columns: minmax(0, 1fr) 100px; gap: 16px; padding-top: 0; }
++ .listing-title { margin: 8px 0 14px; font-size: clamp(2.7rem, 11vw, 4.5rem); }
++ .listing-photo { height: 155px; }
++}
++@media (prefers-reduced-motion: no-preference) {
++ .listing-title { animation: editorial-enter 500ms var(--ease-entrance) both; }
++ .listing-photo { animation: editorial-enter 550ms 80ms var(--ease-entrance) both; }
++}
+--- before/apps/web/src/components/EditorialListingHeader.tsx
++++ after/apps/web/src/components/EditorialListingHeader.tsx
+@@ -0,0 +1,26 @@
++import type { ReactNode } from "react";
++import Image from "next/image";
++import Link from "next/link";
++
++export function EditorialListingHeader({ title, image, children }: {
++  title: string;
++  image: "principal" | "secundario";
++  children: ReactNode;
++}) {
++  return (
++    <header className="listing-intro">
++      <div className="listing-copy">
++        <nav aria-label="Ruta de navegación" className="flex items-center gap-3 text-xs text-muted">
++          <Link href="/" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">Inicio</Link>
++          <span aria-hidden="true">/</span>
++          <span aria-current="page">{title}</span>
++        </nav>
++        <h1 className="listing-title">{title}</h1>
++        {children}
++      </div>
++      <div className="listing-photo">
++        <Image src={`/images/editorial/modelo-${image}.webp`} alt="" fill loading="eager" sizes="(max-width: 767px) 100px, 260px" className="object-cover" />
++      </div>
++    </header>
++  );
++}

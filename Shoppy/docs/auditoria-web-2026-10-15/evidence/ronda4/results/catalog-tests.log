@@ -1,0 +1,17 @@
+(node:57) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/leandro/Documentos/ChatGPT/React%20Native/Shoppy/apps/web/src/lib/catalogProduct.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/leandro/Documentos/ChatGPT/React Native/Shoppy/apps/web/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ shared product mapping
+  ✔ preserves product values, cover order and defect photos (3.640658ms)
+  ✔ identifies only explicit demo metadata and preserves real stock (0.633954ms)
+  ✔ supports the initial home without taxonomy and keeps client defaults (0.933976ms)
+✔ shared product mapping (7.920537ms)
+ℹ tests 3
+ℹ suites 1
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21.755191

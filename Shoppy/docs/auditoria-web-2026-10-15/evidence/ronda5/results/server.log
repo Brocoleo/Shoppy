@@ -1,0 +1,25 @@
+▲ Next.js 16.3.6
+- Local:         http://localhost:3117
+- Network:       http://172.20.10.5:3117
+✓ Ready in 212ms
+✓ Running next.config.ts took 55ms
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '65726631'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '65726631'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '65726631'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '65726631'
+}
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '65726631'
+}

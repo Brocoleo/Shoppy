@@ -1,0 +1,28 @@
+PASS Menu Escape closes and restores focus
+PASS Removing one chip preserves other filters
+PASS Removed chip restores focus to search
+PASS Filter Escape returns focus
+PASS Browser history updates filters
+PASS Search has empty state and reset
+PASS Mobile product heading precedes gallery
+PASS Defect photo labelled
+PASS Invalid checkout focuses first field
+PASS Shipping keyboard radio selection
+PASS Skip link focuses main
+PASS Reduced motion respected
+PASS No overflow 320px /
+PASS No overflow 320px /catalogo
+PASS No overflow 320px /producto/chaqueta-cuero-vintage
+PASS No overflow 320px /login
+PASS No overflow 320px /carrito
+PASS No overflow 768px /
+PASS No overflow 768px /catalogo
+PASS No overflow 768px /producto/chaqueta-cuero-vintage
+PASS No overflow 768px /login
+PASS No overflow 768px /carrito
+PASS No overflow 1440px /
+PASS No overflow 1440px /catalogo
+PASS No overflow 1440px /producto/chaqueta-cuero-vintage
+PASS No overflow 1440px /login
+PASS No overflow 1440px /carrito
+PASS No uncaught browser exceptions

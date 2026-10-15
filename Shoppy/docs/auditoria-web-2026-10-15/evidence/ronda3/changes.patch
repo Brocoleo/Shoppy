@@ -1,0 +1,1543 @@
+--- a/apps/web/src/components/Header.tsx
++++ b/apps/web/src/components/Header.tsx
+@@ -44,7 +44,7 @@
+               key={item.href}
+               href={item.href}
+               aria-current={pathname === item.href ? "page" : undefined}
+-              className="inline-flex min-h-11 items-center border-b border-transparent uppercase tracking-[0.12em] text-muted transition-colors hover:text-carbon aria-[current=page]:border-carbon aria-[current=page]:text-carbon"
++              className="inline-flex min-h-11 items-center border-b border-transparent font-medium text-muted transition-colors hover:text-carbon aria-[current=page]:border-carbon aria-[current=page]:text-carbon"
+             >
+               {item.label}
+             </Link>
+@@ -72,7 +72,7 @@
+         ) : (
+           <Link
+             href="/login"
+-            className="hidden min-h-11 items-center bg-carbon px-4 py-1.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft sm:inline-flex"
++            className="hidden min-h-11 items-center bg-carbon px-4 py-1.5 text-sm font-medium text-ivory transition-colors hover:bg-carbon-soft sm:inline-flex"
+           >
+             Entrar
+           </Link>
+@@ -114,7 +114,7 @@
+                   href={item.href}
+                   onClick={() => setOpen(false)}
+                   aria-current={pathname === item.href ? "page" : undefined}
+-                  className="flex min-h-11 items-center py-2 text-sm uppercase tracking-[0.12em] text-carbon"
++                  className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
+                 >
+                   {item.label}
+                 </Link>
+@@ -128,7 +128,7 @@
+                     setOpen(false);
+                     signOut();
+                   }}
+-                  className="flex min-h-11 items-center py-2 text-sm uppercase tracking-[0.12em] text-muted"
++                  className="flex min-h-11 items-center py-2 text-sm font-medium text-muted"
+                 >
+                   Salir
+                 </button>
+@@ -137,7 +137,7 @@
+                   href="/login"
+                   onClick={() => setOpen(false)}
+                   aria-current={pathname === "/login" ? "page" : undefined}
+-                  className="flex min-h-11 items-center py-2 text-sm uppercase tracking-[0.12em] text-carbon"
++                  className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
+                 >
+                   Entrar
+                 </Link>
+--- /dev/null
++++ b/apps/web/src/components/HomeContent.tsx
+@@ -0,0 +1,119 @@
++"use client";
++
++import Link from "next/link";
++import { useQuery } from "@tanstack/react-query";
++import {
++  getCollection,
++  getProductsByIds,
++  listBrands,
++  listCategories,
++  listProducts,
++} from "../lib/catalog";
++import { EditorialHero } from "./EditorialHero";
++import { Reveal } from "./Reveal";
++import { ProductGrid, ProductGridSkeleton } from "./ProductCard";
++import { ErrorState, SectionTitle, backendErrorMessage } from "./States";
++import { isSupabaseConfigured } from "../lib/supabase";
++
++export default function HomeContent({ initialProducts }: { initialProducts?: import("../lib/catalog").CatalogProduct[] }) {
++  const newcomers = useQuery({ queryKey: ["web", "products", "novedades"], queryFn: () => listProducts("novedades"), initialData: initialProducts, enabled: isSupabaseConfigured });
++  const trending = useQuery({ queryKey: ["web", "products", "tendencia"], queryFn: () => listProducts("tendencia"), enabled: isSupabaseConfigured });
++  const categories = useQuery({ queryKey: ["web", "categories"], queryFn: listCategories, enabled: isSupabaseConfigured });
++  const brands = useQuery({ queryKey: ["web", "brands"], queryFn: listBrands, enabled: isSupabaseConfigured });
++  const offers = useQuery({ queryKey: ["web", "collection", "ofertas"], queryFn: () => getCollection("ofertas"), enabled: isSupabaseConfigured });
++
++  const offerIds = [...new Set(offers.data?.productIds ?? [])].slice(0, 8);
++  const offerKey = offerIds.join(",");
++  const offerProducts = useQuery({
++    queryKey: ["web", "products-by-ids", offerKey],
++    queryFn: () => getProductsByIds(offerIds),
++    enabled: isSupabaseConfigured && offerIds.length > 0,
++  });
++
++  if (!isSupabaseConfigured) {
++    return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
++  }
++  const withImage = (newcomers.data ?? []).find((p) => (p.remoteImages ?? []).some((i) => !i.isDefect));
++  const hero = withImage ?? newcomers.data?.[0] ?? trending.data?.[0];
++  const parents = (categories.data ?? []).filter((c) => c.parentSlug === null);
++  const topBrands = (brands.data ?? []).slice(0, 8);
++
++  return (
++    <div className="flex flex-col gap-6 sm:gap-10 md:gap-12">
++      <EditorialHero product={hero} />
++
++      <nav aria-label="Categorías" className="flex min-h-24 flex-wrap content-start gap-2 sm:min-h-12">
++        {categories.isPending ? Array.from({ length: 5 }, (_, index) => (
++          <span key={index} aria-hidden="true" className="shimmer h-11 w-20 animate-shimmer rounded-full" />
++        )) : parents.map((category) => (
++          <Link key={category.slug} href={`/catalogo?categoria=${encodeURIComponent(category.slug)}`} className="inline-flex min-h-11 items-center rounded-full border border-carbon/25 px-5 text-sm text-carbon transition-colors hover:border-carbon hover:bg-carbon hover:text-ivory">
++            {category.name}
++          </Link>
++        ))}
++      </nav>
++
++      <Reveal>
++        <section aria-labelledby="novedades-titulo">
++        <SectionTitle
++          title="Novedades"
++          id="novedades-titulo"
++          action={
++            <Link href="/catalogo?orden=novedades" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
++              Ver novedades
++            </Link>
++          }
++        />
++        {newcomers.isPending ? <ProductGridSkeleton /> : newcomers.isError ? (
++          <ErrorState message={backendErrorMessage()} onRetry={() => newcomers.refetch()} />
++        ) : <ProductGrid products={(newcomers.data ?? []).slice(0, 8)} />}
++        </section>
++      </Reveal>
++
++      {offerProducts.data && offerProducts.data.length > 0 ? (
++        <Reveal>
++          <section aria-labelledby="ofertas-titulo" className="bg-parchment p-4 sm:p-8">
++          <SectionTitle
++            title={offers.data?.name ?? "Ofertas"}
++            id="ofertas-titulo"
++            action={
++              <Link href="/coleccion/ofertas" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
++                Ver colección
++              </Link>
++            }
++          />
++          <ProductGrid products={offerProducts.data} />
++          </section>
++        </Reveal>
++      ) : null}
++
++      <Reveal>
++        <section aria-labelledby="tendencia-titulo">
++        <SectionTitle title="Tendencia" id="tendencia-titulo" />
++        {trending.isPending ? <ProductGridSkeleton /> : trending.isError ? (
++          <ErrorState message={backendErrorMessage()} onRetry={() => trending.refetch()} />
++        ) : <ProductGrid products={(trending.data ?? []).slice(0, 8)} />}
++        </section>
++      </Reveal>
++
++      {topBrands.length > 0 ? (
++        <Reveal>
++          <section aria-labelledby="marcas-titulo">
++          <SectionTitle title="Marcas" id="marcas-titulo" />
++          <ul className="flex flex-wrap gap-2">
++            {topBrands.map((b) => (
++              <li key={b.slug}>
++                <Link
++                  href={`/catalogo?marca=${encodeURIComponent(b.slug)}`}
++                  className="inline-flex min-h-11 items-center border border-carbon/30 px-4 py-1.5 text-sm text-carbon transition-colors hover:bg-carbon hover:text-ivory"
++                >
++                  {b.name}
++                </Link>
++              </li>
++            ))}
++          </ul>
++          </section>
++        </Reveal>
++      ) : null}
++    </div>
++  );
++}
+--- a/apps/web/src/components/EditorialHero.tsx
++++ b/apps/web/src/components/EditorialHero.tsx
+@@ -5,84 +5,38 @@
+ import { productCover, type CatalogProduct } from "../lib/catalog";
+ import { formatCLP } from "../lib/format";
+ 
+-/**
+- * Hero editorial mobile-first: la fotografía manda.
+- * En móvil la foto va primero (4:5) y el bloque carbón es compacto;
+- * en desktop, texto + foto en 2 columnas.
+- */
+ export function EditorialHero({ product }: { product: CatalogProduct | undefined }) {
+   const cover = product ? productCover(product) : null;
+-
+   return (
+-    <section
+-      aria-labelledby="hero-titulo"
+-      className="grid overflow-hidden bg-ivory md:grid-cols-2 md:bg-carbon md:text-ivory"
+-    >
+-      <div className="relative order-first aspect-[5/4] max-h-[20rem] w-full bg-parchment sm:max-h-[30rem] md:order-last md:aspect-auto md:max-h-none md:min-h-[28rem]">
+-        {cover && product ? (
+-          <Image
+-            src={cover}
+-            alt={product.name}
+-            fill
+-            priority
+-            sizes="(max-width: 768px) 100vw, 50vw"
+-            className="object-cover"
+-          />
+-        ) : (
+-          <p
+-            aria-hidden="true"
+-            className="flex h-full min-h-72 items-center justify-center p-8 text-center font-display text-2xl italic text-muted"
+-          >
+-            Nueva selección cada semana
+-          </p>
+-        )}
+-        {cover && product ? (
+-          <Link
+-            href={`/producto/${product.slug}`}
+-            className="absolute inset-x-3 bottom-3 flex items-center justify-between bg-ivory/95 px-4 py-2.5 text-carbon backdrop-blur transition-colors hover:bg-ivory"
+-            aria-label={`Ver prenda destacada: ${product.name}`}
+-          >
+-            <span className="min-w-0">
+-              <span className="block truncate text-sm font-medium">{product.name}</span>
+-              <span className="block text-[11px] uppercase tracking-[0.14em] text-muted">
+-                Destacado · {product.brand}
+-              </span>
+-            </span>
+-            <span className="pl-3 text-sm font-bold">{formatCLP(product.priceClp)}</span>
+-          </Link>
+-        ) : null}
+-      </div>
+-
+-      <div className="flex flex-col justify-center gap-3 bg-carbon p-6 text-ivory sm:gap-4 sm:p-8 md:p-12">
+-        <p className="animate-fade-up text-[11px] uppercase tracking-[0.28em] text-taupe">
+-          Segunda mano verificada
+-        </p>
+-        <h1
+-          id="hero-titulo"
+-          className="animate-fade-up font-display text-3xl leading-[1.05] tracking-tight [animation-delay:80ms] sm:text-4xl md:text-5xl"
+-        >
+-          Prendas únicas,
+-          <br />
+-          precios justos.
++    <section aria-labelledby="hero-titulo" className={`grid overflow-hidden bg-carbon text-ivory ${cover ? "md:grid-cols-2" : ""}`}>
++      <div className="flex flex-col justify-center gap-5 px-6 py-8 sm:p-10 md:min-h-[26rem] md:p-12">
++        <p className="text-sm text-taupe">Segunda mano verificada</p>
++        <h1 id="hero-titulo" className="max-w-sm font-display text-[2.65rem] leading-[1.04] tracking-tight sm:text-5xl lg:text-6xl">
++          Prendas únicas,<br />precios justos.
+         </h1>
+-        <p className="animate-fade-up max-w-md text-sm leading-relaxed text-ivory/70 [animation-delay:160ms]">
++        <p className="max-w-sm text-sm leading-relaxed text-ivory/80 sm:text-base">
+           Prendas únicas verificadas. Si te gusta, no la dejes pasar.
+         </p>
+-        <div className="animate-fade-up flex flex-wrap gap-2.5 pt-1 [animation-delay:240ms] sm:gap-3">
+-          <Link
+-            href="/catalogo"
+-            className="btn-press inline-flex min-h-11 items-center justify-center bg-ivory px-5 py-2 text-xs uppercase tracking-[0.12em] text-carbon transition-colors hover:bg-taupe sm:px-6 sm:py-2.5 sm:text-sm"
+-          >
+-            Ver catálogo
+-          </Link>
+-          <Link
+-            href="/coleccion/ofertas"
+-            className="btn-press inline-flex min-h-11 items-center justify-center border border-ivory/40 px-5 py-2 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:border-ivory sm:px-6 sm:py-2.5 sm:text-sm"
+-          >
+-            Ver ofertas
+-          </Link>
++        <div className="flex flex-wrap items-center gap-3 pt-1">
++          <Link href="/catalogo" className="btn-press inline-flex min-h-12 items-center justify-center bg-ivory px-6 text-sm font-medium text-carbon hover:bg-parchment">Explorar catálogo</Link>
++          <Link href="/coleccion/ofertas" className="btn-press inline-flex min-h-12 items-center justify-center border border-ivory/50 px-5 text-sm text-ivory hover:border-ivory">Ver ofertas</Link>
+         </div>
+       </div>
++      {cover && product ? (
++        <Link href={`/producto/${product.slug}`} className="group relative flex min-w-0 items-center gap-4 bg-parchment p-4 text-carbon md:min-h-[26rem] md:p-0" aria-label={`Ver prenda destacada: ${product.name}, ${formatCLP(product.priceClp)}`}>
++          <div className="relative h-24 w-20 shrink-0 overflow-hidden md:absolute md:inset-0 md:h-full md:w-full">
++            <Image src={cover} alt="" fill priority sizes="(max-width: 767px) 80px, (max-width: 1199px) 50vw, 552px" className="object-contain transition-transform duration-200 motion-reduce:transition-none md:object-cover" />
++          </div>
++          <div className="flex min-w-0 flex-1 flex-col gap-1 md:absolute md:inset-x-4 md:bottom-4 md:bg-ivory/95 md:p-4">
++            <p className="text-xs text-muted">Prenda destacada</p>
++            <p className="font-display text-xl leading-tight group-hover:underline group-hover:underline-offset-4">{product.name}</p>
++            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
++              <span className="text-sm text-muted">{product.brand}</span>
++              <span className="tnum text-lg font-semibold">{formatCLP(product.priceClp)}</span>
++            </div>
++          </div>
++        </Link>
++      ) : null}
+     </section>
+   );
+ }
+--- a/apps/web/src/components/ProductCard.tsx
++++ b/apps/web/src/components/ProductCard.tsx
+@@ -19,7 +19,7 @@
+   const soldOut = product.stock <= 0;
+ 
+   return (
+-    <li className="[content-visibility:auto]">
++    <li className="[content-visibility:auto] [contain-intrinsic-size:auto_420px]">
+       <Link
+         href={`/producto/${product.slug}`}
+         aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${soldOut ? ", agotada" : ""}`}
+@@ -32,7 +32,7 @@
+               alt=""
+               fill
+               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+-              className="card-zoom object-cover"
++              className="card-zoom object-contain"
+               loading={eager ? "eager" : "lazy"}
+             />
+           ) : null}
+@@ -47,16 +47,16 @@
+             </span>
+           ) : null}
+         </span>
+-        <span className="flex flex-1 flex-col gap-0.5 pt-2.5">
+-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">{product.brand}</span>
+-          <span className="line-clamp-2 min-h-[2.75em] font-display text-base leading-snug text-carbon">
++        <span className="flex flex-1 flex-col gap-1 pt-3">
++          <span className="text-xs text-muted">{product.brand}</span>
++          <span className="line-clamp-2 font-display text-lg leading-snug sm:text-xl text-carbon">
+             {product.name}
+           </span>
+           <span className="text-xs text-muted">
+             Talla {product.size} · {CONDITION_LABEL[product.condition] ?? product.condition}
+           </span>
+-          <span className="flex items-baseline gap-2 pt-0.5">
+-            <span className="tnum text-[15px] font-bold text-carbon">{formatCLP(product.priceClp)}</span>
++          <span className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-2">
++            <span className="tnum text-base font-semibold sm:text-lg text-carbon">{formatCLP(product.priceClp)}</span>
+             {onSale ? (
+               <span className="text-xs text-muted line-through">{formatCLP(product.compareAtPriceClp!)}</span>
+             ) : null}
+@@ -83,7 +83,7 @@
+ /** Esqueleto 3:4 con la misma retícula que el grid real (evita saltos de layout). */
+ export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+   return (
+-    <div aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
++    <div role="status" aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+       {Array.from({ length: count }).map((_, i) => (
+         <div key={i} className="flex flex-col">
+           <div className="shimmer aspect-[3/4] w-full animate-shimmer" />
+--- a/apps/web/src/lib/cart.tsx
++++ b/apps/web/src/lib/cart.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
++import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+ import { useSession } from "./session";
+ import { addLine, mergeCarts, sanitizeLines, setLineQty, type CartLine } from "./cartStore";
+ 
+@@ -9,6 +9,7 @@
+ interface CartState {
+   lines: CartLine[];
+   count: number;
++  ready: boolean;
+   add: (productId: string, qty?: number) => void;
+   setQty: (productId: string, qty: number) => void;
+   remove: (productId: string) => void;
+@@ -16,83 +17,90 @@
+ }
+ 
+ const Ctx = createContext<CartState>({
+-  lines: [],
+-  count: 0,
+-  add: () => {},
+-  setQty: () => {},
+-  remove: () => {},
+-  clear: () => {},
++  lines: [], count: 0, ready: false,
++  add: () => {}, setQty: () => {}, remove: () => {}, clear: () => {},
+ });
+ 
+ export function useCart(): CartState {
+   return useContext(Ctx);
+ }
+ 
++const EMPTY_LINES: CartLine[] = [];
++
+ const keyFor = (owner: string) => `shopy-cart-${owner}`;
+ 
+-function readStored(owner: string): CartLine[] {
++function readStored(owner: string): { lines?: CartLine[]; readable: boolean } {
++  let raw: string | null;
+   try {
+-    const raw = localStorage.getItem(keyFor(owner));
+-    if (!raw) return [];
+-    return sanitizeLines(JSON.parse(raw));
++    raw = localStorage.getItem(keyFor(owner));
+   } catch {
+-    return [];
++    return { readable: false };
++  }
++  if (raw === null) return { readable: true };
++  try {
++    return { lines: sanitizeLines(JSON.parse(raw)), readable: true };
++  } catch {
++    return { lines: [], readable: true };
+   }
+ }
+ 
+ export function CartProvider({ children }: { children: ReactNode }) {
+   const { user, loading } = useSession();
+   const owner = user?.id ?? "guest";
+-  // Lectura inicial perezosa (sin setState en efecto): en SSR no hay
+-  // localStorage y readStored devuelve [] de forma segura.
+-  const [lines, setLines] = useState<CartLine[]>(() => readStored("guest"));
+-  const [prevOwner, setPrevOwner] = useState(owner);
+-
+-  // Al cambiar de dueño se recalcula el carrito durante el render
+-  // (patrón React documentado, sin efecto): invitados leen su carrito;
+-  // al loguearse se fusiona el carrito guest (unión, qty máxima).
+-  if (!loading && prevOwner !== owner) {
+-    setPrevOwner(owner);
+-    if (owner === "guest") {
+-      setLines(readStored("guest"));
+-    } else {
+-      const next = mergeCarts(readStored(owner), readStored("guest"));
+-      setLines(next);
+-      try {
+-        localStorage.setItem(keyFor(owner), JSON.stringify(next));
+-        localStorage.removeItem(keyFor("guest"));
+-      } catch {
+-        // Almacenamiento no disponible: el carrito vive solo en memoria.
+-      }
+-    }
+-  }
++  const memory = useRef(new Map<string, CartLine[]>());
++  // Server and first browser render agree; storage is read only after mount.
++  const [cart, setCart] = useState<{ owner: string | null; lines: CartLine[]; canPersist: boolean }>({ owner: null, lines: [], canPersist: false });
++  const ready = !loading && cart.owner === owner;
++  const lines = ready ? cart.lines : EMPTY_LINES;
+ 
+   useEffect(() => {
+     if (loading) return;
++    let cancelled = false;
++    queueMicrotask(() => {
++      if (cancelled) return;
++      const saved = readStored(owner);
++      const savedGuest = owner === "guest" ? saved : readStored("guest");
++      const mine = saved.lines ?? memory.current.get(owner) ?? [];
++      const guest = savedGuest.lines ?? memory.current.get("guest") ?? [];
++      const next = owner === "guest" ? mine : mergeCarts(mine, guest);
++      if (owner !== "guest" && saved.readable) {
++        // Remove the guest cart only after its destination was saved successfully.
++        try {
++          localStorage.setItem(keyFor(owner), JSON.stringify(next));
++          if (savedGuest.readable) {
++            localStorage.removeItem(keyFor("guest"));
++            memory.current.delete("guest");
++          }
++        } catch {
++          // Preserve the source when storage is unavailable; keep working in memory.
++        }
++      }
++      setCart({ owner, lines: next, canPersist: saved.readable });
++    });
++    return () => { cancelled = true; };
++  }, [owner, loading]);
++
++  useEffect(() => {
++    if (!ready) return;
++    memory.current.set(owner, cart.lines);
++    // Never overwrite data that could not be read, even if writing still works.
++    if (!cart.canPersist) return;
+     try {
+-      localStorage.setItem(keyFor(owner), JSON.stringify(lines));
++      localStorage.setItem(keyFor(owner), JSON.stringify(cart.lines));
+     } catch {
+-      // Ignorar: modo memoria.
++      // The current owner's cart remains usable in memory.
+     }
+-  }, [lines, owner, loading]);
++  }, [cart, owner, ready]);
+ 
+-  const add = useCallback((productId: string, qty = 1) => {
+-    setLines((prev) => addLine(prev, productId, qty));
+-  }, []);
+-
+-  const setQty = useCallback((productId: string, qty: number) => {
+-    setLines((prev) => setLineQty(prev, productId, qty));
+-  }, []);
+-
+-  const remove = useCallback((productId: string) => {
+-    setLines((prev) => prev.filter((l) => l.productId !== productId));
+-  }, []);
+-
+-  const clear = useCallback(() => setLines([]), []);
+-
+-  const value = useMemo<CartState>(
+-    () => ({ lines, count: lines.reduce((n, l) => n + l.qty, 0), add, setQty, remove, clear }),
+-    [lines, add, setQty, remove, clear],
+-  );
++  const update = useCallback((change: (current: CartLine[]) => CartLine[]) => {
++    setCart((current) => current.owner === owner && !loading
++      ? { ...current, lines: change(current.lines) }
++      : current);
++  }, [owner, loading]);
++  const add = useCallback((productId: string, qty = 1) => update((current) => addLine(current, productId, qty)), [update]);
++  const setQty = useCallback((productId: string, qty: number) => update((current) => setLineQty(current, productId, qty)), [update]);
++  const remove = useCallback((productId: string) => update((current) => current.filter((line) => line.productId !== productId)), [update]);
++  const clear = useCallback(() => update(() => []), [update]);
++  const value = useMemo<CartState>(() => ({ lines, count: lines.reduce((n, line) => n + line.qty, 0), ready, add, setQty, remove, clear }), [lines, ready, add, setQty, remove, clear]);
+   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+ }
+--- /dev/null
++++ b/apps/web/src/lib/catalogProduct.test.ts
+@@ -0,0 +1,38 @@
++import { describe, it } from "node:test";
++import assert from "node:assert/strict";
++import { mapProduct, type DbProductRow } from "./catalogProduct.ts";
++
++const row: DbProductRow = {
++  id: "product", slug: "chaqueta", name: "Chaqueta", description: null,
++  brand_id: "brand", category_id: "category", subcategory_id: null, segment: null,
++  price_clp: 19990, compare_at_price_clp: 24990, condition: "bueno", size: null, color: null,
++  stock: 1, published_at: "2026-10-01T12:00:00Z", tags: null,
++  view_count: 3, favorite_count: 2, trending_score: "1.5", is_featured: true,
++  brand: { slug: "marca", name: "Marca" },
++  product_images: [
++    { storage_path: "detail.png", sort_order: 2, is_cover: false, is_defect_detail: true },
++    { storage_path: "cover.png", sort_order: 1, is_cover: true, is_defect_detail: false },
++  ],
++};
++
++describe("shared product mapping", () => {
++  it("preserves product values, cover order and defect photos", () => {
++    const product = mapProduct(row, new Map([["category", "chaquetas"]]), (path) => `/images/${path}`);
++    assert.equal(product.categorySlug, "chaquetas");
++    assert.equal(product.priceClp, 19990);
++    assert.equal(product.compareAtPriceClp, 24990);
++    assert.equal(product.stock, 1);
++    assert.equal(product.trendingScore, 1.5);
++    assert.deepEqual(product.remoteImages, [{ url: "/images/cover.png", isDefect: false }, { url: "/images/detail.png", isDefect: true }]);
++  });
++  it("supports the initial home without taxonomy and keeps client defaults", () => {
++    const product = mapProduct({ ...row, brand: null, product_images: null, published_at: null }, new Map(), (path) => path);
++    assert.equal(product.categorySlug, "");
++    assert.equal(product.brand, "Sin marca");
++    assert.equal(product.size, "Única");
++    assert.equal(product.description, "");
++    assert.deepEqual(product.tags, []);
++    assert.equal(product.remoteImages, undefined);
++    assert.equal(product.publishedAt, "1970-01-01T00:00:00.000Z");
++  });
++});
+--- a/apps/web/src/lib/supabase.ts
++++ b/apps/web/src/lib/supabase.ts
+@@ -22,10 +22,4 @@
+   return client;
+ }
+ 
+-/** URL pública de un path del bucket product-images. `?v=` invalida caché tras regenerar. */
+-const STORAGE_IMG_VERSION = "v=2";
+-
+-export function publicImageUrl(storagePath: string): string {
+-  const base = (url ?? "").replace(/\/$/, "");
+-  return `${base}/storage/v1/object/public/product-images/${storagePath}?${STORAGE_IMG_VERSION}`;
+-}
++export { publicImageUrl } from "./productImageUrl";
+--- /dev/null
++++ b/apps/web/src/lib/catalogProduct.ts
+@@ -0,0 +1,124 @@
++import type { ProductCondition } from "@shopy/types";
++
++export interface RemoteImage {
++  url: string;
++  isDefect: boolean;
++}
++
++export interface CatalogProduct {
++  id: string;
++  slug: string;
++  name: string;
++  description: string;
++  brand: string;
++  brandSlug: string;
++  categorySlug: string;
++  subcategorySlug: string | null;
++  segment: string | null;
++  priceClp: number;
++  compareAtPriceClp: number | null;
++  condition: ProductCondition;
++  size: string;
++  color: string;
++  stock: number;
++  publishedAt: string;
++  tags: string[];
++  viewCount: number;
++  favoriteCount: number;
++  trendingScore: number;
++  isFeatured: boolean;
++  remoteImages?: RemoteImage[];
++}
++
++export interface CatalogCategory {
++  slug: string;
++  name: string;
++  parentSlug: string | null;
++}
++
++export interface CatalogCollection {
++  slug: string;
++  name: string;
++  productIds: string[];
++}
++
++export type ProductSort = "tendencia" | "novedades" | "precio-asc" | "precio-desc";
++
++export interface ProductFilters {
++  query?: string;
++  categorySlug?: string;
++  brandSlug?: string;
++  condition?: ProductCondition;
++  size?: string;
++  maxPriceClp?: number;
++}
++
++export interface DbProductRow {
++  id: string;
++  slug: string;
++  name: string;
++  description: string | null;
++  brand_id: string | null;
++  category_id: string | null;
++  subcategory_id: string | null;
++  segment: string | null;
++  price_clp: number;
++  compare_at_price_clp: number | null;
++  condition: ProductCondition;
++  size: string | null;
++  color: string | null;
++  stock: number;
++  published_at: string | null;
++  tags: string[] | null;
++  view_count: number;
++  favorite_count: number;
++  trending_score: number | string;
++  is_featured: boolean;
++  brand: { slug: string; name: string } | null;
++  product_images: { storage_path: string; sort_order: number; is_cover: boolean; is_defect_detail: boolean }[] | null;
++}
++
++export const PRODUCT_COLUMNS = [
++  "id", "slug", "name", "description", "brand_id", "category_id",
++  "subcategory_id", "segment", "price_clp", "compare_at_price_clp",
++  "condition", "size", "color", "stock", "published_at", "tags",
++  "view_count", "favorite_count", "trending_score", "is_featured",
++  "brand:brands(slug,name)",
++  "product_images(storage_path,sort_order,is_cover,is_defect_detail)",
++].join(",");
++
++function toImages(row: DbProductRow, imageUrl: (path: string) => string): RemoteImage[] | undefined {
++  const imgs = row.product_images;
++  if (!imgs || imgs.length === 0) return undefined;
++  return [...imgs]
++    .sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.sort_order - b.sort_order)
++    .map((i) => ({ url: imageUrl(i.storage_path), isDefect: i.is_defect_detail }));
++}
++
++export function mapProduct(row: DbProductRow, categoriesById: ReadonlyMap<string, string>, imageUrl: (path: string) => string): CatalogProduct {
++  return {
++    id: row.id,
++    slug: row.slug,
++    name: row.name,
++    description: row.description ?? "",
++    brand: row.brand?.name ?? "Sin marca",
++    brandSlug: row.brand?.slug ?? "",
++    categorySlug: (row.category_id && categoriesById.get(row.category_id)) ?? "",
++    subcategorySlug: (row.subcategory_id && categoriesById.get(row.subcategory_id)) ?? null,
++    segment: row.segment,
++    priceClp: row.price_clp,
++    compareAtPriceClp: row.compare_at_price_clp,
++    condition: row.condition,
++    size: row.size ?? "Única",
++    color: row.color ?? "",
++    stock: row.stock,
++    publishedAt: row.published_at ?? new Date(0).toISOString(),
++    tags: row.tags ?? [],
++    viewCount: row.view_count,
++    favoriteCount: row.favorite_count,
++    trendingScore: Number(row.trending_score),
++    isFeatured: row.is_featured,
++    remoteImages: toImages(row, imageUrl),
++  };
++}
++
+--- a/apps/web/src/lib/catalog.ts
++++ b/apps/web/src/lib/catalog.ts
+@@ -4,95 +4,10 @@
+  * Catálogo web contra Supabase (puerto de SupabaseCatalogRepository móvil).
+  * Lee con la anon key bajo RLS: solo catálogo publicado, sin ARCHIVED.
+  */
+-import type { ProductCondition } from "@shopy/types";
+ import { getSupabase, publicImageUrl } from "./supabase";
+ 
+-export interface RemoteImage {
+-  url: string;
+-  isDefect: boolean;
+-}
+-
+-export interface CatalogProduct {
+-  id: string;
+-  slug: string;
+-  name: string;
+-  description: string;
+-  brand: string;
+-  brandSlug: string;
+-  categorySlug: string;
+-  subcategorySlug: string | null;
+-  segment: string | null;
+-  priceClp: number;
+-  compareAtPriceClp: number | null;
+-  condition: ProductCondition;
+-  size: string;
+-  color: string;
+-  stock: number;
+-  publishedAt: string;
+-  tags: string[];
+-  viewCount: number;
+-  favoriteCount: number;
+-  trendingScore: number;
+-  isFeatured: boolean;
+-  remoteImages?: RemoteImage[];
+-}
+-
+-export interface CatalogCategory {
+-  slug: string;
+-  name: string;
+-  parentSlug: string | null;
+-}
+-
+-export interface CatalogCollection {
+-  slug: string;
+-  name: string;
+-  productIds: string[];
+-}
+-
+-export type ProductSort = "tendencia" | "novedades" | "precio-asc" | "precio-desc";
+-
+-export interface ProductFilters {
+-  query?: string;
+-  categorySlug?: string;
+-  brandSlug?: string;
+-  condition?: ProductCondition;
+-  size?: string;
+-  maxPriceClp?: number;
+-}
+-
+-interface DbProductRow {
+-  id: string;
+-  slug: string;
+-  name: string;
+-  description: string | null;
+-  brand_id: string | null;
+-  category_id: string | null;
+-  subcategory_id: string | null;
+-  segment: string | null;
+-  price_clp: number;
+-  compare_at_price_clp: number | null;
+-  condition: ProductCondition;
+-  size: string | null;
+-  color: string | null;
+-  stock: number;
+-  published_at: string | null;
+-  tags: string[] | null;
+-  view_count: number;
+-  favorite_count: number;
+-  trending_score: number | string;
+-  is_featured: boolean;
+-  brand: { slug: string; name: string } | null;
+-  product_images: { storage_path: string; sort_order: number; is_cover: boolean; is_defect_detail: boolean }[] | null;
+-}
+-
+-const PRODUCT_COLUMNS = [
+-  "id", "slug", "name", "description", "brand_id", "category_id",
+-  "subcategory_id", "segment", "price_clp", "compare_at_price_clp",
+-  "condition", "size", "color", "stock", "published_at", "tags",
+-  "view_count", "favorite_count", "trending_score", "is_featured",
+-  "brand:brands(slug,name)",
+-  "product_images(storage_path,sort_order,is_cover,is_defect_detail)",
+-].join(",");
++import { mapProduct, PRODUCT_COLUMNS, type DbProductRow, type CatalogProduct, type CatalogCategory, type CatalogCollection, type ProductSort, type ProductFilters } from "./catalogProduct";
++export type { RemoteImage, CatalogProduct, CatalogCategory, CatalogCollection, ProductSort, ProductFilters } from "./catalogProduct";
+ 
+ let categoriesCache: CatalogCategory[] | null = null;
+ let brandsCache: { slug: string; name: string; id?: string }[] | null = null;
+@@ -148,39 +63,8 @@
+   }
+ }
+ 
+-function toImages(row: DbProductRow): RemoteImage[] | undefined {
+-  const imgs = row.product_images;
+-  if (!imgs || imgs.length === 0) return undefined;
+-  return [...imgs]
+-    .sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.sort_order - b.sort_order)
+-    .map((i) => ({ url: publicImageUrl(i.storage_path), isDefect: i.is_defect_detail }));
+-}
+-
+ function toProduct(row: DbProductRow): CatalogProduct {
+-  return {
+-    id: row.id,
+-    slug: row.slug,
+-    name: row.name,
+-    description: row.description ?? "",
+-    brand: row.brand?.name ?? "Sin marca",
+-    brandSlug: row.brand?.slug ?? "",
+-    categorySlug: (row.category_id && categoriesById.get(row.category_id)) ?? "",
+-    subcategorySlug: (row.subcategory_id && categoriesById.get(row.subcategory_id)) ?? null,
+-    segment: row.segment,
+-    priceClp: row.price_clp,
+-    compareAtPriceClp: row.compare_at_price_clp,
+-    condition: row.condition,
+-    size: row.size ?? "Única",
+-    color: row.color ?? "",
+-    stock: row.stock,
+-    publishedAt: row.published_at ?? new Date(0).toISOString(),
+-    tags: row.tags ?? [],
+-    viewCount: row.view_count,
+-    favoriteCount: row.favorite_count,
+-    trendingScore: Number(row.trending_score),
+-    isFeatured: row.is_featured,
+-    remoteImages: toImages(row),
+-  };
++  return mapProduct(row, categoriesById, publicImageUrl);
+ }
+ 
+ function sortSpec(sort: ProductSort): { column: string; ascending: boolean } {
+--- /dev/null
++++ b/apps/web/src/lib/productImageUrl.ts
+@@ -0,0 +1,7 @@
++/** URL pública de un path del bucket product-images. `?v=` invalida caché tras regenerar. */
++const STORAGE_IMG_VERSION = "v=2";
++
++export function publicImageUrl(storagePath: string): string {
++  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
++  return `${base}/storage/v1/object/public/product-images/${storagePath}?${STORAGE_IMG_VERSION}`;
++}
+--- a/apps/web/src/app/globals.css
++++ b/apps/web/src/app/globals.css
+@@ -88,6 +88,7 @@
+ }
+ 
+ /* Colapso reversible e interrumpible (menú móvil, panel de filtros). */
++@layer components {
+ .disclosure {
+   display: grid;
+   grid-template-rows: 0fr;
+@@ -103,6 +104,8 @@
+ .disclosure > * {
+   overflow: hidden;
+   min-height: 0;
++}
++
+ }
+ 
+ /* Shimmer discreto para skeletons (dimensiones idénticas al contenido). */
+--- a/apps/web/src/app/page.tsx
++++ b/apps/web/src/app/page.tsx
+@@ -1,137 +1,33 @@
+-"use client";
++import { createClient } from "@supabase/supabase-js";
++import HomeContent from "../components/HomeContent";
++import { mapProduct, PRODUCT_COLUMNS, type DbProductRow, type CatalogProduct } from "../lib/catalogProduct";
++import { publicImageUrl } from "../lib/productImageUrl";
+ 
+-import Link from "next/link";
+-import { useQuery } from "@tanstack/react-query";
+-import {
+-  getCollection,
+-  getProductsByIds,
+-  listBrands,
+-  listCategories,
+-  listProducts,
+-} from "../lib/catalog";
+-import { EditorialHero } from "../components/EditorialHero";
+-import { Reveal } from "../components/Reveal";
+-import { ProductGrid, ProductGridSkeleton } from "../components/ProductCard";
+-import { ErrorState, SectionTitle, backendErrorMessage } from "../components/States";
+-import { isSupabaseConfigured } from "../lib/supabase";
++export const dynamic = "force-dynamic";
+ 
+-export default function HomePage() {
+-  const newcomers = useQuery({ queryKey: ["web", "products", "novedades"], queryFn: () => listProducts("novedades"), enabled: isSupabaseConfigured });
+-  const trending = useQuery({ queryKey: ["web", "products", "tendencia"], queryFn: () => listProducts("tendencia"), enabled: isSupabaseConfigured });
+-  const categories = useQuery({ queryKey: ["web", "categories"], queryFn: listCategories, enabled: isSupabaseConfigured });
+-  const brands = useQuery({ queryKey: ["web", "brands"], queryFn: listBrands, enabled: isSupabaseConfigured });
+-  const offers = useQuery({ queryKey: ["web", "collection", "ofertas"], queryFn: () => getCollection("ofertas"), enabled: isSupabaseConfigured });
+-
+-  const offerIds = [...new Set(offers.data?.productIds ?? [])].slice(0, 8);
+-  const offerKey = offerIds.join(",");
+-  const offerProducts = useQuery({
+-    queryKey: ["web", "products-by-ids", offerKey],
+-    queryFn: () => getProductsByIds(offerIds),
+-    enabled: isSupabaseConfigured && offerIds.length > 0,
+-  });
+-
+-  if (!isSupabaseConfigured) {
+-    return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
++export default async function HomePage() {
++  let initialProducts: CatalogProduct[] | undefined;
++  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
++  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
++  if (url && key) {
++    try {
++      const db = createClient(url, key, {
++        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
++        global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
++      });
++      const { data, error } = await db.from("products")
++        .select(PRODUCT_COLUMNS)
++        .not("published_at", "is", null)
++        .neq("availability", "ARCHIVED")
++        .order("published_at", { ascending: false })
++        .limit(8)
++        .abortSignal(AbortSignal.timeout(2500));
++      if (!error && data) {
++        initialProducts = (data as unknown as DbProductRow[]).map((row) => mapProduct(row, new Map(), publicImageUrl));
++      }
++    } catch {
++      // A failed initial read remains undefined so React Query can retry in the browser.
++    }
+   }
+-  const withImage = (newcomers.data ?? []).find((p) => (p.remoteImages ?? []).some((i) => !i.isDefect));
+-  const hero = withImage ?? newcomers.data?.[0] ?? trending.data?.[0];
+-  const parents = (categories.data ?? []).filter((c) => c.parentSlug === null);
+-  const topBrands = (brands.data ?? []).slice(0, 8);
+-
+-  return (
+-    <div className="flex flex-col gap-8 sm:gap-12 md:gap-16">
+-      <EditorialHero product={hero} />
+-
+-      {parents.length > 0 ? (
+-        <Reveal>
+-          <section aria-labelledby="categorias-titulo">
+-          <SectionTitle title="Categorías" id="categorias-titulo" />
+-          <ol className="divide-y divide-line border-y border-line">
+-            {parents.map((c, i) => (
+-              <li key={c.slug}>
+-                <Link
+-                  href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`}
+-                  className="group flex items-baseline gap-4 py-3 transition-colors hover:bg-parchment"
+-                >
+-                  <span aria-hidden="true" className="w-8 shrink-0 font-display text-sm italic text-taupe-deep">
+-                    {String(i + 1).padStart(2, "0")}
+-                  </span>
+-                  <span className="flex-1 font-display text-2xl tracking-tight text-carbon sm:text-3xl">
+-                    {c.name}
+-                  </span>
+-                  <span aria-hidden="true" className="pr-1 text-muted transition-transform group-hover:translate-x-1">
+-                    →
+-                  </span>
+-                </Link>
+-              </li>
+-            ))}
+-          </ol>
+-          </section>
+-        </Reveal>
+-      ) : null}
+-
+-      <Reveal>
+-        <section aria-labelledby="novedades-titulo">
+-        <SectionTitle
+-          title="Novedades"
+-          id="novedades-titulo"
+-          action={
+-            <Link href="/catalogo?orden=novedades" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
+-              Ver todas
+-            </Link>
+-          }
+-        />
+-        {newcomers.isPending ? <ProductGridSkeleton /> : newcomers.isError ? (
+-          <ErrorState message={backendErrorMessage()} onRetry={() => newcomers.refetch()} />
+-        ) : <ProductGrid products={(newcomers.data ?? []).slice(0, 8)} />}
+-        </section>
+-      </Reveal>
+-
+-      {offerProducts.data && offerProducts.data.length > 0 ? (
+-        <Reveal>
+-          <section aria-labelledby="ofertas-titulo" className="bg-parchment p-4 sm:p-8">
+-          <SectionTitle
+-            title={offers.data?.name ?? "Ofertas"}
+-            id="ofertas-titulo"
+-            action={
+-              <Link href="/coleccion/ofertas" className="text-sm text-muted underline underline-offset-4 hover:text-carbon">
+-                Ver colección
+-              </Link>
+-            }
+-          />
+-          <ProductGrid products={offerProducts.data} />
+-          </section>
+-        </Reveal>
+-      ) : null}
+-
+-      <Reveal>
+-        <section aria-labelledby="tendencia-titulo">
+-        <SectionTitle title="Tendencia" id="tendencia-titulo" />
+-        {trending.isPending ? <ProductGridSkeleton /> : trending.isError ? (
+-          <ErrorState message={backendErrorMessage()} onRetry={() => trending.refetch()} />
+-        ) : <ProductGrid products={(trending.data ?? []).slice(0, 8)} />}
+-        </section>
+-      </Reveal>
+-
+-      {topBrands.length > 0 ? (
+-        <Reveal>
+-          <section aria-labelledby="marcas-titulo">
+-          <SectionTitle title="Marcas" id="marcas-titulo" />
+-          <ul className="flex flex-wrap gap-2">
+-            {topBrands.map((b) => (
+-              <li key={b.slug}>
+-                <Link
+-                  href={`/catalogo?marca=${encodeURIComponent(b.slug)}`}
+-                  className="inline-flex min-h-11 items-center border border-carbon/30 px-4 py-1.5 font-display text-base italic text-carbon transition-colors hover:bg-carbon hover:text-ivory"
+-                >
+-                  {b.name}
+-                </Link>
+-              </li>
+-            ))}
+-          </ul>
+-          </section>
+-        </Reveal>
+-      ) : null}
+-    </div>
+-  );
++  return <HomeContent initialProducts={initialProducts} />;
+ }
+--- a/apps/web/src/app/catalogo/page.tsx
++++ b/apps/web/src/app/catalogo/page.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { Suspense, useMemo, useRef, useState } from "react";
++import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+ import { useQuery } from "@tanstack/react-query";
+ import { usePathname, useRouter, useSearchParams } from "next/navigation";
+ import { listBrands, listCategories, searchProducts, type ProductSort } from "../../lib/catalog";
+@@ -33,6 +33,13 @@
+   const orden = SORTS.find((sort) => sort.value === params.get("orden"))?.value ?? "tendencia";
+   const filterButton = useRef<HTMLButtonElement>(null);
+   const [panelOpen, setPanelOpen] = useState(false);
++  const restoreSearchFocus = useRef(false);
++  useEffect(() => {
++    if (restoreSearchFocus.current) {
++      document.getElementById("buscar-prenda")?.focus();
++      restoreSearchFocus.current = false;
++    }
++  }, [query, categoria, marca]);
+ 
+   const filters = useMemo(
+     () => ({
+@@ -81,20 +88,21 @@
+   const activeCount = (categoria ? 1 : 0) + (marca ? 1 : 0);
+   const hasFilters = query !== "" || categoria !== "" || marca !== "";
+   const clearFilters = () => {
++    restoreSearchFocus.current = true;
+     syncUrl({ query: "", categoria: "", marca: "", orden });
+   };
+ 
+   const selects = (prefix: string) => (
+     <>
+       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
+-        <label htmlFor={`${prefix}-categoria`} className="text-[11px] uppercase tracking-[0.18em] text-muted">
++        <label htmlFor={`${prefix}-categoria`} className="text-xs text-muted">
+           Categoría
+         </label>
+         <select
+           id={`${prefix}-categoria`}
+           value={categoria}
+           onChange={(e) => applyCategoria(e.target.value)}
+-          className="h-11 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
++          className="h-11 w-full border border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+         >
+           <option value="">Todas</option>
+           {(categories.data ?? []).map((c) => (
+@@ -105,14 +113,14 @@
+         </select>
+       </span>
+       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
+-        <label htmlFor={`${prefix}-marca`} className="text-[11px] uppercase tracking-[0.18em] text-muted">
++        <label htmlFor={`${prefix}-marca`} className="text-xs text-muted">
+           Marca
+         </label>
+         <select
+           id={`${prefix}-marca`}
+           value={marca}
+           onChange={(e) => applyMarca(e.target.value)}
+-          className="h-11 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
++          className="h-11 w-full border border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+         >
+           <option value="">Todas</option>
+           {(brands.data ?? []).map((b) => (
+@@ -125,166 +133,91 @@
+     </>
+   );
+ 
++  const activeFilters = [
++    ...(query ? [{ key: "query", label: `Búsqueda: ${query}`, remove: () => applySearch("") }] : []),
++    ...(categoria ? [{ key: "categoria", label: `Categoría: ${categories.data?.find((item) => item.slug === categoria)?.name ?? categoria}`, remove: () => applyCategoria("") }] : []),
++    ...(marca ? [{ key: "marca", label: `Marca: ${brands.data?.find((item) => item.slug === marca)?.name ?? marca}`, remove: () => applyMarca("") }] : []),
++  ];
++
+   return (
+-    <div className="flex flex-col gap-4 sm:gap-6">
+-      <div className="border-b border-carbon/20 pb-3 sm:pb-4">
+-        <p className="text-[11px] uppercase tracking-[0.28em] text-taupe-deep">La tienda</p>
+-        <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">Catálogo</h1>
++    <div className="flex flex-col gap-4 sm:gap-5">
++      <div className="flex flex-wrap items-baseline justify-between gap-2">
++        <h1 className="font-display text-4xl tracking-tight text-carbon sm:text-5xl">Catálogo</h1>
++        <p role="status" className="text-sm text-muted">
++          {results.isPending ? "Buscando prendas…" : results.isError ? "" : `${results.data.length} ${results.data.length === 1 ? "prenda" : "prendas"}`}
++        </p>
+       </div>
+ 
+-      <form
+-        role="search"
+-        aria-label="Buscar prendas"
+-        className="flex gap-2"
+-        onSubmit={(e) => {
+-          e.preventDefault();
+-          applySearch(String(new FormData(e.currentTarget).get("q") ?? ""));
+-        }}
+-      >
+-        <label htmlFor="buscar-prenda" className="sr-only">
+-          Buscar prendas
+-        </label>
+-        <input
+-          id="buscar-prenda"
+-          type="search"
+-          key={query}
+-          name="q"
+-          defaultValue={query}
+-          placeholder="Buscar: chaqueta, Levi's, vestido…"
+-          autoComplete="off"
+-          className="h-11 min-w-0 flex-1 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon"
+-        />
+-        <button
+-          type="submit"
+-          className="h-11 shrink-0 bg-carbon px-4 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft sm:px-5 sm:text-sm"
+-        >
+-          Buscar
+-        </button>
+-      </form>
+-
+-      {/* Barra compacta móvil: Filtros + Ordenar */}
+-      <div className="flex gap-2 sm:hidden">
+-        <button
+-          type="button"
+-          ref={filterButton}
+-          aria-expanded={panelOpen}
+-          aria-controls="panel-filtros"
+-          onClick={() => setPanelOpen((v) => !v)}
+-          className={`h-11 flex-1 border px-3 text-xs uppercase tracking-[0.12em] transition-colors ${panelOpen || activeCount > 0 ? "border-carbon bg-carbon text-ivory" : "border-carbon/30 text-carbon"}`}
+-        >
+-          Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+-        </button>
+-        <span className="flex h-11 flex-1 items-center gap-1 border border-carbon/30 px-2">
+-          <label htmlFor="orden-compacto" className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-muted">
+-            Orden
+-          </label>
+-          <select
+-            id="orden-compacto"
+-            value={orden}
+-            onChange={(e) => applyOrden(e.target.value as ProductSort)}
+-            className="h-full min-w-0 flex-1 bg-transparent text-xs text-carbon"
+-          >
+-            {SORTS.map((s) => (
+-              <option key={s.value} value={s.value}>
+-                {s.label}
+-              </option>
++      <section aria-label="Buscar y filtrar prendas" className="flex flex-col gap-3 border-y border-line py-4">
++        <form role="search" aria-label="Buscar prendas" className="flex gap-2" onSubmit={(event) => {
++          event.preventDefault();
++          restoreSearchFocus.current = true;
++          applySearch(String(new FormData(event.currentTarget).get("q") ?? ""));
++        }}>
++          <label htmlFor="buscar-prenda" className="sr-only">Buscar prendas</label>
++          <input id="buscar-prenda" type="search" key={query} name="q" defaultValue={query} placeholder="Buscar prendas o marcas…" autoComplete="off" className="h-12 min-w-0 flex-1 border border-carbon/40 bg-ivory px-3 text-base text-carbon placeholder:text-muted focus:border-carbon" />
++          <button type="submit" className="btn-press h-12 shrink-0 bg-carbon px-5 text-sm font-medium text-ivory hover:bg-carbon-soft">Buscar</button>
++        </form>
++
++        <div className="flex gap-2 sm:hidden">
++          <button type="button" ref={filterButton} aria-expanded={panelOpen} aria-controls="panel-filtros" onClick={() => setPanelOpen((value) => !value)} className={`h-11 flex-1 border px-3 text-sm transition-colors ${panelOpen || activeCount > 0 ? "border-carbon bg-carbon text-ivory" : "border-carbon/40 text-carbon"}`}>
++            Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
++          </button>
++          <span className="flex h-11 min-w-0 flex-1 items-center gap-2 border border-carbon/40 px-2">
++            <label htmlFor="orden-compacto" className="text-xs text-muted">Orden</label>
++            <select id="orden-compacto" value={orden} onChange={(event) => applyOrden(event.target.value as ProductSort)} className="h-full min-w-0 flex-1 bg-ivory text-sm text-carbon">
++              {SORTS.map((sort) => <option key={sort.value} value={sort.value}>{sort.label}</option>)}
++            </select>
++          </span>
++        </div>
++
++        <div className={`disclosure sm:hidden ${panelOpen ? "disclosure-open" : ""}`}>
++          <div>
++            <fieldset id="panel-filtros" inert={!panelOpen} onKeyDown={(event) => {
++              if (event.key === "Escape") { setPanelOpen(false); filterButton.current?.focus(); }
++            }} className="border border-line bg-parchment">
++              <legend className="sr-only">Filtrar por categoría y marca</legend>
++              <div className="flex gap-3 p-3">{selects("panel-m")}</div>
++            </fieldset>
++          </div>
++        </div>
++
++        <fieldset className="hidden flex-wrap items-end gap-3 sm:flex">
++          <legend className="sr-only">Filtrar y ordenar</legend>
++          {selects("filtro")}
++          <span className="flex flex-col gap-1">
++            <label htmlFor="filtro-orden" className="text-xs text-muted">Orden</label>
++            <select id="filtro-orden" value={orden} onChange={(event) => applyOrden(event.target.value as ProductSort)} className="h-11 border border-carbon/40 bg-ivory px-3 text-sm text-carbon">
++              {SORTS.map((sort) => <option key={sort.value} value={sort.value}>{sort.label}</option>)}
++            </select>
++          </span>
++        </fieldset>
++
++        {hasFilters ? (
++          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtros activos">
++            {activeFilters.map((filter) => (
++              <button key={filter.key} type="button" aria-label={`Quitar ${filter.label}`} onClick={() => {
++                restoreSearchFocus.current = true;
++                filter.remove();
++              }} className="inline-flex min-h-11 max-w-full items-center gap-3 border border-line bg-parchment px-3 py-2 text-left text-sm text-carbon hover:border-carbon">
++                <span className="min-w-0 break-words">{filter.label}</span>
++                <span aria-hidden="true" className="shrink-0 text-lg leading-none">×</span>
++              </button>
+             ))}
+-          </select>
+-        </span>
++            <button type="button" onClick={clearFilters} className="min-h-11 px-2 text-sm text-muted underline underline-offset-4 hover:text-carbon">Limpiar filtros</button>
++          </div>
++        ) : null}
++      </section>
++
++      <div aria-busy={results.isFetching}>
++        {results.isPending ? <ProductGridSkeleton /> : results.isError ? (
++          <ErrorState message={backendErrorMessage()} onRetry={() => results.refetch()} />
++        ) : results.data.length === 0 ? (
++          <EmptyState message={hasFilters ? "Sin resultados con esos filtros. Prueba con otra búsqueda o limpia los filtros." : "No hay prendas aquí por ahora."} action={hasFilters ? (
++            <button type="button" onClick={clearFilters} className="min-h-11 border border-carbon/40 px-4 py-2 text-sm text-carbon hover:border-carbon">Limpiar filtros</button>
++          ) : undefined} />
++        ) : <ProductGrid products={results.data} eager />}
+       </div>
+-
+-      {/* Panel de filtros móvil (colapsable y accesible) */}
+-      <div className={`disclosure sm:hidden ${panelOpen ? "disclosure-open" : ""}`}>
+-        <fieldset
+-          id="panel-filtros"
+-          inert={!panelOpen}
+-          onKeyDown={(e) => {
+-            if (e.key === "Escape") {
+-              setPanelOpen(false);
+-              filterButton.current?.focus();
+-            }
+-          }}
+-          className="border border-line bg-parchment"
+-        >
+-          <legend className="sr-only">Filtrar por categoría y marca</legend>
+-          <div className="flex gap-3 p-3">
+-            {selects("panel-m")}
+-          </div>
+-        </fieldset>
+-      </div>
+-
+-      {/* Filtros desktop */}
+-      <fieldset className="hidden flex-wrap items-end gap-x-4 gap-y-3 sm:flex">
+-        <legend className="sr-only">Filtrar y ordenar</legend>
+-        {selects("filtro")}
+-        <span className="flex flex-col gap-1">
+-          <label htmlFor="filtro-orden" className="text-[11px] uppercase tracking-[0.18em] text-muted">
+-            Orden
+-          </label>
+-          <select
+-            id="filtro-orden"
+-            value={orden}
+-            onChange={(e) => applyOrden(e.target.value as ProductSort)}
+-            className="h-11 border border-carbon/30 bg-ivory px-2 text-sm text-carbon"
+-          >
+-            {SORTS.map((s) => (
+-              <option key={s.value} value={s.value}>
+-                {s.label}
+-              </option>
+-            ))}
+-          </select>
+-        </span>
+-        {hasFilters ? (
+-          <button
+-            type="button"
+-            onClick={clearFilters}
+-            className="pb-2.5 text-sm text-muted underline underline-offset-4 hover:text-carbon"
+-          >
+-            Limpiar filtros
+-          </button>
+-        ) : null}
+-      </fieldset>
+-      {hasFilters ? (
+-        <button
+-          type="button"
+-          onClick={clearFilters}
+-          className="self-start text-sm text-muted underline underline-offset-4 hover:text-carbon sm:hidden"
+-        >
+-          Limpiar filtros
+-        </button>
+-      ) : null}
+-
+-      {results.isPending ? (
+-        <ProductGridSkeleton />
+-      ) : results.isError ? (
+-        <ErrorState message={backendErrorMessage()} onRetry={() => results.refetch()} />
+-      ) : results.data.length === 0 ? (
+-        <EmptyState
+-          message={
+-            hasFilters
+-              ? "Sin resultados con esos filtros. Prueba con otra búsqueda o limpia los filtros."
+-              : "No hay prendas aquí por ahora."
+-          }
+-          action={
+-            hasFilters ? (
+-              <button
+-                type="button"
+-                onClick={clearFilters}
+-                className="border border-carbon/30 px-4 py-2 text-sm uppercase tracking-[0.12em] text-carbon hover:border-carbon"
+-              >
+-                Limpiar filtros
+-              </button>
+-            ) : undefined
+-          }
+-        />
+-      ) : (
+-        <>
+-          <p role="status" className="text-sm text-muted">
+-            {results.data.length} {results.data.length === 1 ? "prenda" : "prendas"}
+-          </p>
+-          <ProductGrid products={results.data} eager />
+-        </>
+-      )}
+     </div>
+   );
+ }
+--- a/apps/web/src/app/carrito/page.tsx
++++ b/apps/web/src/app/carrito/page.tsx
+@@ -9,7 +9,7 @@
+ import { isSupabaseConfigured } from "../../lib/supabase";
+ 
+ export default function CarritoPage() {
+-  const { lines, setQty, remove, clear } = useCart();
++  const { lines, ready, setQty, remove, clear } = useCart();
+   const ids = lines.map((l) => l.productId);
+   const key = [...ids].sort().join(",");
+   const products = useQuery({
+@@ -19,6 +19,8 @@
+   });
+ 
+   if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
++
++  if (!ready) return <LoadingState message="Cargando tu carrito…" />;
+ 
+   if (lines.length === 0) {
+     return (
+--- a/apps/web/src/app/checkout/page.tsx
++++ b/apps/web/src/app/checkout/page.tsx
+@@ -49,7 +49,8 @@
+ 
+ export default function CheckoutPage() {
+   const { user, loading } = useSession();
+-  if (loading) return <p className="py-10 text-center text-sm text-muted">Cargando sesión…</p>;
++  const { ready } = useCart();
++  if (loading || !ready) return <p className="py-10 text-center text-sm text-muted">Cargando sesión…</p>;
+   const owner = user?.id ?? "guest";
+   return <CheckoutFlow key={owner} owner={owner} authed={Boolean(user)} />;
+ }
+--- a/apps/web/src/app/coleccion/[slug]/layout.tsx
++++ b/apps/web/src/app/coleccion/[slug]/layout.tsx
+@@ -10,7 +10,7 @@
+   try {
+     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+-    if (!url || !key) return { title: "Colección · Shopy" };
++    if (!url || !key) return { title: "Colección" };
+     const db = createClient(url, key, { auth: { persistSession: false } });
+     const { data } = await db
+       .from("collections")
+@@ -19,10 +19,10 @@
+       .eq("is_active", true)
+       .maybeSingle();
+     const row = data as unknown as { name: string } | null;
+-    if (!row) return { title: "Colección · Shopy" };
+-    return { title: `${row.name} · Shopy` };
++    if (!row) return { title: "Colección" };
++    return { title: `${row.name}` };
+   } catch {
+-    return { title: "Colección · Shopy" };
++    return { title: "Colección" };
+   }
+ }
+ 
+--- a/apps/web/src/app/producto/[slug]/layout.tsx
++++ b/apps/web/src/app/producto/[slug]/layout.tsx
+@@ -10,7 +10,7 @@
+   try {
+     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+-    if (!url || !key) return { title: "Prenda · Shopy" };
++    if (!url || !key) return { title: "Prenda" };
+     const db = createClient(url, key, { auth: { persistSession: false } });
+     const { data } = await db
+       .from("products")
+@@ -18,12 +18,12 @@
+       .eq("slug", slug)
+       .maybeSingle();
+     const row = data as unknown as { name: string; brand: { name: string } | null } | null;
+-    if (!row) return { title: "Prenda no disponible · Shopy" };
++    if (!row) return { title: "Prenda no disponible" };
+     const brand = row.brand?.name;
+     const suffix = brand && !row.name.toLowerCase().includes(brand.toLowerCase()) ? ` · ${brand}` : "";
+-    return { title: `${row.name}${suffix} · Shopy` };
++    return { title: `${row.name}${suffix}` };
+   } catch {
+-    return { title: "Prenda · Shopy" };
++    return { title: "Prenda" };
+   }
+ }
+ 
+--- a/apps/web/src/app/producto/[slug]/page.tsx
++++ b/apps/web/src/app/producto/[slug]/page.tsx
+@@ -18,7 +18,7 @@
+ 
+ export default function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
+   const { slug } = use(params);
+-  const { add } = useCart();
++  const { add, ready } = useCart();
+   const [added, setAdded] = useState(false);
+   const [selectedImage, setSelectedImage] = useState(0);
+   const product = useQuery({
+@@ -40,82 +40,50 @@
+   const onSale = (p.compareAtPriceClp ?? 0) > p.priceClp;
+ 
+   return (
+-    <div className="grid gap-6 md:grid-cols-2 md:gap-10">
+-      <div className="min-w-0">
+-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-parchment">
+-        {cover ? <Image src={cover} alt={`${p.name}${currentImage?.isDefect ? ": detalle del estado" : ""}`} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority /> : null}
+-        {onSale && !soldOut ? (
+-          <span className="absolute bottom-0 left-0 bg-carbon px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-ivory">
+-            Oferta
+-          </span>
+-        ) : null}
+-        {soldOut ? (
+-          <span className="absolute inset-x-0 bottom-0 bg-carbon/80 py-1.5 text-center text-xs uppercase tracking-[0.14em] text-ivory">
+-            Agotada
+-          </span>
+-        ) : null}
++    <div className="grid min-w-0 gap-5 md:grid-cols-2 md:items-start md:gap-x-12 md:gap-y-6">
++      <div className="min-w-0 md:col-start-2 md:row-start-1">
++        <p className="text-sm text-muted">{p.brand}</p>
++        <h1 className="mt-1 font-display text-3xl leading-tight tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
++        <p className="mt-2 text-sm text-muted">Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}{p.color ? ` · ${p.color}` : ""}</p>
++        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
++          <span className="tnum text-2xl font-semibold text-carbon sm:text-3xl">{formatCLP(p.priceClp)}</span>
++          {onSale ? <span className="tnum text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span> : null}
++        </div>
++        <p className={`mt-2 text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
++          {soldOut ? "Agotada" : p.stock === 1 ? "Última unidad disponible" : `${p.stock} unidades disponibles`}
++        </p>
+       </div>
+-      {images.length > 1 ? (
+-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Fotos de la prenda">
+-          {images.map((image, index) => (
+-            <button
+-              key={image.url}
+-              type="button"
+-              aria-pressed={selectedImage === index}
+-              aria-label={`Ver foto ${index + 1}${image.isDefect ? ", detalle del estado" : ""}`}
+-              onClick={() => setSelectedImage(index)}
+-              className="relative h-20 w-16 overflow-hidden border-2 border-transparent bg-parchment aria-pressed:border-carbon"
+-            >
+-              <Image src={image.url} alt="" fill sizes="64px" className="object-cover" />
+-            </button>
+-          ))}
++
++      <div className="min-w-0 md:col-start-1 md:row-span-2 md:row-start-1">
++        <div className="relative h-[min(85vw,340px)] w-full overflow-hidden bg-parchment md:h-auto md:aspect-[3/4]">
++          {cover ? <Image src={cover} alt={`${p.name}${currentImage?.isDefect ? ": detalle del estado" : ""}`} fill sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1199px) 50vw, 528px" className="object-contain" priority /> : <p className="flex h-full items-center justify-center text-sm text-muted">Imagen no disponible</p>}
++          {onSale && !soldOut ? <span className="absolute bottom-3 left-3 bg-carbon px-3 py-1 text-xs text-ivory">Oferta</span> : null}
+         </div>
+-      ) : null}
+-      <p role="status" className="mt-2 min-h-5 text-sm text-muted">
+-        {currentImage?.isDefect ? "Detalle del estado de la prenda" : images.length > 1 ? `Foto ${selectedImage + 1} de ${images.length}` : ""}
+-      </p>
+-      </div>
+-      <div className="flex min-w-0 flex-col gap-4">
+-        <div>
+-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">{p.brand}</p>
+-          <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
+-          <p className="mt-1.5 text-sm text-muted">
+-            Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}
+-            {p.color ? ` · ${p.color}` : ""}
+-          </p>
+-        </div>
+-        <div className="flex items-baseline gap-3 border-y border-line py-3">
+-          <span className="text-3xl font-bold text-carbon">{formatCLP(p.priceClp)}</span>
+-          {onSale ? (
+-            <span className="text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span>
+-          ) : null}
+-        </div>
+-        <p className={`text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
+-          {soldOut ? "Agotada" : p.stock === 1 ? "¡Última unidad!" : `Stock: ${p.stock}`}
+-        </p>
+-        {p.description ? <p className="break-words text-sm leading-relaxed text-carbon/80">{p.description}</p> : null}
+-        {p.tags.length > 0 ? (
+-          <div className="flex flex-wrap gap-1.5">
+-            {p.tags.map((t) => (
+-              <span key={t} className="bg-parchment px-2.5 py-1 text-xs text-muted">
+-                #{t}
+-              </span>
++        {images.length > 1 ? (
++          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Fotos de la prenda">
++            {images.map((image, index) => (
++              <button key={image.url} type="button" aria-pressed={selectedImage === index} aria-label={`Ver foto ${index + 1}${image.isDefect ? ", detalle del estado" : ""}`} onClick={() => setSelectedImage(index)} className="relative h-16 w-14 overflow-hidden border-2 border-transparent bg-parchment aria-pressed:border-carbon">
++                <Image src={image.url} alt="" fill sizes="56px" className="object-contain" />
++                {image.isDefect ? <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-carbon py-0.5 text-[10px] text-ivory">Detalle</span> : null}
++              </button>
+             ))}
+           </div>
+         ) : null}
+-        <button
+-          type="button"
+-          disabled={soldOut}
+-          onClick={() => {
+-            add(p.id, 1);
+-            setAdded(true);
+-            setTimeout(() => setAdded(false), 2500);
+-          }}
+-          className="btn-press mt-2 h-12 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-40"
+-        >
+-          {soldOut ? "Agotada" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
++        <p role="status" className="mt-2 min-h-5 text-xs text-muted">{currentImage?.isDefect ? "Detalle del estado de la prenda" : images.length > 1 ? `Foto ${selectedImage + 1} de ${images.length}` : ""}</p>
++      </div>
++
++      <div className="flex min-w-0 flex-col gap-5 md:col-start-2 md:row-start-2">
++        <button type="button" disabled={soldOut || !ready} onClick={() => {
++          add(p.id, 1); setAdded(true); setTimeout(() => setAdded(false), 2500);
++        }} className="btn-press h-12 bg-carbon text-sm font-medium text-ivory hover:bg-carbon-soft disabled:opacity-40">
++          {soldOut ? "Agotada" : !ready ? "Cargando carrito…" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
+         </button>
+         <p role="status" className="sr-only">{added ? "Prenda agregada al carrito" : ""}</p>
++        {p.description ? <section aria-labelledby="descripcion-prenda" className="border-t border-line pt-5">
++          <h2 id="descripcion-prenda" className="mb-2 text-sm font-semibold">Sobre esta prenda</h2>
++          <p className="break-words text-sm leading-relaxed text-carbon/80">{p.description}</p>
++        </section> : null}
++        {p.tags.length > 0 ? <ul aria-label="Etiquetas" className="flex flex-wrap gap-2">{p.tags.map((tag) => <li key={tag} className="bg-parchment px-3 py-1.5 text-xs text-muted">#{tag}</li>)}</ul> : null}
+       </div>
+     </div>
+   );

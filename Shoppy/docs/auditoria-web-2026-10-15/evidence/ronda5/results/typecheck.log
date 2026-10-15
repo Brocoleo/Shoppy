@@ -1,0 +1,8 @@
+
+> shopy@0.1.0 web:typecheck
+> npm --workspace apps/web run typecheck
+
+
+> shopy-web@0.1.0 typecheck
+> tsc --noEmit
+

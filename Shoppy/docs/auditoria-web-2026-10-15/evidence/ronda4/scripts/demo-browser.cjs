@@ -1,0 +1,17 @@
+const {chromium}=require('/home/leandro/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert=require('node:assert/strict'),fs=require('fs');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/google/chrome/chrome',args:['--no-sandbox']});const root='http://127.0.0.1:3117';const p=await b.newPage({viewport:{width:390,height:844}}),checks=[];
+const check=(name,value)=>{assert.ok(value,name);checks.push(name);console.log('PASS',name)};
+await p.goto(root);await p.locator('#novedades-titulo').waitFor();
+check('Initial home contains eight demo garments',await p.locator('section[aria-labelledby=novedades-titulo] li').count()===8&&await p.locator('section[aria-labelledby=novedades-titulo]').getByText('Producto de demostración · Imagen generada',{exact:true}).count()===8);
+check('Primary model image is eager and secondary model is lazy',await p.locator('.editorial-main-photo img').getAttribute('loading')!=='lazy'&&await p.locator('.editorial-secondary-photo img').getAttribute('loading')==='lazy');
+check('Secondary photo absent from mobile layout',!await p.locator('.editorial-secondary-photo').isVisible());
+const response=await p.request.get(root);const html=await response.text();fs.writeFileSync('/tmp/shopy-r4/evidence/home-initial.html',html);
+check('Hero image and preload in initial HTML',html.includes('modelo-principal.webp')&&html.includes('rel="preload"'));
+await p.goto(root+'/producto/demo-editorial-chaqueta-denim');const button=p.getByRole('button',{name:'Producto de demostración',exact:true});await button.waitFor();check('Demo product cannot be added',await button.isDisabled());check('Demo product disclosure and illustrative price visible',await p.getByText('Producto de demostración · Imagen generada',{exact:true}).isVisible()&&await p.getByText('No disponible para compra · Precio ilustrativo',{exact:true}).isVisible());await p.screenshot({path:'/tmp/shopy-r4/evidence/after-mobile-demo-ficha.png',fullPage:true});
+await p.addScriptTag({path:'/tmp/shopy-audit/axe.min.js'});const axe=await p.evaluate(async()=>{const r=await axe.run({runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']}});return r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))});check('Demo ficha axe clean',axe.length===0);
+await p.emulateMedia({reducedMotion:'reduce'});await p.goto(root);check('Editorial entrance disabled for reduced motion',await p.locator('.editorial-title span').evaluate(e=>getComputedStyle(e).animationName==='none'));await p.emulateMedia({reducedMotion:'no-preference'});await p.goto(root);check('Editorial entrance present for standard motion',await p.locator('.editorial-title span').evaluate(e=>getComputedStyle(e).animationName==='editorial-enter'));
+await p.setViewportSize({width:1440,height:1000});check('Secondary photo visible on desktop',await p.locator('.editorial-secondary-photo').isVisible());
+const photo=await p.locator('.editorial-secondary-photo').boundingBox();for(const selector of ['.editorial-title','.editorial-action']){const main=await p.locator(selector).boundingBox();check('Secondary photo does not obscure '+selector,main.y+main.height<=photo.y||main.x+main.width<=photo.x);}
+await p.goto(root+'/catalogo?q=demostración');await p.getByRole('status').filter({hasText:'8 prendas'}).waitFor();check('Demo catalogue searchable',true);
+fs.writeFileSync('/tmp/shopy-r4/evidence/demo-browser.json',JSON.stringify({checks,axe},null,2));await b.close()})().catch(e=>{console.error(e);process.exit(1)});

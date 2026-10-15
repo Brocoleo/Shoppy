@@ -1,0 +1,32 @@
+[
+  {
+    "name": "before",
+    "taxonomyRequests": [
+      "/rest/v1/categories",
+      "/rest/v1/categories",
+      "/rest/v1/categories",
+      "/rest/v1/categories",
+      "/rest/v1/brands",
+      "/rest/v1/brands"
+    ]
+  },
+  {
+    "name": "after",
+    "taxonomyRequests": [
+      "/rest/v1/categories",
+      "/rest/v1/brands"
+    ]
+  },
+  {
+    "check": "Empty collection",
+    "pass": true
+  },
+  {
+    "check": "Home failure isolated to sections",
+    "pass": true
+  },
+  {
+    "check": "Mobile navigation to offers",
+    "pass": true
+  }
+]

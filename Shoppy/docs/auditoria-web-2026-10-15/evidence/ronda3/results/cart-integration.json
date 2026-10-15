@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "Persisted guest cart hydrates without mismatch",
+    "Login merges guest with max quantity",
+    "No transient empty or foreign writes to user A",
+    "Guest removed after saved merge",
+    "Logout isolates guest from user cart",
+    "Different user never inherits previous user items",
+    "No transient foreign writes to user B",
+    "User A persisted cart not overwritten",
+    "Authenticated cart restores on reload",
+    "Corrupt storage recovers safely",
+    "Persisted invalid data sanitized and quantity capped",
+    "Blocked storage preserves in-memory cart across navigation",
+    "Blocked storage still allows cart updates",
+    "No hydration or uncaught browser errors"
+  ],
+  "errors": [],
+  "auth": "All auth endpoints intercepted; no real accounts or sessions"
+}

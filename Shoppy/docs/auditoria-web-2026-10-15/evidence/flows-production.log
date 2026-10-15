@@ -1,0 +1,30 @@
+PASS Mobile menu visible
+PASS Escape closes menu
+PASS Escape returns menu focus
+PASS Mobile filter visible and updates URL
+PASS Filter Escape restores focus
+PASS Clear filters remains available
+PHOTOS 
+PASS Gallery includes defect photos
+PASS Defect photo caption announced
+PASS Cart contains selected product
+PASS Invalid checkout focuses first field
+PASS Checkout error described
+SHIPPING Checkout
+
+Paso 2 de 3: Despacho
+
+Beta de prueba · no uses tarjetas reales.
+
+Despacho a Santiago, Metropolitana
+
+Cargando tarifas…
+
+Cupón (opcional)
+Aplicar
+Atrás
+Revisar pedido
+PASS Orders fit 320px
+PASS Tracking requires order ID
+PASS Skip link focuses main
+PASS No uncaught browser errors

@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "Mobile menu visible",
+    "Escape closes menu",
+    "Escape returns menu focus",
+    "Mobile filter visible and updates URL",
+    "Filter Escape restores focus",
+    "Clear filters remains available",
+    "Search empty state",
+    "Gallery includes defect photos",
+    "Defect photo caption announced",
+    "Cart contains selected product",
+    "Cart persists after reload",
+    "Invalid checkout focuses first field",
+    "Checkout error described",
+    "Checkout address advances to shipping",
+    "Orders fit 320px",
+    "Tracking requires order ID",
+    "Skip link focuses main",
+    "No uncaught browser errors"
+  ],
+  "errors": []
+}

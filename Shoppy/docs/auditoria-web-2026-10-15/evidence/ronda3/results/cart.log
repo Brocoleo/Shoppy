@@ -1,0 +1,14 @@
+PASS Persisted guest cart hydrates without mismatch
+PASS Login merges guest with max quantity
+PASS No transient empty or foreign writes to user A
+PASS Guest removed after saved merge
+PASS Logout isolates guest from user cart
+PASS Different user never inherits previous user items
+PASS No transient foreign writes to user B
+PASS User A persisted cart not overwritten
+PASS Authenticated cart restores on reload
+PASS Corrupt storage recovers safely
+PASS Persisted invalid data sanitized and quantity capped
+PASS Blocked storage preserves in-memory cart across navigation
+PASS Blocked storage still allows cart updates
+PASS No hydration or uncaught browser errors

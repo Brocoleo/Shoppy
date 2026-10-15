@@ -1,0 +1,1034 @@
+--- a/apps/web/src/components/Header.tsx
++++ b/apps/web/src/components/Header.tsx
+@@ -1,7 +1,8 @@
+ "use client";
+ 
+ import Link from "next/link";
+-import { useState } from "react";
++import { useRef, useState } from "react";
++import { usePathname } from "next/navigation";
+ import { useCart } from "../lib/cart";
+ import { useSession } from "../lib/session";
+ 
+@@ -15,14 +16,24 @@
+   const { count } = useCart();
+   const { user, loading, signOut } = useSession();
+   const [open, setOpen] = useState(false);
++  const menuButton = useRef<HTMLButtonElement>(null);
++  const pathname = usePathname();
+ 
+   return (
+-    <header className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur">
++    <header
++      onKeyDown={(event) => {
++        if (event.key === "Escape" && open) {
++          setOpen(false);
++          menuButton.current?.focus();
++        }
++      }}
++      className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur"
++    >
+       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+         <Link
+           href="/"
+           aria-label="Shopy, inicio"
+-          className="font-display text-2xl tracking-[0.18em] text-carbon"
++          className="inline-flex min-h-11 items-center font-display text-2xl tracking-[0.18em] text-carbon"
+         >
+           SHOPY
+         </Link>
+@@ -32,7 +43,8 @@
+             <Link
+               key={item.href}
+               href={item.href}
+-              className="uppercase tracking-[0.12em] text-muted transition-colors hover:text-carbon"
++              aria-current={pathname === item.href ? "page" : undefined}
++              className="inline-flex min-h-11 items-center border-b border-transparent uppercase tracking-[0.12em] text-muted transition-colors hover:text-carbon aria-[current=page]:border-carbon aria-[current=page]:text-carbon"
+             >
+               {item.label}
+             </Link>
+@@ -43,7 +55,8 @@
+         <Link
+           href="/carrito"
+           aria-label={count > 0 ? `Carrito, ${count} prenda(s)` : "Carrito vacío"}
+-          className="rounded-full border border-carbon/30 px-3 py-1 text-sm text-carbon transition-colors hover:border-carbon"
++          aria-current={pathname === "/carrito" ? "page" : undefined}
++          className="inline-flex min-h-11 items-center rounded-full border border-carbon/30 px-3 py-1 text-sm text-carbon transition-colors hover:border-carbon"
+         >
+           Carrito{count > 0 ? ` (${count})` : ""}
+         </Link>
+@@ -52,14 +65,14 @@
+           <button
+             type="button"
+             onClick={() => signOut()}
+-            className="hidden text-sm text-muted underline underline-offset-4 hover:text-carbon sm:block"
++            className="hidden min-h-11 text-sm text-muted underline underline-offset-4 hover:text-carbon sm:block"
+           >
+             Salir
+           </button>
+         ) : (
+           <Link
+             href="/login"
+-            className="hidden bg-carbon px-4 py-1.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft sm:block"
++            className="hidden min-h-11 items-center bg-carbon px-4 py-1.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft sm:inline-flex"
+           >
+             Entrar
+           </Link>
+@@ -67,11 +80,12 @@
+ 
+         <button
+           type="button"
++          ref={menuButton}
+           aria-expanded={open}
+           aria-controls="menu-movil"
+           aria-label={open ? "Cerrar menú" : "Abrir menú"}
+           onClick={() => setOpen((v) => !v)}
+-          className="flex h-9 w-9 items-center justify-center rounded border border-carbon/30 text-carbon md:hidden"
++          className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-carbon/30 text-carbon md:hidden"
+         >
+           <span aria-hidden="true" className="relative block h-3.5 w-4">
+             <span
+@@ -85,7 +99,8 @@
+         </button>
+       </div>
+ 
+-      <div className={`collapse md:hidden ${open ? "collapse-open" : ""}`}>
++      <div className={`disclosure md:hidden ${open ? "disclosure-open" : ""}`}>
++        <div>
+         <nav
+           id="menu-movil"
+           aria-label="Móvil"
+@@ -98,7 +113,8 @@
+                 <Link
+                   href={item.href}
+                   onClick={() => setOpen(false)}
+-                  className="block py-2 text-sm uppercase tracking-[0.12em] text-carbon"
++                  aria-current={pathname === item.href ? "page" : undefined}
++                  className="flex min-h-11 items-center py-2 text-sm uppercase tracking-[0.12em] text-carbon"
+                 >
+                   {item.label}
+                 </Link>
+@@ -112,7 +128,7 @@
+                     setOpen(false);
+                     signOut();
+                   }}
+-                  className="block py-2 text-sm uppercase tracking-[0.12em] text-muted"
++                  className="flex min-h-11 items-center py-2 text-sm uppercase tracking-[0.12em] text-muted"
+                 >
+                   Salir
+                 </button>
+@@ -120,7 +136,8 @@
+                 <Link
+                   href="/login"
+                   onClick={() => setOpen(false)}
+-                  className="block py-2 text-sm uppercase tracking-[0.12em] text-carbon"
++                  aria-current={pathname === "/login" ? "page" : undefined}
++                  className="flex min-h-11 items-center py-2 text-sm uppercase tracking-[0.12em] text-carbon"
+                 >
+                   Entrar
+                 </Link>
+@@ -128,6 +145,7 @@
+             </li>
+           </ul>
+         </nav>
++        </div>
+       </div>
+     </header>
+   );
+--- a/apps/web/src/components/EditorialHero.tsx
++++ b/apps/web/src/components/EditorialHero.tsx
+@@ -18,7 +18,7 @@
+       aria-labelledby="hero-titulo"
+       className="grid overflow-hidden bg-ivory md:grid-cols-2 md:bg-carbon md:text-ivory"
+     >
+-      <div className="relative order-first aspect-[4/5] max-h-[26rem] w-full bg-parchment sm:max-h-[30rem] md:order-last md:aspect-auto md:max-h-none md:min-h-[28rem]">
++      <div className="relative order-first aspect-[5/4] max-h-[20rem] w-full bg-parchment sm:max-h-[30rem] md:order-last md:aspect-auto md:max-h-none md:min-h-[28rem]">
+         {cover && product ? (
+           <Image
+             src={cover}
+@@ -71,13 +71,13 @@
+         <div className="animate-fade-up flex flex-wrap gap-2.5 pt-1 [animation-delay:240ms] sm:gap-3">
+           <Link
+             href="/catalogo"
+-            className="btn-press bg-ivory px-5 py-2 text-xs uppercase tracking-[0.12em] text-carbon transition-colors hover:bg-taupe sm:px-6 sm:py-2.5 sm:text-sm"
++            className="btn-press inline-flex min-h-11 items-center justify-center bg-ivory px-5 py-2 text-xs uppercase tracking-[0.12em] text-carbon transition-colors hover:bg-taupe sm:px-6 sm:py-2.5 sm:text-sm"
+           >
+             Ver catálogo
+           </Link>
+           <Link
+             href="/coleccion/ofertas"
+-            className="btn-press border border-ivory/40 px-5 py-2 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:border-ivory sm:px-6 sm:py-2.5 sm:text-sm"
++            className="btn-press inline-flex min-h-11 items-center justify-center border border-ivory/40 px-5 py-2 text-xs uppercase tracking-[0.12em] text-ivory transition-colors hover:border-ivory sm:px-6 sm:py-2.5 sm:text-sm"
+           >
+             Ver ofertas
+           </Link>
+--- a/apps/web/src/components/ProductCard.tsx
++++ b/apps/web/src/components/ProductCard.tsx
+@@ -13,7 +13,7 @@
+   con_detalles: "Con detalles",
+ };
+ 
+-export function ProductCard({ product }: { product: CatalogProduct }) {
++export function ProductCard({ product, eager = false }: { product: CatalogProduct; eager?: boolean }) {
+   const cover = productCover(product);
+   const onSale = (product.compareAtPriceClp ?? 0) > product.priceClp;
+   const soldOut = product.stock <= 0;
+@@ -33,7 +33,7 @@
+               fill
+               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+               className="card-zoom object-cover"
+-              loading="lazy"
++              loading={eager ? "eager" : "lazy"}
+             />
+           ) : null}
+           {onSale && !soldOut ? (
+@@ -67,14 +67,14 @@
+   );
+ }
+ 
+-export function ProductGrid({ products }: { products: CatalogProduct[] }) {
++export function ProductGrid({ products, eager = false }: { products: CatalogProduct[]; eager?: boolean }) {
+   if (products.length === 0) {
+     return <EmptyState message="No hay prendas aquí por ahora." />;
+   }
+   return (
+     <ul aria-label="Productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+-      {products.map((p) => (
+-        <ProductCard key={p.id} product={p} />
++      {products.map((p, index) => (
++        <ProductCard key={p.id} product={p} eager={eager && index < 4} />
+       ))}
+     </ul>
+   );
+--- a/apps/web/src/components/States.tsx
++++ b/apps/web/src/components/States.tsx
+@@ -47,7 +47,7 @@
+ 
+ export function SectionTitle({ title, action, id }: { title: string; action?: ReactNode; id?: string }) {
+   return (
+-    <div className="mb-4 flex items-baseline justify-between border-b border-carbon/20 pb-2">
++    <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-carbon/20 pb-2">
+       <h2 id={id} className="font-display text-2xl tracking-tight text-carbon sm:text-3xl">{title}</h2>
+       {action}
+     </div>
+--- a/apps/web/src/lib/catalog.ts
++++ b/apps/web/src/lib/catalog.ts
+@@ -99,7 +99,18 @@
+ const categoriesById = new Map<string, string>();
+ const brandIdBySlug = new Map<string, string>();
+ 
++// Share taxonomy requests between the concurrent home/catalog queries.
++let taxonomyRequest: Promise<void> | null = null;
++
+ async function taxonomy() {
++  if (categoriesCache && brandsCache) return;
++  if (!taxonomyRequest) {
++    taxonomyRequest = loadTaxonomy().finally(() => { taxonomyRequest = null; });
++  }
++  await taxonomyRequest;
++}
++
++async function loadTaxonomy() {
+   const supabase = getSupabase();
+   if (!categoriesCache) {
+     const { data, error } = await supabase
+--- a/apps/web/src/app/layout.tsx
++++ b/apps/web/src/app/layout.tsx
+@@ -1,4 +1,4 @@
+-import type { Metadata } from "next";
++import type { Metadata, Viewport } from "next";
+ import "./globals.css";
+ import { WebQueryProvider } from "../lib/query";
+ import { SessionProvider } from "../lib/session";
+@@ -6,9 +6,18 @@
+ import { Header } from "../components/Header";
+ 
+ export const metadata: Metadata = {
+-  title: "Shopy — Ropa de segunda mano",
++  title: { default: "Shopy — Ropa de segunda mano", template: "%s | Shopy" },
++  openGraph: {
++    siteName: "Shopy",
++    locale: "es_CL",
++    type: "website",
++    title: "Shopy — Ropa de segunda mano",
++    description: "Ropa de segunda mano verificada. Precios en CLP.",
++  },
+   description: "Shopy: e-commerce chileno de ropa de segunda mano. Prendas únicas verificadas.",
+ };
++
++export const viewport: Viewport = { themeColor: "#f8f7f4" };
+ 
+ export default function RootLayout({ children }: { children: React.ReactNode }) {
+   return (
+@@ -16,7 +25,7 @@
+       <head>
+         <link rel="preconnect" href="https://evzlqwiipdjgtrqjlwba.supabase.co" crossOrigin="anonymous" />
+       </head>
+-      <body className="min-h-full bg-ivory font-sans text-carbon antialiased">
++      <body className="flex min-h-dvh flex-col bg-ivory font-sans text-carbon antialiased">
+         <WebQueryProvider>
+           <SessionProvider>
+             <CartProvider>
+@@ -27,8 +36,8 @@
+                 Saltar al contenido
+               </a>
+               <Header />
+-              <main id="contenido" className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6">{children}</main>
+-              <footer className="bg-carbon text-ivory">
++              <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-8">{children}</main>
++              <footer className="mt-auto bg-carbon text-ivory">
+                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-8 text-sm">
+                   <p className="font-display text-lg tracking-wide">Shopy · Beta</p>
+                   <p className="text-ivory/70">Ropa de segunda mano verificada · Precios en CLP · Despachos a todo Chile</p>
+--- a/apps/web/src/app/globals.css
++++ b/apps/web/src/app/globals.css
+@@ -88,7 +88,7 @@
+ }
+ 
+ /* Colapso reversible e interrumpible (menú móvil, panel de filtros). */
+-.collapse {
++.disclosure {
+   display: grid;
+   grid-template-rows: 0fr;
+   opacity: 0;
+@@ -96,11 +96,11 @@
+     grid-template-rows 360ms var(--ease-entrance),
+     opacity 240ms var(--ease-standard);
+ }
+-.collapse-open {
++.disclosure-open {
+   grid-template-rows: 1fr;
+   opacity: 1;
+ }
+-.collapse > * {
++.disclosure > * {
+   overflow: hidden;
+   min-height: 0;
+ }
+@@ -144,3 +144,21 @@
+     transition-duration: 0.01ms !important;
+   }
+ }
++
++/* Keep keyboard destinations clear of the sticky navigation. */
++#contenido, h1, h2 {
++  scroll-margin-top: 6rem;
++}
++
++/* Preserve readable controls without automatic zoom on mobile Safari. */
++@media (max-width: 639px) {
++  input, select, textarea {
++    font-size: 16px !important;
++  }
++}
++
++@media (forced-colors: active) {
++  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
++    outline-color: Highlight;
++  }
++}
+--- a/apps/web/src/app/page.tsx
++++ b/apps/web/src/app/page.tsx
+@@ -11,8 +11,8 @@
+ } from "../lib/catalog";
+ import { EditorialHero } from "../components/EditorialHero";
+ import { Reveal } from "../components/Reveal";
+-import { ProductGrid } from "../components/ProductCard";
+-import { ErrorState, LoadingState, SectionTitle, backendErrorMessage } from "../components/States";
++import { ProductGrid, ProductGridSkeleton } from "../components/ProductCard";
++import { ErrorState, SectionTitle, backendErrorMessage } from "../components/States";
+ import { isSupabaseConfigured } from "../lib/supabase";
+ 
+ export default function HomePage() {
+@@ -31,21 +31,8 @@
+   });
+ 
+   if (!isSupabaseConfigured) {
+-    return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
++    return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+   }
+-  if (newcomers.isPending || trending.isPending) return <LoadingState message="Cargando la tienda…" />;
+-  if (newcomers.isError || trending.isError) {
+-    return (
+-      <ErrorState
+-        message={backendErrorMessage()}
+-        onRetry={() => {
+-          newcomers.refetch();
+-          trending.refetch();
+-        }}
+-      />
+-    );
+-  }
+-
+   const withImage = (newcomers.data ?? []).find((p) => (p.remoteImages ?? []).some((i) => !i.isDefect));
+   const hero = withImage ?? newcomers.data?.[0] ?? trending.data?.[0];
+   const parents = (categories.data ?? []).filter((c) => c.parentSlug === null);
+@@ -95,7 +82,9 @@
+             </Link>
+           }
+         />
+-        <ProductGrid products={(newcomers.data ?? []).slice(0, 8)} />
++        {newcomers.isPending ? <ProductGridSkeleton /> : newcomers.isError ? (
++          <ErrorState message={backendErrorMessage()} onRetry={() => newcomers.refetch()} />
++        ) : <ProductGrid products={(newcomers.data ?? []).slice(0, 8)} />}
+         </section>
+       </Reveal>
+ 
+@@ -119,7 +108,9 @@
+       <Reveal>
+         <section aria-labelledby="tendencia-titulo">
+         <SectionTitle title="Tendencia" id="tendencia-titulo" />
+-        <ProductGrid products={(trending.data ?? []).slice(0, 8)} />
++        {trending.isPending ? <ProductGridSkeleton /> : trending.isError ? (
++          <ErrorState message={backendErrorMessage()} onRetry={() => trending.refetch()} />
++        ) : <ProductGrid products={(trending.data ?? []).slice(0, 8)} />}
+         </section>
+       </Reveal>
+ 
+@@ -132,7 +123,7 @@
+               <li key={b.slug}>
+                 <Link
+                   href={`/catalogo?marca=${encodeURIComponent(b.slug)}`}
+-                  className="block border border-carbon/30 px-4 py-1.5 font-display text-base italic text-carbon transition-colors hover:bg-carbon hover:text-ivory"
++                  className="inline-flex min-h-11 items-center border border-carbon/30 px-4 py-1.5 font-display text-base italic text-carbon transition-colors hover:bg-carbon hover:text-ivory"
+                 >
+                   {b.name}
+                 </Link>
+--- /dev/null
++++ b/apps/web/src/app/catalogo/layout.tsx
+@@ -0,0 +1,9 @@
++import type { Metadata } from "next";
++
++export const metadata: Metadata = {
++  title: "Catálogo",
++};
++
++export default function Layout({ children }: { children: React.ReactNode }) {
++  return children;
++}
+--- a/apps/web/src/app/catalogo/page.tsx
++++ b/apps/web/src/app/catalogo/page.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { Suspense, useMemo, useState } from "react";
++import { Suspense, useMemo, useRef, useState } from "react";
+ import { useQuery } from "@tanstack/react-query";
+ import { usePathname, useRouter, useSearchParams } from "next/navigation";
+ import { listBrands, listCategories, searchProducts, type ProductSort } from "../../lib/catalog";
+@@ -27,11 +27,11 @@
+   const params = useSearchParams();
+   const router = useRouter();
+   const pathname = usePathname();
+-  const [q, setQ] = useState(params.get("q") ?? "");
+-  const [query, setQuery] = useState(params.get("q") ?? "");
+-  const [categoria, setCategoria] = useState(params.get("categoria") ?? "");
+-  const [marca, setMarca] = useState(params.get("marca") ?? "");
+-  const [orden, setOrden] = useState<ProductSort>((params.get("orden") as ProductSort) || "tendencia");
++  const query = params.get("q") ?? "";
++  const categoria = params.get("categoria") ?? "";
++  const marca = params.get("marca") ?? "";
++  const orden = SORTS.find((sort) => sort.value === params.get("orden"))?.value ?? "tendencia";
++  const filterButton = useRef<HTMLButtonElement>(null);
+   const [panelOpen, setPanelOpen] = useState(false);
+ 
+   const filters = useMemo(
+@@ -51,7 +51,7 @@
+   const categories = useQuery({ queryKey: ["web", "categories"], queryFn: listCategories, enabled: isSupabaseConfigured });
+   const brands = useQuery({ queryKey: ["web", "brands"], queryFn: listBrands, enabled: isSupabaseConfigured });
+ 
+-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
++  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+ 
+   /** Refleja el estado de filtros en la URL (reemplazo, sin recargar). */
+   const syncUrl = (next: { query: string; categoria: string; marca: string; orden: ProductSort }) => {
+@@ -66,29 +66,21 @@
+ 
+   const applySearch = (value: string) => {
+     const next = value.trim();
+-    setQuery(next);
+     syncUrl({ query: next, categoria, marca, orden });
+   };
+   const applyCategoria = (value: string) => {
+-    setCategoria(value);
+     syncUrl({ query, categoria: value, marca, orden });
+   };
+   const applyMarca = (value: string) => {
+-    setMarca(value);
+     syncUrl({ query, categoria, marca: value, orden });
+   };
+   const applyOrden = (value: ProductSort) => {
+-    setOrden(value);
+     syncUrl({ query, categoria, marca, orden: value });
+   };
+ 
+   const activeCount = (categoria ? 1 : 0) + (marca ? 1 : 0);
+   const hasFilters = query !== "" || categoria !== "" || marca !== "";
+   const clearFilters = () => {
+-    setQ("");
+-    setQuery("");
+-    setCategoria("");
+-    setMarca("");
+     syncUrl({ query: "", categoria: "", marca: "", orden });
+   };
+ 
+@@ -102,7 +94,7 @@
+           id={`${prefix}-categoria`}
+           value={categoria}
+           onChange={(e) => applyCategoria(e.target.value)}
+-          className="h-10 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
++          className="h-11 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+         >
+           <option value="">Todas</option>
+           {(categories.data ?? []).map((c) => (
+@@ -120,7 +112,7 @@
+           id={`${prefix}-marca`}
+           value={marca}
+           onChange={(e) => applyMarca(e.target.value)}
+-          className="h-10 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
++          className="h-11 w-full border border-carbon/30 bg-ivory px-2 text-sm text-carbon sm:w-auto"
+         >
+           <option value="">Todas</option>
+           {(brands.data ?? []).map((b) => (
+@@ -146,7 +138,7 @@
+         className="flex gap-2"
+         onSubmit={(e) => {
+           e.preventDefault();
+-          applySearch(q);
++          applySearch(String(new FormData(e.currentTarget).get("q") ?? ""));
+         }}
+       >
+         <label htmlFor="buscar-prenda" className="sr-only">
+@@ -155,8 +147,9 @@
+         <input
+           id="buscar-prenda"
+           type="search"
+-          value={q}
+-          onChange={(e) => setQ(e.target.value)}
++          key={query}
++          name="q"
++          defaultValue={query}
+           placeholder="Buscar: chaqueta, Levi's, vestido…"
+           autoComplete="off"
+           className="h-11 min-w-0 flex-1 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon"
+@@ -173,14 +166,15 @@
+       <div className="flex gap-2 sm:hidden">
+         <button
+           type="button"
++          ref={filterButton}
+           aria-expanded={panelOpen}
+           aria-controls="panel-filtros"
+           onClick={() => setPanelOpen((v) => !v)}
+-          className={`h-10 flex-1 border px-3 text-xs uppercase tracking-[0.12em] transition-colors ${panelOpen || activeCount > 0 ? "border-carbon bg-carbon text-ivory" : "border-carbon/30 text-carbon"}`}
++          className={`h-11 flex-1 border px-3 text-xs uppercase tracking-[0.12em] transition-colors ${panelOpen || activeCount > 0 ? "border-carbon bg-carbon text-ivory" : "border-carbon/30 text-carbon"}`}
+         >
+           Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+         </button>
+-        <span className="flex h-10 flex-1 items-center gap-1 border border-carbon/30 px-2">
++        <span className="flex h-11 flex-1 items-center gap-1 border border-carbon/30 px-2">
+           <label htmlFor="orden-compacto" className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-muted">
+             Orden
+           </label>
+@@ -200,12 +194,15 @@
+       </div>
+ 
+       {/* Panel de filtros móvil (colapsable y accesible) */}
+-      <div className={`collapse sm:hidden ${panelOpen ? "collapse-open" : ""}`}>
++      <div className={`disclosure sm:hidden ${panelOpen ? "disclosure-open" : ""}`}>
+         <fieldset
+           id="panel-filtros"
+           inert={!panelOpen}
+           onKeyDown={(e) => {
+-            if (e.key === "Escape") setPanelOpen(false);
++            if (e.key === "Escape") {
++              setPanelOpen(false);
++              filterButton.current?.focus();
++            }
+           }}
+           className="border border-line bg-parchment"
+         >
+@@ -228,7 +225,7 @@
+             id="filtro-orden"
+             value={orden}
+             onChange={(e) => applyOrden(e.target.value as ProductSort)}
+-            className="h-10 border border-carbon/30 bg-ivory px-2 text-sm text-carbon"
++            className="h-11 border border-carbon/30 bg-ivory px-2 text-sm text-carbon"
+           >
+             {SORTS.map((s) => (
+               <option key={s.value} value={s.value}>
+@@ -247,7 +244,7 @@
+           </button>
+         ) : null}
+       </fieldset>
+-      {hasFilters && panelOpen ? (
++      {hasFilters ? (
+         <button
+           type="button"
+           onClick={clearFilters}
+@@ -283,9 +280,9 @@
+       ) : (
+         <>
+           <p role="status" className="text-sm text-muted">
+-            {results.data.length} prenda(s)
++            {results.data.length} {results.data.length === 1 ? "prenda" : "prendas"}
+           </p>
+-          <ProductGrid products={results.data} />
++          <ProductGrid products={results.data} eager />
+         </>
+       )}
+     </div>
+--- /dev/null
++++ b/apps/web/src/app/pedidos/layout.tsx
+@@ -0,0 +1,10 @@
++import type { Metadata } from "next";
++
++export const metadata: Metadata = {
++  title: "Mis pedidos",
++  robots: { index: false, follow: false },
++};
++
++export default function Layout({ children }: { children: React.ReactNode }) {
++  return children;
++}
+--- a/apps/web/src/app/pedidos/page.tsx
++++ b/apps/web/src/app/pedidos/page.tsx
+@@ -17,13 +17,13 @@
+   });
+ 
+   if (loading) return <LoadingState message="Cargando sesión…" />;
+-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend." />;
++  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+   if (!user) {
+     return (
+       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+-        <p className="font-display text-2xl text-carbon">Mis pedidos</p>
+-        <p className="text-sm text-muted">Entra a tu cuenta para ver tus pedidos, o rastrea un pedido guest con tu código.</p>
+-        <div className="flex gap-3 pt-1">
++        <h1 className="font-display text-3xl text-carbon">Mis pedidos</h1>
++        <p className="text-sm text-muted">Entra a tu cuenta para ver tus pedidos, o rastrea un pedido como visita con tu código.</p>
++        <div className="flex flex-wrap justify-center gap-3 pt-1">
+           <Link href="/login" className="bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
+             Entrar
+           </Link>
+@@ -39,7 +39,7 @@
+   if (orders.data.length === 0) {
+     return (
+       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+-        <p className="font-display text-2xl text-carbon">Aún no tienes pedidos</p>
++        <h1 className="font-display text-3xl text-carbon">Aún no tienes pedidos</h1>
+         <Link href="/catalogo" className="mt-1 bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
+           Explorar catálogo
+         </Link>
+--- /dev/null
++++ b/apps/web/src/app/carrito/layout.tsx
+@@ -0,0 +1,10 @@
++import type { Metadata } from "next";
++
++export const metadata: Metadata = {
++  title: "Carrito",
++  robots: { index: false, follow: false },
++};
++
++export default function Layout({ children }: { children: React.ReactNode }) {
++  return children;
++}
+--- a/apps/web/src/app/carrito/page.tsx
++++ b/apps/web/src/app/carrito/page.tsx
+@@ -18,12 +18,12 @@
+     enabled: isSupabaseConfigured && ids.length > 0,
+   });
+ 
+-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
++  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+ 
+   if (lines.length === 0) {
+     return (
+       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+-        <p className="font-display text-2xl text-carbon">Tu carrito está vacío</p>
++        <h1 className="font-display text-3xl text-carbon">Tu carrito está vacío</h1>
+         <p className="text-sm text-muted">Explora el catálogo: cada prenda es única.</p>
+         <Link href="/catalogo" className="mt-1 bg-carbon px-5 py-2.5 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
+           Explorar catálogo
+@@ -56,11 +56,11 @@
+                 {p ? `${p.brand} · Talla ${p.size}` : "Ya no se puede comprar"}
+               </p>
+               <div className="mt-2 flex items-center gap-2">
+-                <button type="button" aria-label={`Quitar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty - 1)} className="h-8 w-8 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
++                <button type="button" aria-label={`Quitar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty - 1)} className="h-11 w-11 shrink-0 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
+                   −
+                 </button>
+                 <span className="w-6 text-center text-sm text-carbon" role="status" aria-label="Cantidad">{l.qty}</span>
+-                <button type="button" aria-label={`Agregar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty + 1)} className="h-8 w-8 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
++                <button type="button" aria-label={`Agregar una unidad de ${p?.name ?? "la prenda"}`} onClick={() => setQty(l.productId, l.qty + 1)} className="h-11 w-11 shrink-0 border border-carbon/30 text-carbon transition-colors hover:border-carbon">
+                   +
+                 </button>
+                 <button type="button" onClick={() => remove(l.productId)} className="ml-2 text-sm text-muted underline underline-offset-4 hover:text-carbon">
+--- /dev/null
++++ b/apps/web/src/app/pedido/layout.tsx
+@@ -0,0 +1,10 @@
++import type { Metadata } from "next";
++
++export const metadata: Metadata = {
++  title: "Pedido",
++  robots: { index: false, follow: false },
++};
++
++export default function Layout({ children }: { children: React.ReactNode }) {
++  return children;
++}
+--- /dev/null
++++ b/apps/web/src/app/login/layout.tsx
+@@ -0,0 +1,10 @@
++import type { Metadata } from "next";
++
++export const metadata: Metadata = {
++  title: "Entrar",
++  robots: { index: false, follow: false },
++};
++
++export default function Layout({ children }: { children: React.ReactNode }) {
++  return children;
++}
+--- a/apps/web/src/app/login/page.tsx
++++ b/apps/web/src/app/login/page.tsx
+@@ -46,11 +46,11 @@
+       <form onSubmit={submit} className="flex flex-col gap-3">
+         <label className="flex flex-col gap-1 text-sm">
+           <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Email</span>
+-          <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.cl" className="h-11 border border-carbon/30 bg-ivory px-3 text-carbon placeholder:text-muted focus:border-carbon" />
++          <input name="email" type="email" spellCheck={false} required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.cl" className="h-11 border border-carbon/30 bg-ivory px-3 text-carbon placeholder:text-muted focus:border-carbon" />
+         </label>
+         <label className="flex flex-col gap-1 text-sm">
+           <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Contraseña</span>
+-          <input type="password" required minLength={6} autoComplete={mode === "in" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 border border-carbon/30 bg-ivory px-3 text-carbon placeholder:text-muted focus:border-carbon" />
++          <input name="password" type="password" required minLength={6} autoComplete={mode === "in" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-11 border border-carbon/30 bg-ivory px-3 text-carbon placeholder:text-muted focus:border-carbon" />
+         </label>
+         {error ? <p role="alert" className="border border-red-700/30 bg-red-700/5 p-3 text-sm text-red-700">{error}</p> : null}
+         <button type="submit" disabled={busy} className="btn-press h-11 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-60">
+--- /dev/null
++++ b/apps/web/src/app/checkout/layout.tsx
+@@ -0,0 +1,10 @@
++import type { Metadata } from "next";
++
++export const metadata: Metadata = {
++  title: "Checkout",
++  robots: { index: false, follow: false },
++};
++
++export default function Layout({ children }: { children: React.ReactNode }) {
++  return children;
++}
+--- a/apps/web/src/app/checkout/page.tsx
++++ b/apps/web/src/app/checkout/page.tsx
+@@ -32,13 +32,13 @@
+ 
+ type FieldName = keyof AddressInput;
+ 
+-const FIELDS: { name: FieldName; label: string; placeholder: string; type?: string }[] = [
+-  { name: "fullName", label: "Nombre completo", placeholder: "María González" },
+-  { name: "email", label: "Email", placeholder: "maria@email.cl", type: "email" },
+-  { name: "phone", label: "Teléfono", placeholder: "+56912345678", type: "tel" },
+-  { name: "street", label: "Calle y número", placeholder: "Av. Providencia 1234, dpto 56" },
+-  { name: "comuna", label: "Comuna", placeholder: "Providencia" },
+-  { name: "region", label: "Región", placeholder: "Metropolitana" },
++const FIELDS: { name: FieldName; label: string; placeholder: string; autoComplete: string; type?: string }[] = [
++  { name: "fullName", autoComplete: "name", label: "Nombre completo", placeholder: "María González" },
++  { name: "email", autoComplete: "email", label: "Email", placeholder: "maria@email.cl", type: "email" },
++  { name: "phone", autoComplete: "tel", label: "Teléfono", placeholder: "+56912345678", type: "tel" },
++  { name: "street", autoComplete: "street-address", label: "Calle y número", placeholder: "Av. Providencia 1234, dpto 56" },
++  { name: "comuna", autoComplete: "address-level2", label: "Comuna", placeholder: "Providencia" },
++  { name: "region", autoComplete: "address-level1", label: "Región", placeholder: "Metropolitana" },
+ ];
+ 
+ const PROVIDER_LABEL: Record<string, string> = {
+@@ -82,7 +82,6 @@
+ 
+   useEffect(() => {
+     active.current = true;
+-    setRestoreError(false);
+     loadPendingCheckout(owner)
+       .then((saved) => {
+         if (!active.current) return;
+@@ -277,17 +276,20 @@
+     return (
+       <ErrorState
+         message="No se pudo recuperar el pedido guardado. Reintenta antes de comprar."
+-        onRetry={() => setRestoreRetry((n) => n + 1)}
++        onRetry={() => {
++          setRestoreError(false);
++          setRestoreRetry((n) => n + 1);
++        }}
+       />
+     );
+   }
+   if (!isSupabaseConfigured) {
+-    return <ErrorState message="Falta la configuración del backend para comprar." />;
++    return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+   }
+   if (lines.length === 0 && !result && !pending) {
+     return (
+       <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+-        <p className="font-display text-2xl text-carbon">Nada que pagar</p>
++        <h1 className="font-display text-3xl text-carbon">Nada que pagar</h1>
+         <p className="text-sm text-muted">Tu carrito está vacío.</p>
+         <Link href="/catalogo" className="bg-carbon px-4 py-2 text-sm text-white">
+           Explorar catálogo
+@@ -322,9 +324,14 @@
+               <Controller
+                 control={control}
+                 name={f.name}
+-                render={({ field: { onChange, onBlur, value } }) => (
++                render={({ field: { onChange, onBlur, value, ref, name } }) => (
+                   <input
+-                    aria-label={f.label}
++                    ref={ref}
++                    name={name}
++                    id={`address-${name}`}
++                    autoComplete={f.autoComplete}
++                    aria-invalid={Boolean(errors[f.name])}
++                    aria-describedby={errors[f.name] ? `error-${name}` : undefined}
+                     type={f.type ?? "text"}
+                     onBlur={onBlur}
+                     onChange={onChange}
+@@ -334,7 +341,7 @@
+                   />
+                 )}
+               />
+-              {errors[f.name] ? <span className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
++              {errors[f.name] ? <span id={`error-${f.name}`} role="alert" className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
+             </label>
+           ))}
+           <button type="submit" className="btn-press mt-2 h-11 bg-carbon text-sm font-semibold text-white transition-colors hover:bg-carbon-soft">
+@@ -352,20 +359,17 @@
+             <p className="text-sm text-red-700">No hay tarifas para esta región. Prueba con otra comuna.</p>
+           ) : null}
+           {(rates.data ?? []).map((r) => (
+-            <button
++            <label
+               key={r.id}
+-              type="button"
+-              role="radio"
+-              aria-checked={rateId === r.id}
+-              onClick={() => setRateId(r.id)}
+               className={`flex items-center justify-between rounded-lg border bg-white p-4 text-left ${rateId === r.id ? "border-zinc-900" : "border-zinc-300"}`}
+             >
+-              <span>
++              <input type="radio" name="shippingRate" value={r.id} checked={rateId === r.id} onChange={() => setRateId(r.id)} className="mr-3 h-5 w-5 shrink-0 accent-carbon" />
++              <span className="flex-1">
+                 <span className="block font-semibold">{r.carrier}</span>
+                 <span className="block text-xs text-muted">{r.eta_days_min ?? "?"}–{r.eta_days_max ?? "?"} días hábiles</span>
+               </span>
+               <span className="font-bold">{formatCLP(r.price_clp)}</span>
+-            </button>
++            </label>
+           ))}
+           <label className="mt-2 flex flex-col gap-1 text-sm">
+             <span className="text-muted">Cupón (opcional)</span>
+@@ -375,7 +379,9 @@
+                 value={discountCode}
+                 onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                 placeholder="BIENVENIDA10"
+-                className="h-10 flex-1 border border-carbon/30 bg-ivory px-3 uppercase"
++                name="discountCode"
++                autoComplete="off"
++                className="h-11 min-w-0 flex-1 border border-carbon/30 bg-ivory px-3 uppercase"
+               />
+               <button type="button" onClick={() => setAppliedCode(discountCode.trim() || undefined)} className="border border-carbon/30 px-4 text-sm">
+                 Aplicar
+@@ -452,16 +458,13 @@
+                 </button>
+               ) : null}
+               {(providers.data?.providers ?? []).map((name) => (
+-                <button
++                <label
+                   key={name}
+-                  type="button"
+-                  role="radio"
+-                  aria-checked={provider === name}
+-                  onClick={() => setProvider(name)}
+                   className={`rounded-lg border bg-white p-3 text-left text-sm ${provider === name ? "border-zinc-900 font-semibold" : "border-zinc-300"}`}
+                 >
++                  <input type="radio" name="paymentProvider" value={name} checked={provider === name} onChange={() => setProvider(name)} className="mr-3 h-5 w-5 align-middle accent-carbon" />
+                   {PROVIDER_LABEL[name] ?? name}
+-                </button>
++                </label>
+               ))}
+             </div>
+           )}
+--- a/apps/web/src/app/coleccion/[slug]/page.tsx
++++ b/apps/web/src/app/coleccion/[slug]/page.tsx
+@@ -22,11 +22,11 @@
+     enabled: isSupabaseConfigured && ids.length > 0,
+   });
+ 
+-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
++  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+   if (collection.isPending) return <LoadingState message="Cargando colección…" />;
+   if (collection.isError) return <ErrorState message={backendErrorMessage()} onRetry={() => collection.refetch()} />;
+   if (!collection.data) return <ErrorState message="Colección no encontrada." />;
+-  if (products.isPending) return <LoadingState message="Cargando prendas…" />;
++  if (ids.length > 0 && products.isPending) return <LoadingState message="Cargando prendas…" />;
+   if (products.isError) return <ErrorState message={backendErrorMessage()} onRetry={() => products.refetch()} />;
+ 
+   return (
+@@ -35,7 +35,7 @@
+         <p className="text-[11px] uppercase tracking-[0.28em] text-taupe-deep">Colección</p>
+         <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">{collection.data.name}</h1>
+       </div>
+-      <ProductGrid products={products.data ?? []} />
++      <ProductGrid products={products.data ?? []} eager />
+     </div>
+   );
+ }
+--- a/apps/web/src/app/producto/[slug]/page.tsx
++++ b/apps/web/src/app/producto/[slug]/page.tsx
+@@ -20,27 +20,30 @@
+   const { slug } = use(params);
+   const { add } = useCart();
+   const [added, setAdded] = useState(false);
++  const [selectedImage, setSelectedImage] = useState(0);
+   const product = useQuery({
+     queryKey: ["web", "product", slug],
+     queryFn: () => getProductBySlug(slug),
+     enabled: isSupabaseConfigured,
+   });
+ 
+-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend (apps/web/.env.local)." />;
++  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+   if (product.isPending) return <LoadingState message="Cargando prenda…" />;
+   if (product.isError) return <ErrorState message={backendErrorMessage()} onRetry={() => product.refetch()} />;
+   if (!product.data) return <ErrorState message="Esta prenda ya no está disponible." />;
+ 
+   const p = product.data;
+-  const images = p.remoteImages?.filter((i) => !i.isDefect) ?? [];
+-  const cover = images[0]?.url ?? null;
++  const images = p.remoteImages ?? [];
++  const currentImage = images[selectedImage] ?? images[0];
++  const cover = currentImage?.url ?? null;
+   const soldOut = p.stock <= 0;
+   const onSale = (p.compareAtPriceClp ?? 0) > p.priceClp;
+ 
+   return (
+     <div className="grid gap-6 md:grid-cols-2 md:gap-10">
++      <div className="min-w-0">
+       <div className="relative aspect-[3/4] w-full overflow-hidden bg-parchment">
+-        {cover ? <Image src={cover} alt={p.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority /> : null}
++        {cover ? <Image src={cover} alt={`${p.name}${currentImage?.isDefect ? ": detalle del estado" : ""}`} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority /> : null}
+         {onSale && !soldOut ? (
+           <span className="absolute bottom-0 left-0 bg-carbon px-2 py-0.5 text-[11px] uppercase tracking-[0.14em] text-ivory">
+             Oferta
+@@ -52,7 +55,27 @@
+           </span>
+         ) : null}
+       </div>
+-      <div className="flex flex-col gap-4">
++      {images.length > 1 ? (
++        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Fotos de la prenda">
++          {images.map((image, index) => (
++            <button
++              key={image.url}
++              type="button"
++              aria-pressed={selectedImage === index}
++              aria-label={`Ver foto ${index + 1}${image.isDefect ? ", detalle del estado" : ""}`}
++              onClick={() => setSelectedImage(index)}
++              className="relative h-20 w-16 overflow-hidden border-2 border-transparent bg-parchment aria-pressed:border-carbon"
++            >
++              <Image src={image.url} alt="" fill sizes="64px" className="object-cover" />
++            </button>
++          ))}
++        </div>
++      ) : null}
++      <p role="status" className="mt-2 min-h-5 text-sm text-muted">
++        {currentImage?.isDefect ? "Detalle del estado de la prenda" : images.length > 1 ? `Foto ${selectedImage + 1} de ${images.length}` : ""}
++      </p>
++      </div>
++      <div className="flex min-w-0 flex-col gap-4">
+         <div>
+           <p className="text-[11px] uppercase tracking-[0.18em] text-muted">{p.brand}</p>
+           <h1 className="mt-1 font-display text-3xl tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
+@@ -70,7 +93,7 @@
+         <p className={`text-sm font-medium ${soldOut ? "text-red-700" : "text-taupe-deep"}`}>
+           {soldOut ? "Agotada" : p.stock === 1 ? "¡Última unidad!" : `Stock: ${p.stock}`}
+         </p>
+-        {p.description ? <p className="text-sm leading-relaxed text-carbon/80">{p.description}</p> : null}
++        {p.description ? <p className="break-words text-sm leading-relaxed text-carbon/80">{p.description}</p> : null}
+         {p.tags.length > 0 ? (
+           <div className="flex flex-wrap gap-1.5">
+             {p.tags.map((t) => (
+@@ -92,6 +115,7 @@
+         >
+           {soldOut ? "Agotada" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
+         </button>
++        <p role="status" className="sr-only">{added ? "Prenda agregada al carrito" : ""}</p>
+       </div>
+     </div>
+   );
+--- a/apps/web/src/app/pedido/[id]/page.tsx
++++ b/apps/web/src/app/pedido/[id]/page.tsx
+@@ -3,7 +3,7 @@
+ import { Suspense, use, useState } from "react";
+ import Image from "next/image";
+ import { useQuery } from "@tanstack/react-query";
+-import { useSearchParams } from "next/navigation";
++import { useRouter, useSearchParams } from "next/navigation";
+ import { formatCLP } from "../../../lib/format";
+ import { getMyOrderDetail, trackGuestOrder } from "../../../lib/checkout";
+ import { useSession } from "../../../lib/session";
+@@ -21,6 +21,7 @@
+ 
+ function PedidoInner({ id }: { id: string }) {
+   const search = useSearchParams();
++  const router = useRouter();
+   const { user, loading } = useSession();
+   const [token, setToken] = useState(search.get("token") ?? "");
+   const [submittedToken, setSubmittedToken] = useState<string | null>(search.get("token"));
+@@ -38,7 +39,7 @@
+   });
+ 
+   if (loading) return <LoadingState message="Cargando sesión…" />;
+-  if (!isSupabaseConfigured) return <ErrorState message="Falta la configuración del backend." />;
++  if (!isSupabaseConfigured) return <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />;
+ 
+   if (id === "guest" || (guest && !submittedToken)) {
+     return (
+@@ -47,15 +48,17 @@
+         onSubmit={(e) => {
+           e.preventDefault();
+           const data = new FormData(e.currentTarget);
+-          setSubmittedTokenFromForm(data, setSubmittedToken);
++          const orderId = String(data.get("orderId") ?? "").trim();
++          const code = String(data.get("token") ?? "").trim();
++          router.push(`/pedido/${encodeURIComponent(orderId)}?token=${encodeURIComponent(code)}`);
+         }}
+       >
+         <h1 className="font-display text-3xl tracking-tight text-carbon">Rastrear pedido</h1>
+         <p className="text-sm text-muted">Ingresa el ID del pedido y el código que recibiste al comprar.</p>
+         <GuestIdField defaultId={id === "guest" ? "" : id} />
+         <label className="flex flex-col gap-1 text-sm">
+-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Código guest</span>
+-          <input name="token" defaultValue={token} onChange={(e) => setToken(e.target.value)} placeholder="Código de rastreo" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
++          <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Código de rastreo</span>
++          <input name="token" required autoComplete="off" spellCheck={false} defaultValue={token} onChange={(e) => setToken(e.target.value)} placeholder="Código de rastreo" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
+         </label>
+         <button type="submit" className="h-11 bg-carbon text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft">
+           Rastrear
+@@ -123,18 +126,11 @@
+   );
+ }
+ 
+-function setSubmittedTokenFromForm(data: FormData, set: (v: string | null) => void) {
+-  const id = String(data.get("orderId") ?? "");
+-  const token = String(data.get("token") ?? "");
+-  if (id) window.location.href = `/pedido/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`;
+-  else set(token || null);
+-}
+-
+ function GuestIdField({ defaultId }: { defaultId: string }) {
+   return (
+     <label className="flex flex-col gap-1 text-sm">
+       <span className="text-[11px] uppercase tracking-[0.18em] text-muted">ID del pedido</span>
+-      <input name="orderId" defaultValue={defaultId} placeholder="UUID del pedido" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
++      <input name="orderId" required autoComplete="off" spellCheck={false} defaultValue={defaultId} placeholder="UUID del pedido" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
+     </label>
+   );
+ }

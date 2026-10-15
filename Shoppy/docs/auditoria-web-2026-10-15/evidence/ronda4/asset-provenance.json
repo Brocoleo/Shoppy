@@ -1,0 +1,54 @@
+{
+  "tool": "image_gen.imagegen",
+  "purpose": "Recursos originales para dirección editorial A; imágenes generadas, no inventario real",
+  "sources": {
+    "modelFemale": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-0646e348-7f23-4711-8d91-5a47e11b171c.png",
+    "modelMale": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-d5da255a-639b-4527-ab9a-18b1b92f653f.png",
+    "chaqueta-denim": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-637648d0-a917-4a4b-a11c-0530be3c15ea.png",
+    "zapatillas-blancas": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-9f63ea66-2f21-4d20-a221-b2a39f3b0d1d.png",
+    "gabardina": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-b12dbeb9-bde5-4319-88b0-17619ff213a2.png",
+    "jersey": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-1d839e27-b863-4e57-8e19-706e8ed2660e.png",
+    "blazer": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-2088c949-0fd2-46b2-9fc1-8678c2a53b58.png",
+    "camisa": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-4518e88d-b59f-4b93-846b-1304dbee0805.png",
+    "jeans": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-2af67ecc-8034-4380-8158-0e477429fcba.png",
+    "bolso": "/home/leandro/.codex/generated_images/01a1401c-df5c-77d3-bd7f-74e55e8433f1/exec-3c26f3f4-7dd7-40de-92ab-ae35aa6930de.png"
+  },
+  "products": [
+    {
+      "slug": "chaqueta-denim",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of classic medium blue denim trucker jacket, front view, hanging naturally invisible mannequin, sleeves gently relaxed. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "zapatillas-blancas",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of a pair of minimalist plain white low-top leather sneakers, three-quarter view. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "gabardina",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of sand beige double breasted trench coat with matching belt tied loosely, full front view. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "jersey",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of charcoal gray textured knitted crew neck sweater, front view, sleeves naturally relaxed. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "blazer",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of charcoal tailored oversized single breasted blazer, front view. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "camisa",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of ivory cotton long sleeve button down shirt, front view. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "jeans",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of medium blue straight leg jeans, full front view, complete waistband and cuffs. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    },
+    {
+      "slug": "bolso",
+      "prompt": "One standalone high resolution square professional ecommerce product photograph of structured minimal warm brown leather shoulder bag, three quarter view, whole strap visible. Entire garment or pair fully visible with generous margin on every side. Soft warm light gray seamless studio background, soft realistic shadow, diffused natural lighting, realistic high detail fabric. Consistent refined neutral fashion catalog art direction. No people, hands, text, brand names, logos, labels, hangers, UI, collage or mockup. This is one original fictional demonstration product for Shopy."
+    }
+  ],
+  "modelPrompts": [
+    "Generate a single standalone portrait 4:5 high resolution editorial fashion photograph for Shopy homepage, NOT a website or mockup, no text. Adult woman age around 30, natural brown hair, confident understated standing pose, wearing charcoal oversized blazer, ivory plain top, straight medium blue jeans, black simple shoes, entire head and body visible with generous space around. Warm beige plaster studio wall and floor, soft natural side light, refined luxury secondhand fashion editorial style, realistic fabric. No brand logos, jewelry branding, signage or typography. Neutral sophisticated palette. Match the woman editorial in the previously discussed concept, but create a clean new original photo asset. Fashion concept, not specific actual stock.",
+    "One standalone high quality portrait 4:5 editorial fashion photograph, NO text NO mockup NO collage. Adult male model around 32 with wavy brown hair seated casually on simple stool, wearing sand beige overshirt over plain ivory T-shirt and charcoal trousers. Three-quarter portrait from knees up, whole head visible, looking slightly left off camera. Soft natural light, warm neutral plaster studio backdrop, sophisticated quiet fashion magazine mood, realistic fabric and skin. No brand logos, no signage, no text. This is an original decorative editorial model asset for Shopy website."
+  ]
+}

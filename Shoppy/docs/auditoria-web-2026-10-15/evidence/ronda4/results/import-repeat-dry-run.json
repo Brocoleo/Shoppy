@@ -1,0 +1,26 @@
+{
+  "project": "evzlqwiipdjgtrqjlwba",
+  "batch": "editorial-a-20261015",
+  "existing": 8,
+  "products": [
+    "e6db9acd-19b1-5ae4-88b1-15f6f625a9de",
+    "de3d27df-84d2-5da7-98df-efa448ebb853",
+    "5dd43f7d-bc7b-5008-8ea3-93a4b644afc1",
+    "32f39058-beb4-509e-be9d-3237213ba0f9",
+    "83cc5365-1dd8-582d-831e-f4df1210ae78",
+    "67da0315-47d1-5ac7-8924-6ba8b9d2b53b",
+    "ffa969d1-d247-5da4-84fb-ce2b062183c5",
+    "3f8e6546-46b7-5703-b948-db13fad1f4b6"
+  ],
+  "paths": [
+    "demo/editorial-a-20261015/chaqueta-denim.webp",
+    "demo/editorial-a-20261015/zapatillas-blancas.webp",
+    "demo/editorial-a-20261015/gabardina.webp",
+    "demo/editorial-a-20261015/jersey.webp",
+    "demo/editorial-a-20261015/blazer.webp",
+    "demo/editorial-a-20261015/camisa.webp",
+    "demo/editorial-a-20261015/jeans.webp",
+    "demo/editorial-a-20261015/bolso.webp"
+  ],
+  "mode": "dry-run"
+}

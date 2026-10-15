@@ -1,0 +1,6 @@
+{
+  "serverInitialRead": "503 simulated only in the server process",
+  "staticHeading": true,
+  "clientRecoveredProducts": true,
+  "recoveryRequests": 1
+}

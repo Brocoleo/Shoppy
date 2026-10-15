@@ -1,0 +1,44 @@
+✔ preserva errores de negocio del backend (28.311942ms)
+✔ respuesta HTML se informa como respuesta inválida, no como desconexión (1.213655ms)
+✔ el timeout cubre también la lectura del cuerpo (0.749149ms)
+✔ devuelve cotización válida y clasifica fallos de red (1.562232ms)
+✔ propaga error de order_items sin mostrar pedido incompleto (0.964608ms)
+✔ propaga error de order_status_history sin mostrar pedido incompleto (0.390525ms)
+✔ propaga error de shipments sin mostrar pedido incompleto (0.326434ms)
+✔ pedido válido admite envío pendiente y pedido inexistente devuelve null (2.062235ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 46.019568
+✔ carrito invitado se transfiere una vez y las cuentas están aisladas (149.709662ms)
+✔ respuesta tardía no elimina una edición más reciente ni cruza cuentas (38.439365ms)
+✔ fusión pendiente conserva su clave al cerrar sesión (26.201427ms)
+✔ pedido pendiente guarda secretos fuera de AsyncStorage y separado por cuenta (19.048728ms)
+✔ ediciones durante fusión conservan productos remotos y cambios locales (35.112167ms)
+✔ confirmación repetida descuenta solo la compra y conserva nuevas prendas (38.95146ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 318.623069
+✔ dos solicitudes simultáneas crean un solo pedido y un solo pago (48.702475ms)
+✔ recuperación exige secreto y cuenta; un cambio de payload no crea otro pedido (9.379058ms)
+✔ respuesta desconocida del proveedor conserva pedido sin repetir llamada (4.322286ms)
+✔ JWT inválido nunca degrada compra a invitado (1.482656ms)
+✔ pago pendiente no se marca rechazado y confirmar exige propiedad (3.496546ms)
+✔ webhook con monto distinto no confirma el pedido (3.274445ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.725378

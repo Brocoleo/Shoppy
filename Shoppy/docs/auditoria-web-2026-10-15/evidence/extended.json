@@ -1,0 +1,12 @@
+[
+  "URL filters and browser back stay synchronized",
+  "Shipping native radio selection",
+  "Shipping radio keyboard arrows",
+  {
+    "checkoutAxe": []
+  },
+  "No overflow at 320px",
+  "No overflow at 768px",
+  "No overflow at 1440px",
+  "Reduced motion disables entrance animation"
+]
