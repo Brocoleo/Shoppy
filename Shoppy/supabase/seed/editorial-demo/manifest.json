@@ -1,0 +1,110 @@
+{
+  "batch": "editorial-a-20261015",
+  "projectRef": "evzlqwiipdjgtrqjlwba",
+  "products": [
+    {
+      "id": "e6db9acd-19b1-5ae4-88b1-15f6f625a9de",
+      "imageId": "367a5e6c-d828-55e8-9dab-257512255f59",
+      "slug": "demo-editorial-chaqueta-denim",
+      "name": "Chaqueta denim",
+      "category": "mujer",
+      "subcategory": "chaquetas",
+      "size": "M",
+      "color": "Azul",
+      "price_clp": 29990,
+      "file": "chaqueta-denim.webp",
+      "storage_path": "demo/editorial-a-20261015/chaqueta-denim.webp"
+    },
+    {
+      "id": "de3d27df-84d2-5da7-98df-efa448ebb853",
+      "imageId": "8eeba793-d1a5-5608-9fb0-cbf6c5bb2a42",
+      "slug": "demo-editorial-zapatillas-blancas",
+      "name": "Zapatillas blancas",
+      "category": "hombre",
+      "subcategory": null,
+      "size": "39",
+      "color": "Blanco",
+      "price_clp": 24990,
+      "file": "zapatillas-blancas.webp",
+      "storage_path": "demo/editorial-a-20261015/zapatillas-blancas.webp"
+    },
+    {
+      "id": "5dd43f7d-bc7b-5008-8ea3-93a4b644afc1",
+      "imageId": "9af8cf43-1319-596a-a7bf-f101b7da4e28",
+      "slug": "demo-editorial-gabardina",
+      "name": "Gabardina",
+      "category": "mujer",
+      "subcategory": "chaquetas",
+      "size": "M",
+      "color": "Beige",
+      "price_clp": 39990,
+      "file": "gabardina.webp",
+      "storage_path": "demo/editorial-a-20261015/gabardina.webp"
+    },
+    {
+      "id": "32f39058-beb4-509e-be9d-3237213ba0f9",
+      "imageId": "fce65f07-9ec1-560c-be3b-624133468b44",
+      "slug": "demo-editorial-jersey",
+      "name": "Jersey de punto",
+      "category": "hombre",
+      "subcategory": "polerones",
+      "size": "M",
+      "color": "Gris",
+      "price_clp": 19990,
+      "file": "jersey.webp",
+      "storage_path": "demo/editorial-a-20261015/jersey.webp"
+    },
+    {
+      "id": "83cc5365-1dd8-582d-831e-f4df1210ae78",
+      "imageId": "291b5a1e-ef95-51d7-8976-394f5cdcb83f",
+      "slug": "demo-editorial-blazer",
+      "name": "Blazer",
+      "category": "mujer",
+      "subcategory": "chaquetas",
+      "size": "M",
+      "color": "Carbón",
+      "price_clp": 34990,
+      "file": "blazer.webp",
+      "storage_path": "demo/editorial-a-20261015/blazer.webp"
+    },
+    {
+      "id": "67da0315-47d1-5ac7-8924-6ba8b9d2b53b",
+      "imageId": "2e792b55-7870-5b56-bd3a-4c7c271c60bb",
+      "slug": "demo-editorial-camisa",
+      "name": "Camisa",
+      "category": "hombre",
+      "subcategory": "camisas",
+      "size": "M",
+      "color": "Marfil",
+      "price_clp": 17990,
+      "file": "camisa.webp",
+      "storage_path": "demo/editorial-a-20261015/camisa.webp"
+    },
+    {
+      "id": "ffa969d1-d247-5da4-84fb-ce2b062183c5",
+      "imageId": "b9363a0a-c835-5708-8197-3dd465730382",
+      "slug": "demo-editorial-jeans",
+      "name": "Jeans rectos",
+      "category": "mujer",
+      "subcategory": "jeans-mujer",
+      "size": "38",
+      "color": "Azul",
+      "price_clp": 22990,
+      "file": "jeans.webp",
+      "storage_path": "demo/editorial-a-20261015/jeans.webp"
+    },
+    {
+      "id": "3f8e6546-46b7-5703-b948-db13fad1f4b6",
+      "imageId": "b5a0a160-de30-51cf-b88e-b6d708d20cdb",
+      "slug": "demo-editorial-bolso",
+      "name": "Bolso",
+      "category": "accesorios",
+      "subcategory": "carteras",
+      "size": "Única",
+      "color": "Marrón",
+      "price_clp": 27990,
+      "file": "bolso.webp",
+      "storage_path": "demo/editorial-a-20261015/bolso.webp"
+    }
+  ]
+}
