@@ -4,78 +4,55 @@ import { LegalArticle, LegalSection } from "../../../components/LegalArticle";
 export const metadata: Metadata = {
   title: "Política de privacidad",
   description:
-    "Cómo vinta.zhe trata tus datos personales: qué guardamos, para qué y cómo ejercer tus derechos.",
+    "Borrador de privacidad de vinta.zhe: información de funcionamiento y datos pendientes de confirmar antes de habilitar ventas.",
+  alternates: { canonical: "/legal/privacidad" },
 };
 
 export default function PrivacidadPage() {
   return (
     <LegalArticle title="Política de privacidad" updated="octubre de 2026">
-      <LegalSection title="Responsable del tratamiento">
+      <LegalSection title="Responsable pendiente de identificar">
         <p>
-          El responsable es <strong>[Razón social]</strong>, RUT{" "}
-          <strong>[RUT]</strong>, con domicilio en <strong>[Domicilio]</strong>{" "}
-          y correo de contacto{" "}
-          <a href="mailto:[correo de contacto]">[correo de contacto]</a>. vinta.zhe
-          es la tienda en línea de prendas de segunda mano operada por dicho
-          responsable.
+          Razón social <strong>[pendiente]</strong>, RUT{" "}
+          <strong>[pendiente]</strong>, domicilio <strong>[pendiente]</strong> y
+          correo de contacto <strong>[pendiente]</strong>. Estos datos deben
+          completarse y verificarse antes de considerar definitiva esta política.
         </p>
       </LegalSection>
 
-      <LegalSection title="Qué datos tratamos">
-        <ul className="flex list-disc flex-col gap-1 pl-5">
-          <li>
-            <strong>Identificación y contacto:</strong> nombre, correo
-            electrónico y teléfono, cuando creas una cuenta o haces un pedido.
-          </li>
-          <li>
-            <strong>Entrega:</strong> dirección y datos necesarios para el
-            despacho por el courier (Starken).
-          </li>
-          <li>
-            <strong>Pedidos:</strong> productos, montos y estado de la compra.
-          </li>
-          <li>
-            <strong>Técnicos:</strong> datos mínimos de funcionamiento del sitio
-            y registros de seguridad.
-          </li>
-        </ul>
-      </LegalSection>
-
-      <LegalSection title="Para qué y con qué base">
+      <LegalSection title="Funcionamiento actual">
         <p>
-          Usamos tus datos para gestionar tu cuenta y tus pedidos, coordinar
-          envíos, entregar soporte y prevenir fraudes. La base es la ejecución
-          del contrato de compraventa, tu consentimiento cuando lo otorgas y
-          nuestros intereses legítimos de seguridad. No vendemos ni arrendamos
-          tus datos.
+          Las funciones de cuenta utilizan correo electrónico y datos de sesión.
+          El carrito y la sesión requieren almacenamiento local en el
+          navegador. La aplicación utiliza Supabase para autenticación, base de
+          datos y archivos.
+        </p>
+        <p>
+          Los pagos y envíos reales no están habilitados en esta etapa. Los
+          formularios de prueba no deben utilizarse para enviar datos reales de
+          tarjeta ni para solicitar un despacho.
         </p>
       </LegalSection>
 
-      <LegalSection title="Encargados y transferencias">
+      <LegalSection title="Información pendiente antes de vender">
         <p>
-          Nos apoyamos en proveedores que tratan datos por cuenta nuestra:{" "}
-          <strong>Supabase</strong> (alojamiento de base de datos y archivos),{" "}
-          <strong>Transbank/Webpay</strong> (pagos, actualmente en modo de
-          prueba) y el <strong>courier</strong> para la entrega. Algunos pueden
-          almacenar datos fuera de Chile; en tal caso exigimos garantías
-          contractuales de protección.
+          Deben confirmarse y documentarse los datos necesarios para pedidos y
+          entregas, sus finalidades y bases de tratamiento, los proveedores que
+          intervengan y las condiciones de cualquier transferencia de datos. No
+          se confirma aquí un proveedor de pagos ni un courier operativo.
         </p>
       </LegalSection>
 
-      <LegalSection title="Conservación">
+      <LegalSection title="Conservación y solicitudes">
         <p>
-          Conservamos tus datos mientras exista la relación y, luego, durante los
-          plazos legales aplicables. Después se eliminan o anonimizan.
+          Los plazos de conservación, el procedimiento de eliminación y el canal
+          de atención para solicitudes sobre datos personales están pendientes
+          de definición y revisión. El correo de contacto aún no está
+          disponible.
         </p>
-      </LegalSection>
-
-      <LegalSection title="Tus derechos">
         <p>
-          Puedes solicitar acceso, rectificación, supresión, oposición y
-          portabilidad de tus datos, conforme a la Ley 19.628 y la Ley 21.719,
-          escribiendo a <a href="mailto:[correo de contacto]">[correo de contacto]</a>.
-          Responderemos dentro de los plazos legales. También puedes reclamar
-          ante la autoridad de protección de datos.
+          Este borrador no acredita que existan procedimientos operativos ni
+          certifica cumplimiento de las obligaciones legales aplicables.
         </p>
       </LegalSection>
     </LegalArticle>

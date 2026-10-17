@@ -4,7 +4,8 @@ import { LegalArticle, LegalSection } from "../../../components/LegalArticle";
 export const metadata: Metadata = {
   title: "Política de cookies",
   description:
-    "Qué almacenamiento usa vinta.zhe, para qué y cómo cambiar tu consentimiento.",
+    "Qué almacenamiento usa vinta.zhe, para qué y cómo consultar el aviso informativo.",
+  alternates: { canonical: "/legal/cookies" },
 };
 
 export default function CookiesPage() {
@@ -30,19 +31,14 @@ export default function CookiesPage() {
             comprar.
           </li>
           <li>
-            <strong>Preferencia de consentimiento:</strong> recuerda tu elección
+            <strong>Aviso leído:</strong> recuerda que ya leíste la información
             sobre este aviso.
           </li>
         </ul>
       </LegalSection>
 
-      <LegalSection title="Tu elección">
-        <p>
-          Puedes aceptar o limitarte a lo necesario desde el aviso que aparece
-          al entrar. Para cambiar tu decisión en cualquier momento, abre{" "}
-          <strong>Preferencias de cookies</strong> en el pie de página y elige
-          de nuevo.
-        </p>
+      <LegalSection title="Aviso informativo">
+        <p>El botón «Entendido» cierra el aviso sobre el almacenamiento necesario. No activa herramientas opcionales. Puedes volver a consultarlo desde «Información de almacenamiento» en el pie de página.</p>
       </LegalSection>
 
       <LegalSection title="Si añadimos analítica">

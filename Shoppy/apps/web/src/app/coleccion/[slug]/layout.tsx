@@ -20,7 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       .maybeSingle();
     const row = data as unknown as { name: string } | null;
     if (!row) return { title: "Colección" };
-    return { title: `${row.name}` };
+    return {
+      title: row.name,
+      description: `Colección ${row.name} de vinta.zhe: prendas de segunda mano seleccionadas con envío a todo Chile.`,
+      alternates: { canonical: `/coleccion/${slug}` },
+    };
   } catch {
     return { title: "Colección" };
   }

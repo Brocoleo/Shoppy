@@ -1,28 +1,73 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { INSTAGRAM_URL } from "@shopy/shared/editorial";
 import "./globals.css";
 import { WebQueryProvider } from "../lib/query";
 import { SessionProvider } from "../lib/session";
 import { CartProvider } from "../lib/cart";
 import { Header } from "../components/Header";
 import { CookieConsent, CookiePreferencesButton } from "../components/CookieConsent";
+import { SITE_URL } from "../lib/site";
+
+const DESCRIPTION =
+  "Prendas de segunda mano seleccionadas en Chile y archivo fotográfico real de vinta.zhe.";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "vinta.zhe — Ropa de segunda mano",
     template: "%s | vinta.zhe",
   },
+  applicationName: "vinta.zhe",
+  description: DESCRIPTION,
   openGraph: {
     siteName: "vinta.zhe",
     locale: "es_CL",
     type: "website",
+    url: "/",
     title: "vinta.zhe — Ropa de segunda mano",
-    description: "Prendas de segunda mano y archivo fotográfico de vinta.zhe.",
+    description: DESCRIPTION,
+    images: [
+      {
+        url: "/og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "vinta.zhe — Prendas únicas, otras historias",
+      },
+    ],
   },
-  description: "vinta.zhe: prendas de segunda mano y archivo de Instagram.",
+  twitter: {
+    card: "summary_large_image",
+    title: "vinta.zhe — Ropa de segunda mano",
+    description: DESCRIPTION,
+    images: ["/og.jpg"],
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = { themeColor: "#f8f7f4" };
+
+/** Datos estructurados de marca: ayudan a que Google muestre el sitio con logo. */
+const ORGANIZATION_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organizacion`,
+      name: "vinta.zhe",
+      url: SITE_URL,
+      sameAs: [INSTAGRAM_URL],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#sitio`,
+      name: "vinta.zhe",
+      url: SITE_URL,
+      inLanguage: "es-CL",
+      publisher: { "@id": `${SITE_URL}/#organizacion` },
+    },
+  ],
+};
 
 export default function RootLayout({
   children,
@@ -36,6 +81,12 @@ export default function RootLayout({
           rel="preconnect"
           href="https://evzlqwiipdjgtrqjlwba.supabase.co"
           crossOrigin="anonymous"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(ORGANIZATION_LD).replace(/</g, "\\u003c"),
+          }}
         />
       </head>
       <body className="flex min-h-dvh flex-col bg-ivory font-sans text-carbon antialiased">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { initialEditorial } from "../../../../lib/editorial.server";
+import { publicImageUrl } from "../../../../lib/productImageUrl";
 import { ArchiveGallery } from "./ArchiveGallery";
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -14,10 +15,19 @@ export async function generateMetadata({
     const entry = (await initialEditorial()).archive.find(
       (e) => e.slug === slug,
     );
+    const cover = entry?.images[0];
     return {
       title: entry?.title ?? "Archivo",
       description:
         "Archivo de Instagram de vinta.zhe. No disponible para compra.",
+      alternates: { canonical: `/catalogo/archivo/${slug}` },
+      openGraph: cover
+        ? {
+            images: [
+              { url: publicImageUrl(cover.storagePath), alt: entry!.title },
+            ],
+          }
+        : undefined,
     };
   } catch {
     return { title: "Archivo" };
