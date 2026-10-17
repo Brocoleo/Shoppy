@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { cloneElement, isValidElement, useId, useEffect, useState, type ReactElement, type FormEvent } from "react";
 import type {
   DbBrand,
   DbCategory,
@@ -26,7 +26,7 @@ export interface ProductFormValue {
   segment: string;
   price_clp: number;
   compare_at_price_clp: string;
-  condition: DbProductCondition;
+  condition: DbProductCondition | "";
   size: string;
   color: string;
   sku: string;
@@ -51,7 +51,7 @@ export function toFormValue(
     price_clp: p.price_clp ?? 0,
     compare_at_price_clp:
       p.compare_at_price_clp != null ? String(p.compare_at_price_clp) : "",
-    condition: (p.condition as DbProductCondition | undefined) ?? "bueno",
+    condition: (p.condition as DbProductCondition | undefined) ?? "",
     size: p.size ?? "",
     color: p.color ?? "",
     sku: (p as { sku?: string | null }).sku ?? "",
@@ -179,6 +179,8 @@ export function ProductForm({
     else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v.slug) || v.slug.length > 80)
       message =
         "La dirección admite hasta 80 letras minúsculas, números y guiones entre palabras.";
+    else if (!CONDITIONS.some((c) => c.value === v.condition))
+      message = "Selecciona el estado real de la prenda.";
     else if (!Number.isSafeInteger(v.price_clp) || v.price_clp < 0)
       message =
         "El precio debe ser un número entero de pesos, igual o mayor que cero.";
@@ -356,6 +358,7 @@ export function ProductForm({
               set("condition", e.target.value as DbProductCondition)
             }
           >
+            <option value="">Selecciona el estado</option>
             {CONDITIONS.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
@@ -457,10 +460,11 @@ function Field({
   label: string;
   children: React.ReactNode;
 }) {
+  const labelId = useId();
   return (
     <label className="flex min-w-0 flex-col gap-1.5 text-sm text-zinc-700">
-      {label}
-      {children}
+      <span id={labelId}>{label}</span>
+      {isValidElement(children) ? cloneElement(children as ReactElement<{ "aria-labelledby"?: string }>, { "aria-labelledby": labelId }) : children}
     </label>
   );
 }

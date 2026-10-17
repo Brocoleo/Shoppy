@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -455,7 +457,7 @@ export default function CatalogContent({
                 <button onClick={clearFilters} className="min-h-11 underline">
                   Limpiar filtros
                 </button>
-              ) : undefined
+              ) : tipo === "disponibles" ? <Link href="/catalogo?tipo=archivo" className="inline-flex min-h-11 items-center underline">Explorar archivo</Link> : undefined
             }
           />
         ) : entries.length > 0 ? (

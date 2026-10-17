@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCollection, getProductsByIds } from "../../../lib/catalog";
@@ -35,7 +36,11 @@ export default function ColeccionPage({ params }: { params: Promise<{ slug: stri
       <EditorialListingHeader title={collection.data.name} image="principal">
         <p className="text-sm text-muted">{products.data?.length ?? 0} prendas en esta colección</p>
       </EditorialListingHeader>
-      <ProductGrid products={products.data ?? []} eager />
+      {(products.data?.length ?? 0) > 0 ? <ProductGrid products={products.data ?? []} eager /> : <section className="border-y border-line py-10 text-center">
+        <h2 className="font-display text-2xl">{slug === "ofertas" ? "Todavía no hay ofertas disponibles" : "Esta colección todavía no tiene prendas disponibles"}</h2>
+        <p className="mt-3 text-sm text-muted">Puedes explorar las fotografías reales del archivo de Instagram. No están disponibles para compra.</p>
+        <Link href="/catalogo?tipo=archivo" className="mt-5 inline-flex min-h-11 items-center underline">Explorar archivo</Link>
+      </section>}
     </div>
   );
 }

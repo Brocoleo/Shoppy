@@ -2,7 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { prepareImage } from "../../../lib/prepareImage";
-import { isPublicProduct } from "@shopy/shared/editorial";
+import Link from "next/link";
+import { isExampleProduct, isPublicProduct } from "@shopy/shared/editorial";
 import { use, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
@@ -168,6 +169,15 @@ export default function EditProductPage({
     return <p className="text-sm text-red-700">Producto no encontrado.</p>;
   }
   const row = productQuery.data;
+  if (isExampleProduct({ id: String(row.id), metadata: row.metadata as Record<string, unknown> | null })) return (
+    <section className="max-w-2xl space-y-4">
+      <h1 className="text-2xl font-bold">Ejemplo · {String(row.name)}</h1>
+      <p>Registro de prueba conservado como referencia. No se edita ni se publica como una prenda real.</p>
+      <p>Al usarlo como base se crea una prenda nueva; solo se copian categoría y segmento.</p>
+      <Link href={`/productos/nuevo?base=${id}`} className="inline-flex min-h-11 items-center bg-zinc-900 px-4 text-white">Usar como base</Link>
+      <Link href="/productos" className="ml-4 inline-flex min-h-11 items-center underline">Volver a productos</Link>
+    </section>
+  );
   const initial = toFormValue({
     ...(row as object),
     published: row.published_at != null,
@@ -225,6 +235,7 @@ export default function EditProductPage({
               !String(row.name ?? "").trim() ||
               Number(row.price_clp) <= 0 ||
               Number(row.stock) <= 0 ||
+              !row.category_id || !row.size || !row.color || !row.condition ||
               row.availability !== "AVAILABLE" ||
               !images.some((i) => i.is_cover) ||
               !isPublicProduct({
@@ -271,10 +282,10 @@ export default function EditProductPage({
           </button>
           {Number(row.price_clp) <= 0 ||
           Number(row.stock) <= 0 ||
+          !row.category_id || !row.size || !row.color || !row.condition ||
           !images.some((i) => i.is_cover) ? (
             <p className="text-sm text-zinc-600">
-              Para publicar necesitas precio positivo, stock y una foto de
-              portada.
+              Para publicar necesitas categoría, talla, color, estado, precio positivo, stock y una foto de portada.
             </p>
           ) : null}
           {row.published_at ? (

@@ -129,18 +129,17 @@ export function parseHero(value: unknown): HeroConfig {
     secondary: parseEditorialImage(v.secondary),
   };
 }
-/**
- * Productos visibles en la tienda pública.
- *
- * Oculta únicamente lo marcado de forma explícita como demostración
- * (`metadata.demo`). El inventario real promovido para el piloto permanece
- * público; su ocultamiento anterior dependía de una lista fija de IDs semilla
- * que ya no aplica.
- */
+export const LEGACY_SEED_IDS = Array.from({ length: 20 }, (_, index) =>
+  `d0000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`);
+
+/** Los ejemplos conservados en admin y los demos no son inventario comercial. */
+export function isExampleProduct(p: { id?: string; metadata?: Record<string, unknown> | null }): boolean {
+  return LEGACY_SEED_IDS.includes(p.id ?? "") || p.metadata?.example === true || p.metadata?.demo === true;
+}
 export function isPublicProduct(p: {
-  id: string;
+  id?: string;
   metadata?: Record<string, unknown> | null;
   isDemo?: boolean;
 }): boolean {
-  return p.metadata?.demo !== true && p.isDemo !== true;
+  return !isExampleProduct(p) && p.isDemo !== true;
 }
