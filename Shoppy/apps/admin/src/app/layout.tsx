@@ -4,6 +4,7 @@ import { AdminShell } from "../components/AdminShell";
 
 export const metadata: Metadata = {
   title: "vinta.zhe Admin",
+  robots: { index: false, follow: false },
   description:
     "Panel administrativo de vinta.zhe — e-commerce chileno de ropa de segunda mano",
 };

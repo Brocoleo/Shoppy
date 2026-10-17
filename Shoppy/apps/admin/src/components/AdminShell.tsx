@@ -26,15 +26,16 @@ const NAV = [
 function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const publicPage = pathname === "/login" || pathname === "/acceso";
   const { session, role, email, loading, signOut } = useAdminSession();
 
   useEffect(() => {
-    if (!loading && pathname !== "/login" && (!session || role !== "admin")) {
+    if (!loading && !publicPage && (!session || role !== "admin")) {
       router.replace("/login");
     }
-  }, [loading, session, role, pathname, router]);
+  }, [loading, session, role, publicPage, router]);
 
-  if (pathname === "/login") return <>{children}</>;
+  if (publicPage) return <>{children}</>;
   if (loading)
     return <p className="p-8 text-sm text-zinc-500">Cargando sesión…</p>;
   if (!session || role !== "admin")
