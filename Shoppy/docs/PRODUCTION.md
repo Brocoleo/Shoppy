@@ -43,6 +43,22 @@ Jamás commitear estos valores (solo `.env.example`, sin secretos).
       con `eas build` (ya incluye `expo-image` con caché de disco).
 - [ ] Admin: `NEXT_PUBLIC_*` de producción, deploy (Vercel u otro).
 
+### Deploy web en Vercel (monorepo)
+
+El proyecto Vercel `shopy-web` tiene **Root Directory = raíz del repo** (no `Shoppy/`).
+Por eso la config del build vive en **`vercel.json` en la raíz del repo**; el
+`Shoppy/vercel.json` se ignora en los deploys git (solo aplica si alguien fija
+Root Directory = `Shoppy`).
+
+- `outputDirectory`: `Shoppy/apps/web/.next` (relativo a la raíz del repo).
+- `installCommand`/`buildCommand`: entran a `Shoppy/` y construyen el workspace `apps/web`.
+- Sintoma de desalineación: build "success" pero **todas las rutas dan 404**
+  (`x-vercel-error: NOT_FOUND`), incluidos los assets `/_next/*`. Significa que
+  Vercel no encontró la app (Root Directory / `vercel.json` desalineados).
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` deben existir también
+  en el entorno **Preview**; si faltan, los previews muestran
+  "La tienda no está disponible en este momento" (el build no las inyecta).
+
 ## 5. Verificación post-deploy
 
 - [ ] Smoke `fase6` adaptado a la URL productiva (guest + authed + cupón).
