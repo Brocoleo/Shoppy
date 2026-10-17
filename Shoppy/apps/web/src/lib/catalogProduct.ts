@@ -21,6 +21,7 @@ export interface CatalogProduct {
   size: string;
   color: string;
   stock: number;
+  availability?: string;
   publishedAt: string;
   tags: string[];
   viewCount: number;
@@ -69,6 +70,7 @@ export interface DbProductRow {
   size: string | null;
   color: string | null;
   stock: number;
+  availability?: string;
   published_at: string | null;
   tags: string[] | null;
   view_count: number;
@@ -83,7 +85,7 @@ export interface DbProductRow {
 export const PRODUCT_COLUMNS = [
   "id", "slug", "name", "description", "brand_id", "category_id",
   "subcategory_id", "segment", "price_clp", "compare_at_price_clp",
-  "condition", "size", "color", "stock", "published_at", "tags",
+  "condition", "size", "color", "stock", "availability", "published_at", "tags",
   "view_count", "favorite_count", "trending_score", "is_featured", "metadata",
   "brand:brands(slug,name)",
   "product_images(storage_path,sort_order,is_cover,is_defect_detail)",
@@ -114,6 +116,7 @@ export function mapProduct(row: DbProductRow, categoriesById: ReadonlyMap<string
     size: row.size ?? "Única",
     color: row.color ?? "",
     stock: row.stock,
+    availability: row.availability,
     publishedAt: row.published_at ?? new Date(0).toISOString(),
     tags: row.tags ?? [],
     viewCount: row.view_count,

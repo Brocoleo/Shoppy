@@ -1,0 +1,70 @@
+{
+  "home": {
+    "runs": [
+      {
+        "score": 97,
+        "lcpMs": 2254.4875,
+        "tbtMs": 160.0000000000001,
+        "cls": 0,
+        "lcpSelector": "div.flex > section.editorial-hero > div.editorial-copy > p.mt-5",
+        "lcpLabel": "Fotograf\u00edas de nuestra historia. Explora el archivo y las prendas disponibles."
+      },
+      {
+        "score": 94,
+        "lcpMs": 2314.1940000000004,
+        "tbtMs": 224.99999999999966,
+        "cls": 0,
+        "lcpSelector": "div.flex > section.editorial-hero > div.editorial-copy > p.mt-5",
+        "lcpLabel": "Fotograf\u00edas de nuestra historia. Explora el archivo y las prendas disponibles."
+      },
+      {
+        "score": 93,
+        "lcpMs": 2328.9350000000004,
+        "tbtMs": 250.5,
+        "cls": 0,
+        "lcpSelector": "div.flex > section.editorial-hero > div.editorial-copy > p.mt-5",
+        "lcpLabel": "Fotograf\u00edas de nuestra historia. Explora el archivo y las prendas disponibles."
+      }
+    ],
+    "medians": {
+      "score": 94,
+      "lcpMs": 2314.1940000000004,
+      "tbtMs": 224.99999999999966,
+      "cls": 0
+    }
+  },
+  "catalogo": {
+    "runs": [
+      {
+        "score": 89,
+        "lcpMs": 3249.1211249999997,
+        "tbtMs": 205.00000000000045,
+        "cls": 0,
+        "lcpSelector": "li.min-w-0 > a.group > div.relative > img.card-zoom",
+        "lcpLabel": "Falda de denim: fotograf\u00eda 1 del archivo de vinta.zhe"
+      },
+      {
+        "score": 91,
+        "lcpMs": 2279.7200000000003,
+        "tbtMs": 311.50000000000057,
+        "cls": 0,
+        "lcpSelector": "li.min-w-0 > a.group > div.relative > img.card-zoom",
+        "lcpLabel": "Falda de denim: fotograf\u00eda 1 del archivo de vinta.zhe"
+      },
+      {
+        "score": 92,
+        "lcpMs": 2511.0921500000004,
+        "tbtMs": 279.50000000000057,
+        "cls": 0,
+        "lcpSelector": "li.min-w-0 > a.group > div.relative > img.card-zoom",
+        "lcpLabel": "Falda de denim: fotograf\u00eda 1 del archivo de vinta.zhe"
+      }
+    ],
+    "medians": {
+      "score": 91,
+      "lcpMs": 2511.0921500000004,
+      "tbtMs": 279.50000000000057,
+      "cls": 0
+    }
+  }
+}

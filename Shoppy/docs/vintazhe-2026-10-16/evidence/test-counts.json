@@ -1,0 +1,9 @@
+{
+  "beta": 20,
+  "cart-tests": 9,
+  "catalog-tests": 4,
+  "editorial-tests": 5,
+  "import-tests": 13,
+  "retire-tests": 13,
+  "total": 64
+}

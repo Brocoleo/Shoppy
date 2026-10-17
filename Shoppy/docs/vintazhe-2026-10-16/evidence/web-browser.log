@@ -1,0 +1,14 @@
+{
+  "views": 20,
+  "overflow": [],
+  "axe": [],
+  "errors": []
+}
+{
+  "ssr": {
+    "archiveLinks": 8,
+    "heroImages": 1,
+    "preload": 1
+  },
+  "animation": "none"
+}

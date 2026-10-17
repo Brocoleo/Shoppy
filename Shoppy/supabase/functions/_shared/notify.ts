@@ -43,23 +43,24 @@ export async function sendOrderEmail(
   const to = addr["email"] ?? "";
   if (!to) return { sent: false, reason: "NO_RECIPIENT" };
 
-  // Reserva idempotente: solo el primer insert procede.
-  const { data: claimed } = await db
-    .from("order_notifications")
-    .insert({ order_id: orderId, event, recipient: to })
-    .select("id")
-    .maybeSingle();
-  if (!claimed) return { sent: false, reason: "ALREADY_NOTIFIED" };
-
-  const { data: items } = await db
+  const { data: claimed, error: claimError } = await db.rpc("claim_order_notification", { p_order: orderId, p_event: event, p_recipient: to });
+  if (claimError) throw claimError;
+  if (!claimed) {
+    const { data: existing, error } = await db.from("order_notifications").select("status").eq("order_id", orderId).eq("event", event).maybeSingle();
+    if (error) throw error;
+    return { sent: false, reason: existing?.status === "sent" ? "ALREADY_NOTIFIED" : "REVIEW_REQUIRED" };
+  }
+  try {
+  const { data: items, error: itemsError } = await db
     .from("order_items")
     .select("product_name,qty,unit_price_clp")
     .eq("order_id", orderId);
-  const { data: shipment } = await db
+  const { data: shipment, error: shipmentError } = await db
     .from("shipments")
     .select("carrier,tracking_number,tracking_url")
     .eq("order_id", orderId)
     .maybeSingle();
+  if (itemsError || shipmentError) throw itemsError ?? shipmentError;
   const ship = shipment as unknown as { carrier: string; tracking_number: string; tracking_url: string } | null;
 
   const emailData: OrderEmailData = {
@@ -80,11 +81,16 @@ export async function sendOrderEmail(
 
   const rendered = renderOrderEmail(event, emailData);
   const provider = getEmailProvider();
-  const { id: messageId } = await provider.send({ to, subject: rendered.subject, html: rendered.html });
-  await db
+  const { id: messageId } = await provider.send({ to, subject: rendered.subject, html: rendered.html, idempotencyKey: `order-${orderId}-${event}` });
+  const { error: savedError } = await db
     .from("order_notifications")
-    .update({ provider_message_id: messageId })
+    .update({ provider_message_id: messageId, status: "sent", last_error: null })
     .eq("order_id", orderId)
     .eq("event", event);
+  if (savedError) throw savedError;
   return { sent: true };
+  } catch (error) {
+    await db.from("order_notifications").update({ status: "failed", last_error: "Envío no confirmado. Revisa proveedor antes de reintentar tras 24 horas." }).eq("id", claimed);
+    throw error;
+  }
 }

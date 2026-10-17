@@ -10,6 +10,6 @@ export async function GET(request: Request) {
     if (!token) throw new Error("Pago aún no disponible");
     return bridgeHtml(`<p>Continuarás a Webpay de prueba. No uses una tarjeta real.</p><form id="pay" method="post" action="${escapeHtml(url.href)}"><input type="hidden" name="token_ws" value="${escapeHtml(token)}"><button type="submit">Continuar a Webpay</button></form>`, 'document.getElementById("pay").submit();', url.origin);
   } catch {
-    return bridgeHtml("<p>No se puede abrir este pago. Vuelve a Shopy y verifica el pedido pendiente.</p>");
+    return bridgeHtml("<p>No se puede abrir este pago. Vuelve a vinta.zhe y verifica el pedido pendiente.</p>");
   }
 }

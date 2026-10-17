@@ -62,9 +62,9 @@ export default function ProductsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-baseline">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Productos · {filtered.length}</h1>
-        <Link href="/productos/nuevo" className="rounded-full bg-zinc-900 text-white px-5 h-10 text-sm font-semibold flex items-center">
+        <Link href="/productos/nuevo" className="rounded-full bg-zinc-900 text-white px-5 min-h-11 text-sm font-semibold flex items-center">
           Nuevo producto
         </Link>
       </div>
@@ -72,7 +72,7 @@ export default function ProductsPage() {
         <input
           aria-label="Buscar productos"
           placeholder="Buscar por nombre o slug…"
-          className="rounded border border-zinc-300 px-3 h-11 text-sm flex-1"
+          className="rounded border border-zinc-300 px-3 h-11 text-sm min-w-0 flex-1"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -97,22 +97,22 @@ export default function ProductsPage() {
       ) : null}
       <div className="rounded border border-zinc-200 bg-white divide-y divide-zinc-100">
         {filtered.map((r) => (
-          <div key={r.id} className="flex items-center gap-3 p-3 text-sm">
-            <div className="flex-1 min-w-0">
+          <div key={r.id} className="flex flex-wrap items-center gap-3 p-3 text-sm">
+            <div className="min-w-0 basis-full sm:flex-1 sm:basis-auto">
               <p className="font-medium truncate">{r.name}</p>
-              <p className="text-xs text-zinc-500">
+              <p className="break-words text-xs text-zinc-500">
                 {r.slug} · {formatCLP(r.price_clp)} · stock {r.stock} · {r.availability}
                 {r.is_featured ? " · ★" : ""}
                 {r.published_at ? "" : " · borrador"}
               </p>
             </div>
-            <Link href={`/productos/${r.id}`} className="text-xs underline text-zinc-600">Editar</Link>
-            <button onClick={() => toggleArchive.mutate(r)} className="text-xs underline text-zinc-600">
+            <Link href={`/productos/${r.id}`} className="inline-flex min-h-11 items-center text-xs underline text-zinc-600">Editar</Link>
+            <button onClick={() => toggleArchive.mutate(r)} className="inline-flex min-h-11 items-center text-xs underline text-zinc-600">
               {r.availability === "ARCHIVED" ? "Desarchivar" : "Archivar"}
             </button>
             <button
               onClick={() => confirm(`Eliminar "${r.name}"? Solo si no tiene ventas asociadas.`) && remove.mutate(r)}
-              className="text-xs underline text-red-700"
+              className="min-h-11 text-xs underline text-red-700"
             >
               Eliminar
             </button>

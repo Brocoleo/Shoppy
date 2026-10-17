@@ -13,6 +13,14 @@
  */
 import { timingSafeEqual } from "node:crypto";
 
+export function enabledPaymentProviders(): string[] {
+  const names = (Deno.env.get("PAYMENT_PROVIDERS") ?? Deno.env.get("PAYMENT_PROVIDER") ?? "mock").split(",").map((v) => v.trim().toLowerCase());
+  if (names.some((v) => !["mock", "mercadopago", "transbank"].includes(v))) throw new Error("PAYMENT_PROVIDERS inválido");
+  return [...new Set(names)];
+}
+
+export function sandboxOnly(): boolean { return (Deno.env.get("PAYMENT_MODE") ?? "sandbox") !== "live"; }
+
 export type PaymentStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface CreatePaymentInput {
@@ -46,8 +54,8 @@ export interface PaymentProvider {
    * de retorno; para MP busca el pago aprobado por external_reference.
    */
   verifyPayment(providerPaymentId: string, expectedAmountClp: number, orderId?: string): Promise<PaymentStatus>;
-  refundPayment(providerPaymentId: string, amountClp?: number): Promise<void>;
-  handleWebhook(input: WebhookInput): Promise<{ orderId: string; status: PaymentStatus }>;
+  refundPayment(providerPaymentId: string, amountClp?: number, orderId?: string): Promise<void>;
+  handleWebhook(input: WebhookInput): Promise<{ orderId: string; status: PaymentStatus; amountClp?: number; currency?: string; providerPaymentId?: string }>;
 }
 
 // ---------------------------------------------------------------- mock ---
@@ -70,7 +78,7 @@ export class MockPaymentProvider implements PaymentProvider {
     // Mock sin estado: el reembolso real se implementa con cada proveedor.
   }
 
-  async handleWebhook(): Promise<{ orderId: string; status: PaymentStatus }> {
+  async handleWebhook(): Promise<{ orderId: string; status: PaymentStatus; amountClp?: number; currency?: string; providerPaymentId?: string }> {
     throw new Error("mock provider has no webhook; use confirm action");
   }
 }
@@ -88,11 +96,12 @@ function mpAuth(): { accessToken: string; webhookSecret: string } {
 async function mpFetch(accessToken: string, path: string, init?: RequestInit) {
   const res = await fetch(`${MP_API}${path}`, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(15000),
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   const json = (await res.json().catch(() => null)) as unknown;
   if (!res.ok) {
-    throw new Error(`mercadopago ${path} -> ${res.status}: ${JSON.stringify(json)?.slice(0, 200)}`);
+    throw new Error(`mercadopago HTTP ${res.status}`);
   }
   return json as Record<string, unknown>;
 }
@@ -151,7 +160,7 @@ export class MercadoPagoProvider implements PaymentProvider {
       }),
     });
     const id = String(pref["id"] ?? "");
-    const url = (pref["init_point"] ?? pref["sandbox_init_point"] ?? null) as string | null;
+    const url = (sandboxOnly() ? pref["sandbox_init_point"] : pref["init_point"]) as string | null;
     if (!id || !url) throw new Error("mercadopago no devolvió preferencia válida");
     return { providerPaymentId: `mp_pref_${id}`, checkoutUrl: url, status: "PENDING" };
   }
@@ -165,24 +174,29 @@ export class MercadoPagoProvider implements PaymentProvider {
     );
     const results = (search["results"] ?? []) as Record<string, unknown>[];
     const approved = results.find(
-      (p) => p["status"] === "approved" && Number(p["transaction_amount"]) === expectedAmountClp,
+      (p) => p["status"] === "approved" && Number(p["transaction_amount"]) === expectedAmountClp && p["currency_id"] === "CLP" && p["external_reference"] === ref && (!sandboxOnly() || p["live_mode"] === false),
     );
     return approved ? "APPROVED" : "PENDING";
   }
 
-  async refundPayment(providerPaymentId: string, _amountClp?: number): Promise<void> {
+  async refundPayment(providerPaymentId: string, amountClp?: number, orderId?: string): Promise<void> {
     const { accessToken } = mpAuth();
-    // Requiere el payment id (llega vía webhook y queda en raw_payload).
-    if (!/^\d+$/.test(providerPaymentId)) {
-      throw new Error("refund MP requiere el payment id numérico (ver raw_payload del webhook)");
+    let paymentId = providerPaymentId;
+    if (!/^\d+$/.test(paymentId)) {
+      if (!orderId || !amountClp) throw new Error("Faltan datos para recuperar el pago");
+      const search = await mpFetch(accessToken, `/v1/payments/search?external_reference=${encodeURIComponent(orderId)}`);
+      const payment = ((search["results"] ?? []) as Record<string, unknown>[]).find((p) => p["status"] === "approved" && p["external_reference"] === orderId && p["currency_id"] === "CLP" && Number(p["transaction_amount"]) === amountClp && (!sandboxOnly() || p["live_mode"] === false));
+      if (!payment) throw new Error("Pago aprobado no encontrado");
+      paymentId = String(payment["id"]);
     }
-    await mpFetch(accessToken, `/v1/payments/${providerPaymentId}/refunds`, { method: "POST", body: "{}" });
+    const refund = await mpFetch(accessToken, `/v1/payments/${paymentId}/refunds`, { method: "POST", headers: { "X-Idempotency-Key": `shopy-refund-${paymentId}` }, body: "{}" });
+    if (refund["status"] !== "approved") throw new Error("Reembolso Mercado Pago no confirmado");
   }
 
-  async handleWebhook(input: WebhookInput): Promise<{ orderId: string; status: PaymentStatus }> {
+  async handleWebhook(input: WebhookInput): Promise<{ orderId: string; status: PaymentStatus; amountClp?: number; currency?: string; providerPaymentId?: string }> {
     const { webhookSecret, accessToken } = mpAuth();
     const type = input.query["type"] ?? (input.body as Record<string, unknown> | null)?.["type"];
-    const dataId = input.query["data.id"] ?? String((input.body as Record<string, unknown> | null)?.["data"] ?? "");
+    const dataId = input.query["data.id"] ?? String((input.body as { data?: { id?: unknown } } | null)?.data?.id ?? "");
     if (type !== "payment" || !dataId) throw new Error("webhook MP: evento no soportado");
     const ok = await verifyMercadoPagoSignature({
       xSignature: input.headers["x-signature"],
@@ -194,7 +208,8 @@ export class MercadoPagoProvider implements PaymentProvider {
     const payment = await mpFetch(accessToken, `/v1/payments/${encodeURIComponent(dataId)}`);
     const orderId = String(payment["external_reference"] ?? "");
     if (!orderId) throw new Error("webhook MP: sin external_reference");
-    return { orderId, status: payment["status"] === "approved" ? "APPROVED" : "REJECTED" };
+    if (sandboxOnly() && payment["live_mode"] !== false) throw new Error("Pago productivo no permitido en beta");
+    return { orderId, status: payment["status"] === "approved" ? "APPROVED" : "PENDING", amountClp: Number(payment["transaction_amount"]), currency: String(payment["currency_id"]), providerPaymentId: String(payment["id"]) };
   }
 }
 
@@ -204,6 +219,7 @@ const TBK_TEST = { commerceCode: "597055555532", apiKey: "579B532A7440BB0C9079DE
 function tbkAuth(): { commerceCode: string; apiKey: string; base: string } {
   const env = (Deno.env.get("TRANSBANK_ENVIRONMENT") ?? "TEST").toUpperCase();
   const live = env === "LIVE" || env === "PROD" || env === "PRODUCCION";
+  if (live && sandboxOnly()) throw new Error("Transbank LIVE no permitido en beta");
   const commerceCode = Deno.env.get("TRANSBANK_COMMERCE_CODE") ?? (live ? "" : TBK_TEST.commerceCode);
   const apiKey = Deno.env.get("TRANSBANK_API_KEY_SECRET") ?? (live ? "" : TBK_TEST.apiKey);
   if (!commerceCode || !apiKey) throw new Error("faltan TRANSBANK_COMMERCE_CODE / TRANSBANK_API_KEY_SECRET para LIVE");
@@ -217,6 +233,7 @@ function tbkAuth(): { commerceCode: string; apiKey: string; base: string } {
 async function tbkFetch(auth: { commerceCode: string; apiKey: string; base: string }, path: string, init?: RequestInit) {
   const res = await fetch(`${auth.base}${path}`, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(15000),
     headers: {
       "Tbk-Api-Key-Id": auth.commerceCode,
       "Tbk-Api-Key-Secret": auth.apiKey,
@@ -226,7 +243,7 @@ async function tbkFetch(auth: { commerceCode: string; apiKey: string; base: stri
   });
   const json = (await res.json().catch(() => null)) as unknown;
   if (!res.ok) {
-    throw new Error(`transbank ${path} -> ${res.status}: ${JSON.stringify(json)?.slice(0, 200)}`);
+    throw new Error(`transbank HTTP ${res.status}`);
   }
   return json as Record<string, unknown>;
 }
@@ -254,16 +271,16 @@ export class TransbankProvider implements PaymentProvider {
   }
 
   /** Para Webpay Plus, verificar == hacer COMMIT con el token de retorno. */
-  async verifyPayment(providerPaymentId: string, _expectedAmountClp: number): Promise<PaymentStatus> {
+  async verifyPayment(providerPaymentId: string, expectedAmountClp: number, orderId?: string): Promise<PaymentStatus> {
     const auth = tbkAuth();
     const token = providerPaymentId.replace(/^tbk_/, "");
     if (!token) return "REJECTED";
-    const committed = await tbkFetch(auth, `/rswebpaytransaction/api/webpay/v1.2/transactions/${encodeURIComponent(token)}`, {
-      method: "PUT",
-    });
-    return committed["status"] === "AUTHORIZED" && Number(committed["response_code"]) === 0
-      ? "APPROVED"
-      : "REJECTED";
+    const path = `/rswebpaytransaction/api/webpay/v1.2/transactions/${encodeURIComponent(token)}`;
+    let committed = await tbkFetch(auth, path);
+    if (committed["status"] === "INITIALIZED") committed = await tbkFetch(auth, path, { method: "PUT" });
+    if (Number(committed["amount"]) !== expectedAmountClp || (orderId && committed["session_id"] !== orderId)) return "REJECTED";
+    if (committed["status"] === "AUTHORIZED" && Number(committed["response_code"]) === 0) return "APPROVED";
+    return committed["status"] === "INITIALIZED" ? "PENDING" : "REJECTED";
   }
 
   async refundPayment(providerPaymentId: string, amountClp?: number): Promise<void> {
@@ -273,21 +290,22 @@ export class TransbankProvider implements PaymentProvider {
     const buyOrder = String(status["buy_order"] ?? "");
     const authorized = Number(status["amount"] ?? amountClp ?? 0);
     if (!buyOrder || !authorized) throw new Error("transbank refund: transacción sin datos");
-    await tbkFetch(auth, `/rswebpaytransaction/api/webpay/v1.2/transactions/${encodeURIComponent(token)}/refunds`, {
+    const refund = await tbkFetch(auth, `/rswebpaytransaction/api/webpay/v1.2/transactions/${encodeURIComponent(token)}/refunds`, {
       method: "POST",
-      body: JSON.stringify({ buy_order: buyOrder, authorized_amount: amountClp ?? authorized }),
+      body: JSON.stringify({ amount: amountClp ?? authorized }),
     });
+    if (!["REVERSED", "NULLIFIED"].includes(String(refund["type"])) || (refund["response_code"] !== undefined && Number(refund["response_code"]) !== 0)) throw new Error("Reembolso Webpay no confirmado");
   }
 
-  async handleWebhook(): Promise<{ orderId: string; status: PaymentStatus }> {
+  async handleWebhook(): Promise<{ orderId: string; status: PaymentStatus; amountClp?: number; currency?: string; providerPaymentId?: string }> {
     // Webpay Plus usa return_url + commit, no webhook.
     throw new Error("transbank usa return_url + commit; sin webhook");
   }
 }
 
 // -------------------------------------------------------------- factory ---
-export function getPaymentProvider(): PaymentProvider {
-  const name = (Deno.env.get("PAYMENT_PROVIDER") ?? "mock").toLowerCase();
+export function getPaymentProvider(selected?: string): PaymentProvider {
+  const name = (selected ?? Deno.env.get("PAYMENT_PROVIDER") ?? "mock").toLowerCase();
   if (name === "mercadopago") return new MercadoPagoProvider();
   if (name === "transbank") return new TransbankProvider();
   if (name !== "mock") throw new Error(`provider ${name} desconocido (mock|mercadopago|transbank)`);

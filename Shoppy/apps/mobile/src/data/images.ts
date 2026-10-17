@@ -26,3 +26,8 @@ export function productGallery(product: CatalogProduct): {
     isDefect: local.defectIndexes.includes(index),
   }));
 }
+
+/** Los PNG numerados pertenecen al seed; las fotos subidas usan nombres UUID. */
+export function hasDemoPhotos(product: CatalogProduct): boolean {
+  return !product.remoteImages?.length || product.remoteImages.some((image) => /\/products\/[^/]+\/0[0-9]\.png(?:\?|$)/.test(image.url));
+}

@@ -24,101 +24,23 @@ export interface CartValidation {
   hasIssues: boolean;
 }
 
-async function serverCartId(userId: string): Promise<string> {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from("carts")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  if (data) return (data as { id: string }).id;
-  const { data: created, error: insertError } = await supabase
-    .from("carts")
-    .insert({ user_id: userId })
-    .select("id")
-    .single();
-  if (insertError) throw insertError;
-  return (created as { id: string }).id;
-}
-
-/** Lee el carrito servidor como líneas {productId, qty}. */
-export async function pullServerCart(userId: string): Promise<CartLine[]> {
-  const supabase = getSupabase();
-  const cartId = await serverCartId(userId);
-  const { data, error } = await supabase
-    .from("cart_items")
-    .select("product_id,qty")
-    .eq("cart_id", cartId);
-  if (error) throw error;
-  return ((data ?? []) as { product_id: string; qty: number }[]).map((r) => ({
-    productId: r.product_id,
-    qty: r.qty,
-  }));
-}
-
-/** Escribe líneas al servidor (snapshot con precio vigente de backend). */
-export async function pushCartToServer(userId: string, lines: CartLine[]): Promise<void> {
-  const supabase = getSupabase();
-  const cartId = await serverCartId(userId);
-  const wanted = new Map(lines.map((l) => [l.productId, l.qty]));
-
-  if (wanted.size > 0) {
-    const prices = await fetchPriceMap([...wanted.keys()]);
-    const rows = [...wanted.entries()]
-      .map(([productId, qty]) => {
-        const price = prices.get(productId);
-        return price === undefined
-          ? null
-          : { cart_id: cartId, product_id: productId, qty, unit_price_clp: price };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-    if (rows.length > 0) {
-      const { error } = await supabase
-        .from("cart_items")
-        .upsert(rows, { onConflict: "cart_id,product_id" });
-      if (error) throw error;
-    }
-  }
-  // Borra lo que ya no está en el carrito local.
-  const { data: current, error: listError } = await supabase
-    .from("cart_items")
-    .select("product_id")
-    .eq("cart_id", cartId);
-  if (listError) throw listError;
-  const stale = ((current ?? []) as { product_id: string }[])
-    .map((r) => r.product_id)
-    .filter((id) => !wanted.has(id));
-  if (stale.length > 0) {
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("cart_id", cartId)
-      .in("product_id", stale);
-    if (error) throw error;
-  }
-}
-
-/** Fusiona invitado→cuenta (suma cantidades, tope 99) y retorna el resultado. */
-export async function mergeLocalToServer(
-  userId: string,
-  local: CartLine[],
-): Promise<CartLine[]> {
-  const server = await pullServerCart(userId);
-  const merged = new Map<string, number>();
-  for (const l of [...server, ...local]) {
-    merged.set(l.productId, Math.min(99, (merged.get(l.productId) ?? 0) + l.qty));
-  }
-  return [...merged.entries()].map(([productId, qty]) => ({ productId, qty }));
-}
-
-async function fetchPriceMap(ids: string[]): Promise<Map<string, number>> {
-  const { data, error } = await getSupabase()
-    .from("products")
-    .select("id,price_clp")
-    .in("id", ids);
-  if (error) throw error;
-  return new Map(((data ?? []) as { id: string; price_clp: number }[]).map((r) => [r.id, r.price_clp]));
+/** La identidad proviene de auth.uid() en SQL, nunca del parámetro del cliente. */
+export async function syncMyCart(owner: string, lines?: CartLine[], mergeId?: string, base?: CartLine[]): Promise<CartLine[]> {
+  const { data, error } = await getSupabase().auth.getSession();
+  if (error || data.session?.user.id !== owner) throw new Error("La sesión cambió durante la sincronización.");
+  // Capturar el JWT evita escribir una instantánea antigua con una cuenta nueva.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  try {
+  const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/rest/v1/rpc/sync_my_cart`, {
+    method: "POST",
+    signal: controller.signal,
+    headers: { "Content-Type": "application/json", apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "", Authorization: `Bearer ${data.session.access_token}` },
+    body: JSON.stringify({ p_items: lines ?? null, p_merge_id: mergeId ?? null, p_base: base ?? null }),
+  });
+  if (!response.ok) throw new Error("No se pudo sincronizar el carrito.");
+  return await response.json() as CartLine[];
+  } finally { clearTimeout(timeout); }
 }
 
 /**

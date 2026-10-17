@@ -1,0 +1,48 @@
+PASS slug follows full name
+PASS manual slug is preserved
+PASS new product is always a draft
+PASS creation advances directly to Photos
+PASS cannot publish without cover
+PASS partial failure keeps first photo
+PASS retry does not duplicate successful photo
+PASS cover choice updates image
+PASS image order uses existing RPC
+PASS publish requires complete saved product
+PASS unsaved edits block leaving data step
+PASS data edits preserve publication date
+PASS published item cannot silently keep a zero price
+PASS concurrent edits are rejected without overwriting data
+AssertionError [ERR_ASSERTION]: same-user auth event preserves unsaved form
+    at check (/tmp/vinta-implementation/admin-check.cjs:4:669)
+    at /tmp/vinta-implementation/admin-check.cjs:21:1108 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+Visible main on failure: Editar producto
+1. Datos
+2. Fotos
+3. Revisión
+Fotografías · 2
+
+Subir fotos
+
+#1
+
+Portada
+Marcar defecto
+←
+→
+Eliminar
+
+#0 · portada
+
+Marcar defecto
+←
+→
+Eliminar
+Revisar producto
+Reintentar limpieza pendiente: products/slug-elegido/9e977f65-4572-41e1-a339-2b7c678790cb-cms5wj-hhyx-1-29330ff44c3d.webp

@@ -1,0 +1,33 @@
+{
+  "faviconStatus": 200,
+  "faviconMime": "image/x-icon",
+  "consoleErrors": [],
+  "initialReads": [
+    {
+      "table": "categories",
+      "order": "sort_order.asc"
+    },
+    {
+      "table": "brands",
+      "order": "name.asc"
+    },
+    {
+      "table": "collections",
+      "order": null
+    },
+    {
+      "table": "products",
+      "order": "trending_score.desc"
+    },
+    {
+      "table": "collection_products",
+      "order": "sort_order.asc"
+    },
+    {
+      "table": "products",
+      "order": null
+    }
+  ],
+  "duplicateEditorialReads": 0,
+  "duplicateNewcomerReads": 0
+}

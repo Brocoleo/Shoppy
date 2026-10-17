@@ -179,11 +179,29 @@ export interface DbOrderItem {
   qty: number;
 }
 
+export interface DbCheckoutAttempt {
+  id: string;
+  user_id: string | null;
+  secret_hash: string;
+  request_hash: string;
+  order_id: string | null;
+  response: Record<string, unknown> | null;
+  state: "processing" | "ready" | "failed" | "review";
+  error_code: string | null;
+  created_at: string;
+}
+export interface DbCartMerge { id: string; user_id: string; created_at: string }
+export interface DbImageCleanup { storage_path: string; product_id: string; created_at: string }
+
 export interface DbPayment {
   id: string;
   order_id: string;
   provider: "mock" | "mercadopago" | "transbank";
   provider_payment_id: string | null;
+  checkout_url: string | null;
+  return_token: string;
+  incident: string | null;
+  refund_state: "processing" | "done" | "review" | null;
   amount_clp: number;
   status: DbPaymentStatus;
   idempotency_key: string | null;
@@ -272,6 +290,9 @@ export interface DbOrderNotification {
   event: string;
   recipient: string;
   provider_message_id: string | null;
+  status: "pending" | "sending" | "sent" | "failed";
+  last_error: string | null;
+  attempted_at: string | null;
   created_at: string;
 }
 

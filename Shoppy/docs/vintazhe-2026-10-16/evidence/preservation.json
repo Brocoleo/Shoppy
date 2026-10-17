@@ -1,0 +1,12 @@
+{
+  "head": "8b039c1bed9c4a2df250ef269ebb8949cbf068c6",
+  "newCommitCreated": false,
+  "stagedPaths": [],
+  "preservedExcludedFiles": {
+    "apps/web/src/lib/cart.tsx": true,
+    "apps/web/src/lib/cartStore.ts": true,
+    "apps/admin/src/app/pedidos/[id]/page.tsx": true,
+    "supabase/migrations/20261010000001_beta_cart_images.sql": true
+  },
+  "oldAdminFaviconPreserved": true
+}

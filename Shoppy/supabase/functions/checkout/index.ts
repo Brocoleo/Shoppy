@@ -11,7 +11,7 @@ import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { timingSafeEqual } from "node:crypto";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { z } from "npm:zod";
-import { getPaymentProvider } from "../_shared/payment.ts";
+import { getPaymentProvider, enabledPaymentProviders, sandboxOnly } from "../_shared/payment.ts";
 import { sendOrderEmail } from "../_shared/notify.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
 
@@ -46,6 +46,9 @@ const createSchema = z.object({
   shipping_rate_id: z.string().uuid(),
   discount_code: z.string().max(40).nullish(),
   save_address: z.boolean().optional(),
+  provider: z.enum(["mock", "mercadopago", "transbank"]).optional(),
+  idempotency_key: z.string().uuid().optional(),
+  attempt_secret: z.string().uuid().optional(),
   /** Deep link de retorno (shopy://…) para proveedores con redirect. */
   return_url: z.string().max(256).nullish().refine(
     (v) => v == null || /^(shopy:\/\/|https:\/\/)/.test(v),
@@ -240,203 +243,91 @@ async function handleQuote(db: SupabaseClient, body: unknown): Promise<Response>
   return ok(publicQuote);
 }
 
+async function digest(value: string): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)))].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+async function recoverAttempt(db: SupabaseClient, userId: string | null, key: string, secret: string, requestHash?: string): Promise<Response> {
+  const { data: attempt, error } = await db.from("checkout_attempts").select("*").eq("id", key).maybeSingle();
+  if (error) throw new CheckoutError(500, "DB_ERROR", "No se pudo recuperar el intento.");
+  if (!attempt) return bad(404, "ATTEMPT_NOT_FOUND", "Intento no recibido. Puedes reenviar la misma solicitud.");
+  if (attempt.user_id !== userId || !tokensEqual(attempt.secret_hash, await digest(secret))) return bad(403, "FORBIDDEN", "No puedes recuperar este intento.");
+  if (requestHash && attempt.request_hash !== requestHash) return bad(409, "ATTEMPT_CHANGED", "Recupera el intento anterior antes de cambiar el pedido.");
+  if (attempt.response) return ok(attempt.response);
+  if (attempt.order_id) {
+    const [{ data: order }, { data: payment }] = await Promise.all([
+      db.from("orders").select("id,order_number,guest_token,total_clp").eq("id", attempt.order_id).maybeSingle(),
+      db.from("payments").select("provider,provider_payment_id,status,checkout_url,return_token").eq("order_id", attempt.order_id).maybeSingle(),
+    ]);
+    if (order && payment?.provider_payment_id) {
+      const bridge = (Deno.env.get("PAYMENT_BRIDGE_URL") ?? "").replace(/\/$/, "");
+      const response = { order_id: order.id, order_number: order.order_number, guest_token: order.guest_token, total_clp: order.total_clp, payment: { ...payment, checkout_url: payment.provider === "transbank" ? `${bridge}/api/payments/start?state=${payment.return_token}` : payment.checkout_url } };
+      await db.from("checkout_attempts").update({ state: "ready", response }).eq("id", key);
+      return ok(response);
+    }
+  }
+  if (attempt.state === "failed") return bad(409, "ATTEMPT_FAILED", "El intento no creó un pedido. Puedes iniciar uno nuevo.");
+  return bad(409, attempt.state === "review" ? "ATTEMPT_REVIEW" : "ATTEMPT_PROCESSING", "El pedido sigue pendiente de recuperación. No vuelvas a comprar; verifica este intento.");
+}
+
 async function handleCreate(db: SupabaseClient, userId: string | null, body: unknown): Promise<Response> {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return bad(400, "VALIDATION", "Datos de checkout inválidos.");
   const input = parsed.data;
-
-  const quote = await computeQuote(db, {
-    items: input.items,
-    shipping_rate_id: input.shipping_rate_id,
-    discount_code: input.discount_code,
-    region: input.address.region,
-  });
-
-  const guestToken = userId ? null : [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
-
-  const { data: order, error: oErr } = await db
-    .from("orders")
-    .insert({
-      user_id: userId,
-      guest_token: guestToken,
-      status: "PENDING_PAYMENT",
-      subtotal_clp: quote.subtotal_clp,
-      discount_clp: quote.discount_clp,
-      shipping_clp: quote.shipping_clp,
-      total_clp: quote.total_clp,
-      shipping_address: input.address,
-      discount_code: input.discount_code?.trim() || null,
-      shipping_rate_id: input.shipping_rate_id,
-    })
-    .select("id,order_number,guest_token,total_clp")
-    .single();
-  if (oErr || !order) throw new CheckoutError(500, "DB_ERROR", "No se pudo crear el pedido.");
-  const typedOrder = order as unknown as { id: string; order_number: string; guest_token: string | null; total_clp: number };
-
+  if (Boolean(input.idempotency_key) !== Boolean(input.attempt_secret)) return bad(400, "VALIDATION", "El intento requiere clave y secreto.");
+  if (new Set(input.items.map((i) => i.product_id)).size !== input.items.length) return bad(400, "VALIDATION", "Productos repetidos.");
+  const providerName = input.provider ?? Deno.env.get("PAYMENT_PROVIDER") ?? "mock";
+  if (!enabledPaymentProviders().includes(providerName)) return bad(400, "PROVIDER_DISABLED", "Medio de pago no disponible.");
+  const provider = getPaymentProvider(providerName);
+  const betaUrl = (Deno.env.get("PAYMENT_BRIDGE_URL") ?? "").replace(/\/$/, "");
+  if (provider.name !== "mock" && !betaUrl.startsWith("https://")) return bad(503, "PAYMENT_CONFIG", "El pago de prueba aún no está configurado.");
+  const key = input.idempotency_key ?? crypto.randomUUID();
+  const secret = input.attempt_secret ?? crypto.randomUUID();
+  const { idempotency_key: _key, attempt_secret: _secret, return_url: _return, ...fingerprint } = input;
+  const requestHash = await digest(JSON.stringify(fingerprint));
+  const { error: claimError } = await db.from("checkout_attempts").insert({ id: key, user_id: userId, secret_hash: await digest(secret), request_hash: requestHash });
+  if (claimError?.code === "23505") return recoverAttempt(db, userId, key, secret, requestHash);
+  if (claimError) throw new CheckoutError(500, "DB_ERROR", "No se pudo iniciar el intento.");
+  let createdOrder = false;
   try {
-    const { error: itemsErr } = await db.from("order_items").insert(
-      quote.lines.map((l) => ({
-        order_id: typedOrder.id,
-        product_id: l.product_id,
-        product_slug: l.product_slug,
-        product_name: l.product_name,
-        brand_name: l.brand_name,
-        size: l.size,
-        color: l.color,
-        condition: l.condition,
-        image_url: l.image_url,
-        unit_price_clp: l.unit_price_clp,
-        qty: l.qty,
-      })),
-    );
-    if (itemsErr) throw new CheckoutError(500, "DB_ERROR", "No se pudo crear el pedido.");
-
-    if (quote.discount_id) {
-      // Guardia atómica contra carreras por límite de usos.
-      const { data: claimed, error: claimErr } = await db.rpc("claim_discount_usage", {
-        p_discount_id: quote.discount_id,
-      });
-      if (claimErr || claimed !== true) {
-        throw new CheckoutError(409, "DISCOUNT_USAGE_LIMIT", "El cupón agotó sus usos.");
-      }
-      await db.from("discount_usages").insert({
-        discount_id: quote.discount_id,
-        order_id: typedOrder.id,
-        user_id: userId,
-      });
-    }
-
+    const quote = await computeQuote(db, { ...input, region: input.address.region });
+    const { data: order, error } = await db.rpc("create_checkout_order", {
+      p_attempt: key, p_user: userId, p_guest_token: userId ? null : crypto.randomUUID(), p_input: input, p_quote: quote,
+    });
+    if (error || !order) throw new CheckoutError(409, dbCode(error, "CREATE_FAILED"), "No se pudo reservar el pedido. Revisa stock y cupón.");
+    createdOrder = true;
+    const returnToken = crypto.randomUUID();
+    const { data: payRow, error: payError } = await db.from("payments").insert({ order_id: order.id, provider: provider.name, amount_clp: order.total_clp, status: "pending", idempotency_key: key, return_token: returnToken }).select("id").single();
+    if (payError) throw new Error("No se pudo registrar el intento de pago");
+    const functionsBase = (Deno.env.get("FUNCTIONS_PUBLIC_URL") ?? `${Deno.env.get("SUPABASE_URL")}/functions/v1`).replace(/\/$/, "").replace(/\/functions\/v1$/, "");
+    const payment = await provider.createPayment({ orderId: order.id, orderNumber: order.order_number, amountClp: order.total_clp,
+      returnUrl: `${betaUrl}/api/payments/return?state=${returnToken}`, webhookUrl: `${functionsBase}/functions/v1/checkout`, email: input.address.email }, key);
+    const { error: updateError } = await db.from("payments").update({ provider_payment_id: payment.providerPaymentId, checkout_url: payment.checkoutUrl }).eq("id", payRow.id);
+    if (updateError) throw updateError;
+    const response = { order_id: order.id, order_number: order.order_number, guest_token: order.guest_token, total_clp: order.total_clp,
+      payment: { provider: provider.name, provider_payment_id: payment.providerPaymentId, status: payment.status, checkout_url: provider.name === "transbank" ? `${betaUrl}/api/payments/start?state=${returnToken}` : payment.checkoutUrl } };
+    const { error: readyError } = await db.from("checkout_attempts").update({ state: "ready", response }).eq("id", key);
+    if (readyError) throw readyError;
     if (input.save_address && userId) {
-      await db.from("addresses").insert({
-        user_id: userId,
-        full_name: input.address.fullName,
-        email: input.address.email,
-        phone: input.address.phone,
-        street: input.address.street,
-        comuna: input.address.comuna,
-        region: input.address.region,
-        zip_code: input.address.zipCode ?? null,
-        notes: input.address.notes ?? null,
-      });
+      await db.from("addresses").insert({ user_id: userId, full_name: input.address.fullName, email: input.address.email, phone: input.address.phone, street: input.address.street, comuna: input.address.comuna, region: input.address.region, zip_code: input.address.zipCode ?? null, notes: input.address.notes ?? null });
     }
-
-    const { error: reserveErr } = await db.rpc("reserve_products", {
-      p_order_id: typedOrder.id,
-      p_items: input.items.map((i) => ({ product_id: i.product_id, qty: i.qty })),
-    });
-    if (reserveErr) {
-      throw new CheckoutError(409, dbCode(reserveErr, "RESERVE_FAILED"), "Una prenda se agotó mientras pagabas. Vuelve a intentarlo.");
-    }
+    try { await sendOrderEmail(db, order.id, "order_created"); } catch { console.warn("order_created email pendiente"); }
+    return ok(response);
   } catch (e) {
-    await db.from("orders").delete().eq("id", typedOrder.id);
+    await db.from("checkout_attempts").update({ state: createdOrder ? "review" : "failed", error_code: e instanceof CheckoutError ? e.code : "PROVIDER_UNCERTAIN" }).eq("id", key);
+    if (createdOrder) throw new CheckoutError(409, "ATTEMPT_REVIEW", "No pudimos confirmar la creación del pago. Conservamos el pedido para revisión; no vuelvas a comprar.");
     throw e;
   }
-
-  const provider = getPaymentProvider();
-  const webhookBase = (Deno.env.get("FUNCTIONS_PUBLIC_URL") ?? "").replace(/\/$/, "");
-  // Si el provider falla (ej. secreto faltante), borrar la orden igual que
-  // en el catch de arriba: las reservas se liberan solas por expiración+cron.
-  let payment: Awaited<ReturnType<typeof provider.createPayment>>;
-  try {
-    payment = await provider.createPayment(
-      {
-        orderId: typedOrder.id,
-        orderNumber: typedOrder.order_number,
-        amountClp: typedOrder.total_clp,
-        returnUrl: input.return_url ?? undefined,
-        webhookUrl: webhookBase ? `${webhookBase}/functions/v1/checkout` : undefined,
-        email: input.address.email,
-      },
-      typedOrder.id,
-    );
-    const { error: payErr } = await db.from("payments").insert({
-      order_id: typedOrder.id,
-      provider: provider.name,
-      provider_payment_id: payment.providerPaymentId,
-      amount_clp: typedOrder.total_clp,
-      status: "pending",
-      idempotency_key: typedOrder.id,
-    });
-    if (payErr) throw new CheckoutError(500, "DB_ERROR", "No se pudo registrar el pago.");
-  } catch (e) {
-    await db.from("orders").delete().eq("id", typedOrder.id);
-    throw e;
-  }
-
-  // Email transaccional best-effort (nunca falla el checkout).
-  try {
-    await sendOrderEmail(db, typedOrder.id, "order_created");
-  } catch (e) {
-    console.warn("order_created email falló:", e);
-  }
-
-  return ok({
-    order_id: typedOrder.id,
-    order_number: typedOrder.order_number,
-    guest_token: typedOrder.guest_token,
-    total_clp: typedOrder.total_clp,
-    payment: {
-      provider: provider.name,
-      provider_payment_id: payment.providerPaymentId,
-      status: payment.status,
-      checkout_url: payment.checkoutUrl,
-    },
-  });
 }
 
 /** Convergencia idempotente pago→pedido. Retorna respuesta lista o null si nada que hacer. */
-async function convergePaid(
-  db: SupabaseClient,
-  order: { id: string; order_number: string; status: string; guest_token: string | null },
-  paymentId: string,
-): Promise<Response | null> {
-  if (order.status === "PAID") {
-    return ok({
-      order_id: order.id,
-      order_number: order.order_number,
-      status: "PAID",
-      guest_token: order.guest_token,
-      already: true,
-    });
-  }
-  if (order.status !== "PENDING_PAYMENT") {
-    return bad(409, "INVALID_STATUS", "El pedido ya no puede pagarse.");
-  }
-  const { data: payment } = await db
-    .from("payments")
-    .select("id,status")
-    .eq("id", paymentId)
-    .maybeSingle();
-  if ((payment as unknown as { status: string } | null)?.status === "approved") {
-    await db.rpc("mark_order_paid", { p_order_id: order.id });
-    try {
-      await sendOrderEmail(db, order.id, "payment_confirmed");
-    } catch (e) {
-      console.warn("payment_confirmed email falló:", e);
-    }
-    return ok({
-      order_id: order.id,
-      order_number: order.order_number,
-      status: "PAID",
-      guest_token: order.guest_token,
-      already: true,
-    });
-  }
-  await db.from("payments").update({ status: "approved" }).eq("id", paymentId);
-  const { error: paidErr } = await db.rpc("mark_order_paid", { p_order_id: order.id });
-  if (paidErr) {
-    const code = dbCode(paidErr, "CONFIRM_FAILED");
-    if (code === "RESERVATION_EXPIRED") {
-      return bad(409, code, "La reserva venció. Vuelve a hacer checkout.");
-    }
-    return bad(500, code, "No se pudo confirmar el pago.");
-  }
-  try {
-    await sendOrderEmail(db, order.id, "payment_confirmed");
-  } catch (e) {
-    console.warn("payment_confirmed email falló:", e);
-  }
-  return null;
+async function convergePaid(db: SupabaseClient, order: { id: string; order_number: string; status: string; guest_token: string | null }, paymentId: string): Promise<Response | null> {
+  const { data: outcome, error } = await db.rpc("settle_checkout_payment", { p_payment: paymentId });
+  if (error) throw new CheckoutError(500, "CONFIRM_FAILED", "No se pudo registrar la confirmación. Verifica nuevamente.");
+  if (outcome === "REFUND_REQUIRED") return bad(409, "REFUND_REQUIRED", "La reserva venció después del pago. Tu pago está en revisión para reembolso.");
+  if (outcome === "REFUNDED") return bad(409, "REFUNDED", "El pago fue reembolsado.");
+  try { await sendOrderEmail(db, order.id, "payment_confirmed"); } catch { console.warn("payment_confirmed email pendiente"); }
+  return ok({ order_id: order.id, order_number: order.order_number, status: "PAID", guest_token: order.guest_token });
 }
 
 /** Resuelve el user_id desde el JWT (null si ausente/inválido → invitado). */
@@ -444,7 +335,8 @@ async function authUserId(db: SupabaseClient, req: Request): Promise<string | nu
   const jwt = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!jwt) return null;
   const { data } = await db.auth.getUser(jwt);
-  return data.user?.id ?? null;
+  if (!data.user) throw new CheckoutError(401, "SESSION_EXPIRED", "Tu sesión venció. Inicia sesión antes de continuar.");
+  return data.user.id;
 }
 
 /** Comparación timing-safe para no filtrar el token por tiempo de respuesta. */
@@ -492,12 +384,16 @@ async function handleConfirm(db: SupabaseClient, userId: string | null, body: un
   } | null;
   if (!typedPayment) return bad(404, "PAYMENT_NOT_FOUND", "Pago no encontrado.");
 
-  const provider = getPaymentProvider();
+  if (typedPayment.status === "refunded") return bad(409, "REFUNDED", "El pago fue reembolsado.");
+  if (typedPayment.status === "approved") return (await convergePaid(db, typedOrder, typedPayment.id))!;
+  if (!typedPayment.provider_payment_id) return bad(409, "ATTEMPT_REVIEW", "El proveedor aún no está registrado. Requiere revisión.");
+  const provider = getPaymentProvider(typedPayment.provider);
   const verdict = await provider.verifyPayment(
     typedPayment.provider_payment_id,
     typedOrder.total_clp,
     typedOrder.id,
   );
+  if (verdict === "PENDING") return bad(409, "PAYMENT_PENDING", "El proveedor aún no confirma el pago.");
   if (verdict !== "APPROVED") {
     await db.from("payments").update({ status: "rejected" }).eq("id", typedPayment.id);
     return bad(402, "PAYMENT_REJECTED", "El pago fue rechazado.");
@@ -509,7 +405,7 @@ async function handleConfirm(db: SupabaseClient, userId: string | null, body: un
 
 /** Webhook genérico (hoy: Mercado Pago). Idempotente y con firma verificada. */
 async function handleWebhook(db: SupabaseClient, req: Request, body: unknown): Promise<Response> {
-  const provider = getPaymentProvider();
+  const provider = getPaymentProvider("mercadopago");
   const url = new URL(req.url);
   const headers: Record<string, string | undefined> = {};
   req.headers.forEach((v, k) => {
@@ -532,29 +428,71 @@ async function handleWebhook(db: SupabaseClient, req: Request, body: unknown): P
   }
   const { data: order } = await db
     .from("orders")
-    .select("id,order_number,status,guest_token")
+    .select("id,order_number,status,guest_token,total_clp")
     .eq("id", result.orderId)
     .maybeSingle();
   const typedOrder = order as unknown as {
-    id: string; order_number: string; status: string; guest_token: string | null;
+    id: string; order_number: string; status: string; guest_token: string | null; total_clp: number;
   } | null;
   if (!typedOrder) return Response.json({ received: true }, { status: 200 });
+  if (result.amountClp !== typedOrder.total_clp || result.currency !== "CLP") return bad(400, "PAYMENT_MISMATCH", "Monto o moneda inválido.");
   const { data: payment } = await db
     .from("payments")
     .select("id")
     .eq("order_id", result.orderId)
+    .eq("provider", "mercadopago")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   const paymentId = (payment as unknown as { id: string } | null)?.id;
   if (!paymentId) return Response.json({ received: true }, { status: 200 });
+  const { error: eventError } = await db.from("payments").update({ raw_payload: { payment_id: result.providerPaymentId } }).eq("id", paymentId);
+  if (eventError) throw eventError;
   const converged = await convergePaid(db, typedOrder, paymentId);
+  if (converged && converged.status >= 500) return converged;
   if (converged && converged.status !== 200) {
     // No reintentar errores de negocio (ej: reserva vencida) como fallo HTTP.
     return Response.json({ received: true }, { status: 200 });
   }
   // MP espera 200/201.
   return Response.json({ received: true }, { status: 200 });
+}
+
+async function closeAttempt(db: SupabaseClient, userId: string | null, body: unknown): Promise<Response> {
+  const parsed = z.object({ idempotency_key: z.string().uuid(), attempt_secret: z.string().uuid() }).safeParse(body);
+  if (!parsed.success) return bad(400, "VALIDATION", "Intento inválido.");
+  const access = await recoverAttempt(db, userId, parsed.data.idempotency_key, parsed.data.attempt_secret);
+  if (access.status === 403 || access.status === 404) return access;
+  const { data: attempt, error } = await db.from("checkout_attempts").select("state,order_id").eq("id", parsed.data.idempotency_key).single();
+  if (error) throw error;
+  if (attempt.state === "failed" && !attempt.order_id) return ok({ closed: true });
+  if (!attempt.order_id || attempt.state === "review") return bad(409, "ATTEMPT_REVIEW", "El intento requiere revisión antes de iniciar otro.");
+  const { data: closed, error: closeError } = await db.rpc("close_checkout_attempt", { p_order: attempt.order_id });
+  if (closeError) throw closeError;
+  return closed ? ok({ closed: true }) : bad(409, "PAYMENT_PENDING", "El pago sigue pendiente. Verifícalo o espera que venza la reserva.");
+}
+
+async function handleRefund(db: SupabaseClient, userId: string | null, body: unknown): Promise<Response> {
+  if (!userId) return bad(403, "FORBIDDEN", "Requiere administrador.");
+  const { data: profile } = await db.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (profile?.role !== "admin") return bad(403, "FORBIDDEN", "Requiere administrador.");
+  const parsed = z.object({ payment_id: z.string().uuid() }).safeParse(body);
+  if (!parsed.success) return bad(400, "VALIDATION", "Pago inválido.");
+  const { data: payment, error } = await db.from("payments").update({ refund_state: "processing" }).eq("id", parsed.data.payment_id).eq("status", "approved").is("refund_state", null).select("*").maybeSingle();
+  if (error) throw error;
+  if (!payment) return bad(409, "REFUND_LOCKED", "Pago no reembolsable o reembolso ya iniciado. Revisa el estado del proveedor.");
+  try {
+    const providerId = payment.provider === "mercadopago" ? (payment.raw_payload?.payment_id ?? payment.provider_payment_id) : payment.provider_payment_id;
+    if (!providerId) throw new Error("Falta identificador confirmado del proveedor");
+    await getPaymentProvider(payment.provider).refundPayment(providerId, payment.amount_clp, payment.order_id);
+    const { error: finishError } = await db.rpc("finish_checkout_refund", { p_payment: payment.id });
+    if (finishError) throw finishError;
+    try { await sendOrderEmail(db, payment.order_id, "order_refunded"); } catch { console.warn("order_refunded email pendiente"); }
+    return ok({ refunded: true });
+  } catch {
+    await db.from("payments").update({ refund_state: "review", incident: "REFUND_REVIEW: verificar proveedor antes de reintentar" }).eq("id", payment.id);
+    return bad(409, "REFUND_REVIEW", "Resultado del reembolso pendiente de revisión. No se repetirá automáticamente.");
+  }
 }
 
 function ok(data: Record<string, unknown>): Response {
@@ -584,12 +522,23 @@ serve(async (req) => {
   if (limited) return limited;
   try {
     const db = svc();
+    if (["create", "confirm", "recover", "close_attempt"].includes(String(action)) && body && Object.prototype.hasOwnProperty.call(body, "expected_user_id")) {
+      if ((body as { expected_user_id: unknown }).expected_user_id !== await authUserId(db, req)) return bad(401, "SESSION_CHANGED", "La cuenta cambió. Recupera el pedido desde su cuenta original.");
+    }
     if (action === "webhook") return await handleWebhook(db, req, body);
     // Webhooks MP llegan sin action (query type/data.id).
     const url = new URL(req.url);
-    if (!action && url.searchParams.get("type") === "payment") {
+    if (!action && (url.searchParams.get("type") === "payment" || (body as { type?: string })?.type === "payment")) {
       return await handleWebhook(db, req, body);
     }
+    if (action === "providers") return ok({ providers: enabledPaymentProviders(), sandbox: sandboxOnly() });
+    if (action === "recover") {
+      const parsed = z.object({ idempotency_key: z.string().uuid(), attempt_secret: z.string().uuid() }).safeParse(body);
+      if (!parsed.success) return bad(400, "VALIDATION", "Intento inválido.");
+      return recoverAttempt(db, await authUserId(db, req), parsed.data.idempotency_key, parsed.data.attempt_secret);
+    }
+    if (action === "close_attempt") return closeAttempt(db, await authUserId(db, req), body);
+    if (action === "refund") return await handleRefund(db, await authUserId(db, req), body);
     if (action === "quote") return await handleQuote(db, body);
     if (action === "create") {
       return await handleCreate(db, await authUserId(db, req), body);

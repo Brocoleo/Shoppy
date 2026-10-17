@@ -1,0 +1,7 @@
+OK supabase/tests/setup_local.sql
+OK supabase/migrations/20260928000000_init_schema.sql
+OK supabase/migrations/20260928000001_rls_policies.sql
+OK supabase/migrations/20261016161216_admin_images_vinta_20261016.sql
+OK supabase/migrations/20261016161216_admin_images_vinta_20261016.sql
+OK supabase/tests/admin_images_tests.sql
+{"passed":true,"notices":[],"fixtureRollback":true}

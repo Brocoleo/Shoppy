@@ -12,7 +12,7 @@ export function Screen({
 }) {
   const theme = useTheme();
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
       <View style={[styles.fill, padded && { paddingHorizontal: spacing.lg }]}>{children}</View>
     </SafeAreaView>
   );

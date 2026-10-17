@@ -1,0 +1,2 @@
+PASS: prior beta image objects replaced, migration repeatable, security tests pass
+PASS: duplicate pre-existing covers block migration without silently modifying data

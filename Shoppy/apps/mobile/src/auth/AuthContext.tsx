@@ -5,8 +5,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
-import { useShopStore } from "../stores/useShopStore";
-import { mergeLocalToServer, pushCartToServer } from "../data/cartSync";
+import { useShopStore, waitForShopPersistence } from "../stores/useShopStore";
+import { syncMyCart } from "../data/cartSync";
+import { onlineManager } from "@tanstack/react-query";
 import { queryClient } from "../query/client";
 
 interface AuthContextValue {
@@ -41,20 +42,14 @@ async function mergeLocalFavorites(userId: string): Promise<void> {
     { onConflict: "user_id,product_id", ignoreDuplicates: true },
   );
   if (!error) {
-    useShopStore.setState({ favorites: [] });
+    if (useShopStore.getState().owner !== userId) return;
+    useShopStore.getState().clearFavorites();
     queryClient.invalidateQueries({ queryKey: ["favorites", userId] });
   }
 }
 
-/** Firma estable del carrito para evitar pushes redundantes. */
-function signature(cart: { productId: string; qty: number }[]): string {
-  return cart
-    .map((l) => `${l.productId}:${l.qty}`)
-    .sort()
-    .join(",");
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const storeOwner = useShopStore((s) => s.owner);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
@@ -74,15 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange((event, next) => {
       if (cancelled) return;
       setSession(next);
-      if (event === "SIGNED_IN" && next?.user) {
-        mergeLocalFavorites(next.user.id).catch((e) =>
-          console.warn("merge favoritos falló:", e),
-        );
-      }
+
       if (event === "SIGNED_OUT" || (event as string) === "TOKEN_EXPIRED" || (event as string) === "USER_DELETED") {
         // Sin sesión válida no hay datos privados: limpiar cachés del usuario.
         queryClient.removeQueries({ queryKey: ["favorites"] });
         queryClient.removeQueries({ queryKey: ["my-orders"] });
+        queryClient.removeQueries({ queryKey: ["my-order"] });
+        queryClient.removeQueries({ queryKey: ["guest-order"] });
+        queryClient.removeQueries({ queryKey: ["quote"] });
         queryClient.removeQueries({ queryKey: ["my-address"] });
       }
     });
@@ -92,47 +86,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Sync de carrito servidor mientras hay sesión (Fase 5).
   useEffect(() => {
-    const userId = session?.user.id;
-    if (!isSupabaseConfigured || !userId) return;
+    if (loading) return;
+    const owner = session?.user.id ?? "guest";
+    for (const key of ["my-order", "my-orders", "my-address", "favorites", "quote"]) {
+      void queryClient.cancelQueries({ queryKey: [key] });
+      queryClient.removeQueries({ queryKey: [key] });
+    }
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let lastPushed = "";
-
-    // Al entrar: fusiona invitado→cuenta y adopta el resultado.
-    (async () => {
+    let running = false;
+    let initialized = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let unsubscribe = () => {};
+    let unsubscribeOnline = () => {};
+    const flush = async () => {
+      if (cancelled || running || owner === "guest" || !onlineManager.isOnline()) return;
+      const state = useShopStore.getState();
+      if (state.owner !== owner) return;
+      const scope = state.scopes[owner];
+      if (initialized && !scope.dirty && !scope.merge) return;
+      running = true;
+      useShopStore.setState({ syncStatus: "syncing" });
       try {
-        const local = useShopStore.getState().cart;
-        const merged = await mergeLocalToServer(userId, local);
+        await waitForShopPersistence();
         if (cancelled) return;
-        lastPushed = signature(merged);
-        useShopStore.getState().replaceCart(merged);
-        await pushCartToServer(userId, merged);
-      } catch (e) {
-        console.warn("sync inicial carrito falló:", e);
+        const cart = scope.merge
+          ? await syncMyCart(owner, scope.merge.lines, scope.merge.id, scope.merge.base)
+          : await syncMyCart(owner, scope.dirty ? scope.cart : undefined);
+        if (cancelled) return;
+        initialized = true;
+        useShopStore.getState().acknowledge(owner, scope.revision, cart, Boolean(scope.merge), scope.cart);
+        await mergeLocalFavorites(owner);
+      } catch {
+        if (!cancelled) useShopStore.setState({ syncStatus: "error" });
+      } finally {
+        running = false;
+        if (!cancelled && useShopStore.getState().syncStatus !== "ready") timer = setTimeout(() => { void flush(); }, 5000);
       }
-    })();
-
-    const unsub = useShopStore.subscribe((s) => {
-      const sig = signature(s.cart);
-      if (sig === lastPushed) return;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(async () => {
-        try {
-          await pushCartToServer(userId, useShopStore.getState().cart);
-          lastPushed = signature(useShopStore.getState().cart);
-        } catch (e) {
-          console.warn("push carrito falló:", e);
-        }
-      }, 800);
-    });
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      unsub();
     };
-  }, [session?.user.id]);
+    const start = () => {
+      if (cancelled) return;
+      useShopStore.getState().activate(owner);
+      unsubscribe = useShopStore.subscribe((s, previous) => {
+        if (s.owner !== owner || s.cart === previous.cart) return;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { void flush(); }, 500);
+      });
+      unsubscribeOnline = onlineManager.subscribe((online) => { if (online) void flush(); });
+      void flush();
+    };
+    const unsubscribeHydration = useShopStore.persist.onFinishHydration(start);
+    if (useShopStore.persist.hasHydrated()) start();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); unsubscribe(); unsubscribeOnline(); unsubscribeHydration(); };
+  }, [session?.user.id, loading]);
 
   const value: AuthContextValue = {
     isConfigured: isSupabaseConfigured,
@@ -147,10 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error?.message ?? null };
     },
     signOut: async () => {
-      await getSupabase().auth.signOut();
+      const { error } = await getSupabase().auth.signOut();
+      if (error) throw error;
       setSession(null);
     },
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{loading || storeOwner !== (session?.user.id ?? "guest") ? null : children}</AuthContext.Provider>;
 }

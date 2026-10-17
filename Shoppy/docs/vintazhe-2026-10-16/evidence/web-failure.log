@@ -1,0 +1,8 @@
+PASS archive does not depend on commercial requests
+PASS Todo keeps archive when products fail
+PASS failed commercial query recovers without hiding archive
+PASS Tendencia preserves score order when dates disagree
+PASS available tab excludes a reserved item with positive stock
+PASS real product can still be added to local cart
+PASS available products survive initial and client editorial failure
+PASS unrelated editorial failure does not become catalog error

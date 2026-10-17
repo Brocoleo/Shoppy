@@ -1,7 +1,13 @@
 "use client";
 
 import { createClient, type Session } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -37,32 +43,53 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hasEnv) return;
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      if (data.session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.session.user.id)
-          .maybeSingle();
-        setRole((profile as { role: string } | null)?.role ?? null);
-      }
-      setLoading(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, next) => {
+    let active = true,
+      generation = 0;
+    let resolvedIdentity: string | null | undefined;
+    const resolveSession = async (next: Session | null) => {
+      if (!active) return;
+      const request = ++generation;
+      const identity = next?.user.id ?? null;
+      const switchingIdentity = identity !== resolvedIdentity;
+      resolvedIdentity = identity;
       setSession(next);
-      if (next) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", next.user.id)
-          .maybeSingle();
-        setRole((profile as { role: string } | null)?.role ?? null);
-      } else {
+      // A refresh for the same user must not unmount an unsaved editor.
+      if (switchingIdentity) {
         setRole(null);
+        setLoading(true);
       }
-    });
-    return () => listener.subscription.unsubscribe();
+      try {
+        if (next) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", next.user.id)
+            .maybeSingle();
+          if (active && request === generation)
+            setRole(
+              error ? null : ((data as { role: string } | null)?.role ?? null),
+            );
+        }
+      } finally {
+        if (active && request === generation) setLoading(false);
+      }
+    };
+    supabase.auth
+      .getSession()
+      .then(({ data }) => resolveSession(data.session))
+      .catch(() => resolveSession(null));
+    // Defer the profile query until the auth callback releases its session lock.
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, next) => {
+        setTimeout(() => {
+          void resolveSession(next);
+        }, 0);
+      },
+    );
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   return (

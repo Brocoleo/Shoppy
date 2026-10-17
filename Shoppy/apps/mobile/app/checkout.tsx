@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useURL } from "expo-linking";
-import * as Linking from "expo-linking";
+import { loadPendingCheckout, savePendingCheckout, newPendingCheckout, clearPendingCheckout, type PendingCheckout } from "@/src/lib/pendingCheckout";
 import { addressSchema, type AddressInput } from "@shopy/validation";
 import {
   CheckoutApiError,
@@ -14,10 +13,13 @@ import {
   createOrder,
   listShippingRates,
   quoteCheckout,
+  listPaymentProviders,
+  recoverCheckout,
+  closeCheckoutAttempt,
 } from "@/src/lib/checkout";
 import { getSupabase, isSupabaseConfigured } from "@/src/lib/supabase";
 import { useAuth } from "@/src/auth/AuthContext";
-import { useShopStore } from "@/src/stores/useShopStore";
+import { useShopStore, waitForShopPersistence } from "@/src/stores/useShopStore";
 import { formatCLP, radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { Screen } from "@/src/components/Screen";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -34,11 +36,18 @@ const FIELDS: { name: FieldName; label: string; placeholder: string; keyboard?: 
 ];
 
 export default function CheckoutScreen() {
+  const { session, loading } = useAuth();
+  if (loading) return <Screen><Text>Cargando sesión…</Text></Screen>;
+  const owner = session?.user.id ?? "guest";
+  return <CheckoutFlow key={owner} owner={owner} />;
+}
+
+function CheckoutFlow({ owner }: { owner: string }) {
   const theme = useTheme();
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const cart = useShopStore((s) => s.cart);
-  const clearCart = useShopStore((s) => s.clearCart);
+  const consumePaidOrder = useShopStore((s) => s.consumePaidOrder);
   const [step, setStep] = useState(0);
   const [address, setAddress] = useState<AddressInput | null>(null);
   const [rateId, setRateId] = useState<string | null>(null);
@@ -47,7 +56,30 @@ export default function CheckoutScreen() {
   const [result, setResult] = useState<{ order_id: string; order_number: string; guest_token: string | null } | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
   const [pendingRedirect, setPendingRedirect] = useState<{ order_id: string; checkout_url: string; guest_token: string | null } | null>(null);
-  const returnUrl = useURL();
+  const { verify } = useLocalSearchParams<{ verify?: string }>();
+  const handledReturn = useRef<string | null>(null);
+  const busy = useRef(false);
+  const active = useRef(true);
+  const [pending, setPending] = useState<PendingCheckout | null>(null);
+  const [restoreRetry, setRestoreRetry] = useState(0);
+  const [restoreError, setRestoreError] = useState(false);
+  const [restored, setRestored] = useState(false);
+  const [provider, setProvider] = useState<"mock" | "mercadopago" | "transbank" | null>(null);
+  const providers = useQuery({ queryKey: ["payment-providers"], queryFn: listPaymentProviders, enabled: isSupabaseConfigured });
+  useEffect(() => {
+    active.current = true;
+    setRestoreError(false);
+    loadPendingCheckout(owner).then((saved) => {
+      if (!active.current) return;
+      setPending(saved);
+      if (saved) {
+        setStep(2);
+        if (saved.created?.payment.checkout_url) setPendingRedirect({ ...saved.created, checkout_url: saved.created.payment.checkout_url });
+      }
+      setRestored(true);
+    }).catch(() => { if (active.current) setRestoreError(true); });
+    return () => { active.current = false; };
+  }, [owner, restoreRetry]);
 
   const {
     control,
@@ -94,7 +126,7 @@ export default function CheckoutScreen() {
     enabled: step >= 1 && Boolean(address?.region),
   });
 
-  const quoteSig = JSON.stringify({ items, rateId, appliedCode });
+  const quoteSig = JSON.stringify({ items, rateId, appliedCode, region: address?.region });
   const quote = useQuery({
     queryKey: ["quote", quoteSig],
     queryFn: () =>
@@ -107,66 +139,95 @@ export default function CheckoutScreen() {
     enabled: step >= 1 && Boolean(rateId && address?.region && items.length > 0),
   });
 
+  const complete = async (res: Awaited<ReturnType<typeof confirmOrder>>, attempt = pending) => {
+    if (res.status !== "PAID") throw new Error("Pago no confirmado");
+    if (!active.current || useShopStore.getState().owner !== owner) return;
+    // El recibo y el descuento se guardan juntos para no descontar dos veces tras reiniciar.
+    consumePaidOrder(res.order_id, (attempt?.input?.items ?? []).map((line) => ({ productId: line.product_id, qty: line.qty })));
+    await waitForShopPersistence();
+    await clearPendingCheckout(owner);
+    if (!active.current) return;
+    setResult({ order_id: res.order_id, order_number: res.order_number, guest_token: res.guest_token });
+    setPending(null);
+    setPendingRedirect(null);
+    queryClient.invalidateQueries({ queryKey: ["cart-validation"] });
+    queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+    setStep(3);
+  };
+
   const pay = useMutation({
     mutationFn: async () => {
-      if (!address || !rateId) throw new Error("Faltan datos");
-      // En Expo Go createURL da exp://…; en dev build/producción, shopy://…
-      // (el scheme sale de app.json). La Edge Function solo acepta
-      // shopy://|https://, así que el redirect externo es para providers
-      // reales en builds nativos; en mock no hay redirect.
-      const created = await createOrder({
-        items,
-        address,
-        shipping_rate_id: rateId,
-        discount_code: appliedCode,
-        save_address: Boolean(session),
-        return_url: Linking.createURL("checkout-return"),
-      });
-      // Proveedor con redirect (MP/Transbank): abrir checkout externo.
-      // NO confirmar aquí: la confirmación ocurre al retornar (deep link)
-      // o con "Ya pagué" (idempotente).
-      if (created.payment.checkout_url) {
-        setPendingRedirect({ order_id: created.order_id, checkout_url: created.payment.checkout_url, guest_token: created.guest_token });
-        await WebBrowser.openBrowserAsync(created.payment.checkout_url);
-        return { pending: true as const };
+      if (busy.current) return;
+      busy.current = true;
+      try {
+        let attempt = pending;
+        if (!attempt) {
+          if (!address || !rateId || !provider || !quote.data || quote.isError || quote.isFetching) throw new Error("Revisa los datos y la cotización.");
+          attempt = await newPendingCheckout(owner, { items, address, shipping_rate_id: rateId, discount_code: appliedCode, save_address: Boolean(session), provider });
+          if (!active.current) return;
+          setPending(attempt);
+        }
+        let created = attempt.created;
+        if (!created) {
+          try { created = await recoverCheckout(attempt.key, attempt.secret, owner); }
+          catch (error) {
+            if (!(error instanceof CheckoutApiError) || error.code !== "ATTEMPT_NOT_FOUND" || !attempt.input) throw error;
+            if (!active.current) return;
+            created = await createOrder({ ...attempt.input, expected_user_id: owner === "guest" ? null : owner, idempotency_key: attempt.key, attempt_secret: attempt.secret });
+          }
+          attempt = { ...attempt, created };
+          await savePendingCheckout(owner, attempt);
+        }
+        if (!active.current) return;
+        setPending(attempt);
+        if (created.payment.checkout_url) {
+          setPendingRedirect({ ...created, checkout_url: created.payment.checkout_url });
+          await WebBrowser.openBrowserAsync(created.payment.checkout_url);
+        } else await complete(await confirmOrder(created.order_id, created.guest_token, owner), attempt);
+      } finally { busy.current = false; }
+    },
+    onError: (error) => {
+      if (!active.current) return;
+      setPayError(error instanceof Error ? error.message : "No se pudo completar el pago.");
+      if (error instanceof CheckoutApiError && error.code === "ATTEMPT_FAILED") {
+        void clearPendingCheckout(owner).then(() => { if (active.current) { setPending(null); setStep(1); } });
       }
-      return confirmOrder(created.order_id, created.guest_token);
-    },
-    onSuccess: (res) => {
-      if ("pending" in res) return;
-      setResult({ order_id: res.order_id, order_number: res.order_number, guest_token: res.guest_token });
-      clearCart();
-      queryClient.invalidateQueries({ queryKey: ["cart-validation"] });
-      setStep(3);
-    },
-    onError: (e) => {
-      setPayError(e instanceof CheckoutApiError ? e.message : "No se pudo completar el pago.");
     },
   });
 
-  // Solo-verificación (retorno desde browser o botón "Ya pagué"): idempotente.
   const [verifying, setVerifying] = useState(false);
   const checkPayment = async (order_id: string, guest_token?: string | null) => {
+    if (busy.current) return;
+    busy.current = true;
     setVerifying(true);
     setPayError(null);
-    try {
-      const confirmed = await confirmOrder(order_id, guest_token);
-      setResult({ order_id: confirmed.order_id, order_number: confirmed.order_number, guest_token: confirmed.guest_token });
-      clearCart();
-      queryClient.invalidateQueries({ queryKey: ["cart-validation"] });
-      setPendingRedirect(null);
-      setStep(3);
-    } catch (e) {
-      setPayError(e instanceof CheckoutApiError ? e.message : "El pago aún no está confirmado.");
-    }
-    setVerifying(false);
+    try { await complete(await confirmOrder(order_id, guest_token, owner)); }
+    catch (e) { if (active.current) setPayError(e instanceof Error ? e.message : "El pago aún no está confirmado."); }
+    finally { busy.current = false; if (active.current) setVerifying(false); }
   };
 
   useEffect(() => {
-    if (returnUrl?.includes("checkout-return") && pendingRedirect && !result && !verifying) {
-      checkPayment(pendingRedirect.order_id, pendingRedirect.guest_token);
+    const key = Array.isArray(verify) ? verify[0] : verify;
+    if (key && pendingRedirect && !result && !verifying && !pay.isPending && !busy.current && handledReturn.current !== key) {
+      handledReturn.current = key;
+      void checkPayment(pendingRedirect.order_id, pendingRedirect.guest_token);
     }
-  }, [returnUrl, pendingRedirect, result, verifying, clearCart, queryClient]);
+  }, [verify, pendingRedirect, result, verifying, pay.isPending]);
+
+  const closePending = async () => {
+    if (!pending || busy.current) return;
+    busy.current = true;
+    setVerifying(true);
+    try {
+      await closeCheckoutAttempt(pending.key, pending.secret, owner);
+      await clearPendingCheckout(owner);
+      if (!active.current) return;
+      setPending(null); setPendingRedirect(null); setPayError(null); setStep(0);
+    } catch (error) { if (active.current) setPayError(error instanceof Error ? error.message : "No se pudo cerrar el intento."); }
+    finally { busy.current = false; if (active.current) setVerifying(false); }
+  };
+
+  if (restoreError) return <Screen><EmptyState icon="alert-circle-outline" title="No se pudo recuperar el pedido" message="Reintenta para comprobar el pedido guardado antes de comprar." actionLabel="Reintentar recuperación" onAction={() => setRestoreRetry((n) => n + 1)} /></Screen>;
 
   if (!isSupabaseConfigured) {
     return (
@@ -182,7 +243,7 @@ export default function CheckoutScreen() {
     );
   }
 
-  if (cart.length === 0 && !result) {
+  if (cart.length === 0 && !result && !pending) {
     return (
       <Screen>
         <EmptyState
@@ -198,12 +259,15 @@ export default function CheckoutScreen() {
 
   return (
     <Screen padded={false}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={90}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: theme.text }]}>Checkout</Text>
         <Text style={[styles.steps, { color: theme.muted }]}>
           {step === 3 ? "¡Listo!" : `Paso ${step + 1} de 3: ${["Dirección", "Despacho", "Revisar y pagar"][step]}`}
         </Text>
 
+        <Text style={{ color: theme.muted }}>Beta de prueba · no uses tarjetas reales.</Text>
+        {!restored ? <Text style={{ color: theme.muted }}>Recuperando pedido pendiente…</Text> : null}
         {step === 0 ? (
           <View style={styles.form}>
             {FIELDS.map((f) => (
@@ -252,13 +316,14 @@ export default function CheckoutScreen() {
             <Text style={[styles.section, { color: theme.text }]}>
               Despacho a {address?.comuna}, {address?.region}
             </Text>
+            {rates.fetchStatus === "paused" ? <Text style={{ color: theme.muted }}>Sin conexión. Las tarifas se cargarán al reconectar.</Text> : null}
             {rates.isLoading ? <Text style={{ color: theme.muted }}>Cargando tarifas…</Text> : null}
             {rates.isError ? (
               <Text style={[styles.error, { color: theme.sale }]}>
                 No pudimos cargar las tarifas. Revisa tu conexión.
               </Text>
             ) : null}
-            {!rates.isLoading && !rates.isError && (rates.data ?? []).length === 0 ? (
+            {!rates.isPending && !rates.isError && (rates.data ?? []).length === 0 ? (
               <Text style={[styles.error, { color: theme.sale }]}>
                 No hay tarifas para esta región. Prueba con otra comuna.
               </Text>
@@ -335,9 +400,9 @@ export default function CheckoutScreen() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                disabled={!rateId || !quote.data}
+                disabled={!rateId || !quote.data || quote.isError || quote.isFetching}
                 onPress={() => setStep(2)}
-                style={[styles.ctaSmall, { backgroundColor: theme.accent, opacity: !rateId || !quote.data ? 0.5 : 1 }]}
+                style={[styles.ctaSmall, { backgroundColor: theme.accent, opacity: !rateId || !quote.data || quote.isError || quote.isFetching ? 0.5 : 1 }]}
               >
                 <Text style={[styles.ctaText, { color: theme.onAccent }]}>Revisar pedido</Text>
               </Pressable>
@@ -348,6 +413,8 @@ export default function CheckoutScreen() {
         {step === 2 ? (
           <View style={styles.form}>
             <Text style={[styles.section, { color: theme.text }]}>Tu pedido</Text>
+            {pending?.created ? <Text style={{ color: theme.text }}>Pedido {pending.created.order_number} · Total {formatCLP(pending.created.total_clp)}</Text> : null}
+            {!pending ? <>
             {(quote.data?.lines ?? []).map((l) => (
               <View key={l.product_id} style={styles.line}>
                 <Text style={[styles.lineName, { color: theme.text }]} numberOfLines={2}>
@@ -366,9 +433,15 @@ export default function CheckoutScreen() {
               <TotalRow label="Despacho" value={quote.data?.shipping_clp ?? 0} />
               <TotalRow label="Total" value={quote.data?.total_clp ?? 0} big />
             </View>
-            <Text style={[styles.payNote, { color: theme.muted }]}>
-              Pago seguro. La reserva dura 15 minutos.
-            </Text>
+            </> : null}
+            <Text style={[styles.payNote, { color: theme.muted }]}>La reserva dura 15 minutos. El proveedor confirma el resultado.</Text>
+            {pending ? <Text style={{ color: theme.text }}>Hay un intento guardado. Continúa o verifica este pago antes de iniciar otro.</Text> : (
+              <View style={{ gap: spacing.sm }}>
+                <Text style={{ color: theme.text }}>Medio de pago de prueba</Text>
+                {providers.isError ? <Pressable accessibilityRole="button" onPress={() => providers.refetch()}><Text style={{ color: theme.sale }}>No se pudieron cargar los medios. Reintentar</Text></Pressable> : null}
+                {(providers.data?.providers ?? []).map((name) => <Pressable key={name} accessibilityRole="radio" accessibilityState={{ selected: provider === name }} onPress={() => setProvider(name)} style={[styles.rate, { borderColor: provider === name ? theme.accent : theme.border }]}><Text style={{ color: theme.text }}>{name === "mercadopago" ? "Mercado Pago" : name === "transbank" ? "Webpay" : "Simulación local"}</Text></Pressable>)}
+              </View>
+            )}
             {pendingRedirect ? (
               <Pressable
                 accessibilityRole="button"
@@ -381,19 +454,21 @@ export default function CheckoutScreen() {
                 </Text>
               </Pressable>
             ) : null}
+            {pending ? <Pressable accessibilityRole="button" disabled={pay.isPending || verifying} onPress={() => { void closePending(); }} style={styles.couponBtn}><Text style={{ color: theme.muted }}>Cerrar intento rechazado o vencido</Text></Pressable> : null}
+            {pending?.created ? <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/pedido/[id]", params: { id: pending.created!.order_id, ...(pending.created!.guest_token ? { token: pending.created!.guest_token } : {}) } })}><Text style={{ color: theme.accent }}>Ver pedido guardado</Text></Pressable> : null}
             {payError ? <Text style={[styles.error, { color: theme.sale }]}>{payError}</Text> : null}
             <View style={styles.navRow}>
-              <Pressable accessibilityRole="button" onPress={() => { setPayError(null); setStep(1); }} hitSlop={8}>
+              <Pressable accessibilityRole="button" disabled={Boolean(pending) || pay.isPending || verifying} onPress={() => { setPayError(null); setStep(1); }} hitSlop={8}>
                 <Text style={{ color: theme.muted }}>Atrás</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                disabled={pay.isPending}
+                disabled={pay.isPending || verifying || !restored || (!pending && (!provider || !quote.data || quote.isError || quote.isFetching))}
                 onPress={() => { setPayError(null); pay.mutate(); }}
                 style={[styles.ctaSmall, { backgroundColor: theme.accent, opacity: pay.isPending ? 0.6 : 1 }]}
               >
                 <Text style={[styles.ctaText, { color: theme.onAccent }]}>
-                  {pay.isPending ? "Procesando…" : `Pagar ${formatCLP(quote.data?.total_clp ?? 0)}`}
+                  {pay.isPending ? "Procesando…" : pending ? "Continuar pago pendiente" : `Pagar ${formatCLP(quote.data?.total_clp ?? 0)}`}
                 </Text>
               </Pressable>
             </View>
@@ -429,6 +504,7 @@ export default function CheckoutScreen() {
           </View>
         ) : null}
       </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

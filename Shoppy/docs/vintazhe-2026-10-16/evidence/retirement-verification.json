@@ -1,0 +1,28 @@
+{
+  "preservedProducts": 28,
+  "unpublished": 28,
+  "publicProducts": 0,
+  "quotes": [
+    {
+      "id": "d0000000-0000-4000-8000-000000000001",
+      "status": 409,
+      "result": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "e6db9acd-19b1-5ae4-88b1-15f6f625a9de",
+      "status": 409,
+      "result": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    }
+  ],
+  "noOrderCreated": true
+}

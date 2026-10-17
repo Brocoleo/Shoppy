@@ -1,3 +1,4 @@
+import { isPublicProduct } from "@shopy/shared/editorial";
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
@@ -5,7 +6,11 @@ import { createClient } from "@supabase/supabase-js";
  * Título específico por prenda para crawlers y pestañas.
  * Solo metadatos: los datos visibles los sigue cargando la página cliente.
  */
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,13 +19,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const db = createClient(url, key, { auth: { persistSession: false } });
     const { data } = await db
       .from("products")
-      .select("name,brand:brands(name)")
+      .select("id,metadata,name,brand:brands(name)")
       .eq("slug", slug)
       .maybeSingle();
-    const row = data as unknown as { name: string; brand: { name: string } | null } | null;
-    if (!row) return { title: "Prenda no disponible" };
+    const row = data as unknown as {
+      id: string;
+      metadata: Record<string, unknown>;
+      name: string;
+      brand: { name: string } | null;
+    } | null;
+    if (!row || !isPublicProduct(row)) return { title: "Prenda no disponible" };
     const brand = row.brand?.name;
-    const suffix = brand && !row.name.toLowerCase().includes(brand.toLowerCase()) ? ` · ${brand}` : "";
+    const suffix =
+      brand && !row.name.toLowerCase().includes(brand.toLowerCase())
+        ? ` · ${brand}`
+        : "";
     return { title: `${row.name}${suffix}` };
   } catch {
     return { title: "Prenda" };

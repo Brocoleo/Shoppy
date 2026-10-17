@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@shopy.cl");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -14,7 +14,10 @@ export default function LoginPage() {
   const submit = async () => {
     setError(null);
     setBusy(true);
-    const { data, error: signError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: signError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (signError || !data.session) {
       setError(signError?.message ?? "No se pudo iniciar sesión.");
       setBusy(false);
@@ -37,11 +40,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
       <div className="w-full max-w-sm flex flex-col gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Shopy Admin</h1>
+        <h1 className="text-2xl font-bold tracking-tight">vinta.zhe Admin</h1>
         <p className="text-sm text-zinc-500">Solo administradores.</p>
         <label className="text-xs text-zinc-500">Email</label>
         <input
           aria-label="Email"
+          type="email"
+          autoComplete="username"
           className="rounded border border-zinc-300 px-3 h-12 text-sm"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -51,6 +56,7 @@ export default function LoginPage() {
         <input
           aria-label="Contraseña"
           type="password"
+          autoComplete="current-password"
           className="rounded border border-zinc-300 px-3 h-12 text-sm"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

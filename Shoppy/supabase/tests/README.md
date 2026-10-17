@@ -22,7 +22,11 @@ done
 docker exec -i shopy-pg-test psql -U postgres -d shopy -v ON_ERROR_STOP=1 \
   -f - < supabase/tests/rls_tests.sql
 
-# 4. Limpiar
+# 4. Reglas de beta (usa los fixtures de rls_tests.sql)
+docker exec -i shopy-pg-test psql -U postgres -d shopy -v ON_ERROR_STOP=1 \
+  -f - < supabase/tests/beta_tests.sql
+
+# 5. Limpiar
 docker rm -f shopy-pg-test
 ```
 

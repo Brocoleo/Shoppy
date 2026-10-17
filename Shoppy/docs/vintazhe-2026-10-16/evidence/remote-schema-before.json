@@ -1,0 +1,9 @@
+[
+  {
+    "database": "postgres",
+    "cleanup_exists": false,
+    "cover_rpc_exists": false,
+    "order_rpc_exists": false,
+    "duplicate_covers": 0
+  }
+]

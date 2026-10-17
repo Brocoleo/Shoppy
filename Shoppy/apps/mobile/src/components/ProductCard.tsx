@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import { productCover } from "../data/images";
+import { productCover, hasDemoPhotos } from "../data/images";
 import { useIsFavorite, useToggleFavorite } from "../data/favorites";
 import type { CatalogProduct } from "../data/catalog";
 import { formatCLP, radius, spacing, typeScale, useTheme } from "../theme/tokens";
@@ -70,6 +70,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
             </Text>
           ) : null}
         </View>
+        {hasDemoPhotos(product) ? <Text style={{ color: theme.muted, fontSize: typeScale.caption }}>Fotos de demostración</Text> : null}
         <ConditionBadge condition={product.condition} />
       </Pressable>
     </Link>
@@ -84,9 +85,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: spacing.sm,
     right: spacing.sm,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },

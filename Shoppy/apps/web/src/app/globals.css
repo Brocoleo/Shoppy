@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ——— Shopy editorial tokens (Tailwind v4 semánticos) ——— */
+/* ——— vinta.zhe editorial tokens (Tailwind v4 semánticos) ——— */
 @theme {
   --color-ivory: #f8f7f4;
   --color-parchment: #efede7;
@@ -178,6 +178,9 @@ button {
 .editorial-action { margin-top: 42px; }
 .editorial-main-photo { position: relative; min-height: 650px; background: var(--color-parchment); }
 .editorial-secondary-photo { position: absolute; width: 23%; height: 310px; left: 35%; bottom: 0; z-index: 3; background: var(--color-parchment); }
+@media (min-width: 768px) {
+ .editorial-copy > p:last-child { max-width: min(320px, calc(35vw - 56px)); }
+}
 @media (min-width: 768px) and (max-width: 1023px) {
  .editorial-hero, .editorial-main-photo { min-height: 540px; }
  .editorial-title { font-size: 5.8vw; }

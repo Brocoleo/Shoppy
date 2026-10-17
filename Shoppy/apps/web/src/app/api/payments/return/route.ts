@@ -10,7 +10,7 @@ async function handle(request: Request) {
     if (payment.provider === "transbank" && token && `tbk_${token}` !== payment.provider_payment_id) throw new Error("Retorno inválido");
     return bridgeReturnHtml(state!, url.origin, request.headers.get("user-agent") ?? "");
   } catch {
-    return bridgeHtml("<p>Retorno no reconocido. Abre Shopy y verifica tu pedido pendiente.</p>");
+    return bridgeHtml("<p>Retorno no reconocido. Abre vinta.zhe y verifica tu pedido pendiente.</p>");
   }
 }
 export const GET = handle;

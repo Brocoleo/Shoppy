@@ -42,4 +42,9 @@ describe("shared product mapping", () => {
     assert.equal(product.remoteImages, undefined);
     assert.equal(product.publishedAt, "1970-01-01T00:00:00.000Z");
   });
+  it("preserves reservation availability independently of stock",()=>{
+    const product=mapProduct({...row,availability:"RESERVED",stock:1},new Map(),p=>p);
+    assert.equal(product.availability,"RESERVED");
+    assert.equal(product.stock,1);
+  });
 });

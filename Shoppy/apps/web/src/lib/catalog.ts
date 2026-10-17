@@ -4,10 +4,27 @@
  * Catálogo web contra Supabase (puerto de SupabaseCatalogRepository móvil).
  * Lee con la anon key bajo RLS: solo catálogo publicado, sin ARCHIVED.
  */
+import { isPublicProduct } from "@shopy/shared/editorial";
 import { getSupabase, publicImageUrl } from "./supabase";
 
-import { mapProduct, PRODUCT_COLUMNS, type DbProductRow, type CatalogProduct, type CatalogCategory, type CatalogCollection, type ProductSort, type ProductFilters } from "./catalogProduct";
-export type { RemoteImage, CatalogProduct, CatalogCategory, CatalogCollection, ProductSort, ProductFilters } from "./catalogProduct";
+import {
+  mapProduct,
+  PRODUCT_COLUMNS,
+  type DbProductRow,
+  type CatalogProduct,
+  type CatalogCategory,
+  type CatalogCollection,
+  type ProductSort,
+  type ProductFilters,
+} from "./catalogProduct";
+export type {
+  RemoteImage,
+  CatalogProduct,
+  CatalogCategory,
+  CatalogCollection,
+  ProductSort,
+  ProductFilters,
+} from "./catalogProduct";
 
 let categoriesCache: CatalogCategory[] | null = null;
 let brandsCache: { slug: string; name: string; id?: string }[] | null = null;
@@ -20,7 +37,9 @@ let taxonomyRequest: Promise<void> | null = null;
 async function taxonomy() {
   if (categoriesCache && brandsCache) return;
   if (!taxonomyRequest) {
-    taxonomyRequest = loadTaxonomy().finally(() => { taxonomyRequest = null; });
+    taxonomyRequest = loadTaxonomy().finally(() => {
+      taxonomyRequest = null;
+    });
   }
   await taxonomyRequest;
 }
@@ -87,7 +106,9 @@ export function productCover(p: CatalogProduct): string | null {
   return (imgs.find((i) => !i.isDefect) ?? imgs[0]).url;
 }
 
-export async function listProducts(sort: ProductSort = "tendencia"): Promise<CatalogProduct[]> {
+export async function listProducts(
+  sort: ProductSort = "tendencia",
+): Promise<CatalogProduct[]> {
   await taxonomy();
   const spec = sortSpec(sort);
   const { data, error } = await getSupabase()
@@ -97,10 +118,14 @@ export async function listProducts(sort: ProductSort = "tendencia"): Promise<Cat
     .neq("availability", "ARCHIVED")
     .order(spec.column, { ascending: spec.ascending });
   if (error) throw error;
-  return (data as unknown as DbProductRow[]).map(toProduct);
+  return (data as unknown as DbProductRow[])
+    .filter(isPublicProduct)
+    .map(toProduct);
 }
 
-export async function getProductBySlug(slug: string): Promise<CatalogProduct | null> {
+export async function getProductBySlug(
+  slug: string,
+): Promise<CatalogProduct | null> {
   await taxonomy();
   const { data, error } = await getSupabase()
     .from("products")
@@ -108,12 +133,14 @@ export async function getProductBySlug(slug: string): Promise<CatalogProduct | n
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
-  if (!data) return null;
+  if (!data || !isPublicProduct(data as unknown as DbProductRow)) return null;
   return toProduct(data as unknown as DbProductRow);
 }
 
 /** Una sola query para N productos (colecciones/home): evita N+1. */
-export async function getProductsByIds(ids: string[]): Promise<CatalogProduct[]> {
+export async function getProductsByIds(
+  ids: string[],
+): Promise<CatalogProduct[]> {
   if (ids.length === 0) return [];
   await taxonomy();
   const { data, error } = await getSupabase()
@@ -123,8 +150,14 @@ export async function getProductsByIds(ids: string[]): Promise<CatalogProduct[]>
     .not("published_at", "is", null)
     .neq("availability", "ARCHIVED");
   if (error) throw error;
-  const byId = new Map(((data ?? []) as unknown as DbProductRow[]).map((r) => [r.id, toProduct(r)]));
-  return ids.map((id) => byId.get(id)).filter((p): p is CatalogProduct => p !== undefined);
+  const byId = new Map(
+    ((data ?? []) as unknown as DbProductRow[])
+      .filter(isPublicProduct)
+      .map((r) => [r.id, toProduct(r)]),
+  );
+  return ids
+    .map((id) => byId.get(id))
+    .filter((p): p is CatalogProduct => p !== undefined);
 }
 
 /** Construye la query base con filtros por atributos (sin texto ni orden).
@@ -139,7 +172,9 @@ function filteredQuery(filters: ProductFilters) {
 
   if (filters.categorySlug && categoriesCache) {
     const wanted = filters.categorySlug;
-    const children = categoriesCache.filter((c) => c.parentSlug === wanted).map((c) => c.slug);
+    const children = categoriesCache
+      .filter((c) => c.parentSlug === wanted)
+      .map((c) => c.slug);
     const slugs = [wanted, ...children];
     const ids = [...categoriesById.entries()]
       .filter(([, slug]) => slugs.includes(slug))
@@ -158,7 +193,8 @@ function filteredQuery(filters: ProductFilters) {
   }
   if (filters.condition) query = query.eq("condition", filters.condition);
   if (filters.size) query = query.eq("size", filters.size);
-  if (filters.maxPriceClp !== undefined) query = query.lte("price_clp", filters.maxPriceClp);
+  if (filters.maxPriceClp !== undefined)
+    query = query.lte("price_clp", filters.maxPriceClp);
   return query;
 }
 
@@ -173,7 +209,10 @@ function fuzzyWordPattern(word: string): string | null {
   return `%${[...chars].join("%")}%`;
 }
 
-export async function searchProducts(filters: ProductFilters, sort: ProductSort = "tendencia"): Promise<CatalogProduct[]> {
+export async function searchProducts(
+  filters: ProductFilters,
+  sort: ProductSort = "tendencia",
+): Promise<CatalogProduct[]> {
   await taxonomy();
   const spec = sortSpec(sort);
 
@@ -183,16 +222,27 @@ export async function searchProducts(filters: ProductFilters, sort: ProductSort 
     let withSearch = base;
     if (filters.query) {
       if (mode === "ts") {
-        withSearch = base.textSearch("search_vector", filters.query, { type: "plain", config: "spanish" });
+        withSearch = base.textSearch("search_vector", filters.query, {
+          type: "plain",
+          config: "spanish",
+        });
       } else {
-        const patterns = filters.query.split(/\s+/).map(fuzzyWordPattern).filter((p): p is string => p !== null);
+        const patterns = filters.query
+          .split(/\s+/)
+          .map(fuzzyWordPattern)
+          .filter((p): p is string => p !== null);
         if (patterns.length === 0) return [];
-        for (const pattern of patterns) withSearch = withSearch.ilike("name", pattern);
+        for (const pattern of patterns)
+          withSearch = withSearch.ilike("name", pattern);
       }
     }
-    const { data, error } = await withSearch.order(spec.column, { ascending: spec.ascending });
+    const { data, error } = await withSearch.order(spec.column, {
+      ascending: spec.ascending,
+    });
     if (error) throw error;
-    return (data as unknown as DbProductRow[]).map(toProduct);
+    return (data as unknown as DbProductRow[])
+      .filter(isPublicProduct)
+      .map(toProduct);
   };
 
   const primary = await run("ts");
@@ -210,7 +260,9 @@ export async function listBrands(): Promise<{ slug: string; name: string }[]> {
   return (brandsCache ?? []).map(({ slug, name }) => ({ slug, name }));
 }
 
-export async function getCollection(slug: string): Promise<CatalogCollection | null> {
+export async function getCollection(
+  slug: string,
+): Promise<CatalogCollection | null> {
   const supabase = getSupabase();
   const { data: col, error } = await supabase
     .from("collections")

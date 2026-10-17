@@ -1,0 +1,13 @@
+✔ archive keeps images and provenance, never commercial fields (1.589367ms)
+✔ rejects traversal, external photos and foreign source URLs (0.408164ms)
+✔ duplicates are discarded and visibility defaults to hidden (0.259246ms)
+✔ hero rejects external action and preserves known image framing (0.401976ms)
+✔ hides exact old seed IDs and demos without hiding unrelated products (0.395566ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13.954062

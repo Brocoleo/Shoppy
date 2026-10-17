@@ -6,10 +6,10 @@ import { formatCLP, supabase } from "../../../lib/supabase";
 
 const NEXT: Record<string, string[]> = {
   PENDING_PAYMENT: ["CANCELLED"],
-  PAID: ["PREPARING", "CANCELLED", "REFUNDED"],
-  PREPARING: ["SHIPPED", "CANCELLED"],
+  PAID: ["PREPARING"],
+  PREPARING: ["SHIPPED"],
   SHIPPED: ["DELIVERED"],
-  DELIVERED: ["REFUNDED"],
+  DELIVERED: [],
   CANCELLED: [],
   REFUNDED: [],
 };
@@ -42,15 +42,26 @@ interface Shipment {
 }
 
 async function fetchDetail(id: string) {
-  const [{ data: o, error: oErr }, { data: it }, { data: h }, { data: s }] = await Promise.all([
+  const results = await Promise.all([
     supabase.from("orders").select("*").eq("id", id).maybeSingle(),
     supabase.from("order_items").select("product_slug,product_name,unit_price_clp,qty").eq("order_id", id),
     supabase.from("order_status_history").select("from_status,to_status,created_at").eq("order_id", id).order("created_at"),
     supabase.from("shipments").select("carrier,tracking_number,tracking_url").eq("order_id", id).maybeSingle(),
+    supabase.from("payments").select("id,provider,status,incident,refund_state").eq("order_id", id),
+    supabase.from("order_notifications").select("id,event,status,last_error,attempted_at").eq("order_id", id),
+    supabase.from("checkout_attempts").select("id,state,error_code").eq("order_id", id),
   ]);
-  if (oErr) throw oErr;
+  for (const result of results) if (result.error) throw result.error;
+  const [orderResult, itemResult, historyResult, shipmentResult, paymentResult, notificationResult, attemptResult] = results;
+  const o = orderResult.data;
+  const it = itemResult.data;
+  const h = historyResult.data;
+  const s = shipmentResult.data;
   const ship = (s ?? null) as unknown as Shipment | null;
   return {
+    payments: (paymentResult.data ?? []) as { id: string; provider: string; status: string; incident: string | null; refund_state: string | null }[],
+    notifications: (notificationResult.data ?? []) as { id: string; event: string; status: string; last_error: string | null; attempted_at: string | null }[],
+    attempts: (attemptResult.data ?? []) as { id: string; state: string; error_code: string | null }[],
     order: (o ?? null) as Record<string, unknown> | null,
     items: (it ?? []) as Item[],
     history: (h ?? []) as History[],
@@ -69,6 +80,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const advance = useMutation({
     mutationFn: async ({ to, ship }: { to: string; ship: Shipment }) => {
       if (to === "SHIPPED") {
+        if (ship.tracking_url && !/^https:\/\//i.test(ship.tracking_url)) throw new Error("El seguimiento debe ser una URL HTTPS.");
         if (!ship.carrier) throw new Error("Indica el transportista antes de despachar.");
         const { error } = await supabase.from("shipments").upsert(
           {
@@ -83,7 +95,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         if (error) throw error;
       }
       if (to === "DELIVERED") {
-        await supabase.from("shipments").update({ delivered_at: new Date().toISOString() }).eq("order_id", id);
+        const { error } = await supabase.from("shipments").update({ delivered_at: new Date().toISOString() }).eq("order_id", id);
+        if (error) throw error;
       }
       const { error } = await supabase.from("orders").update({ status: to }).eq("id", id);
       if (error) throw error;
@@ -95,11 +108,23 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         // Email transaccional best-effort (nunca bloquea el cambio de estado).
         supabase.functions
           .invoke("notify", { body: { order_id: id, event } })
-          .then(({ error }) => setNotifyNote(error ? `Email no enviado: ${error.message}` : "Email al cliente enviado."))
+          .then(({ data, error }) => { setNotifyNote(error ? `Email no enviado: ${error.message}` : data?.sent ? "Email al cliente enviado." : "Correo ya enviado o pendiente de revisión."); void queryClient.invalidateQueries({ queryKey: ["admin-order", id] }); })
           .catch(() => setNotifyNote("Email no enviado (función no disponible)."));
       }
     },
     onError: (e) => setError(e instanceof Error ? e.message : "Error"),
+  });
+
+  const operation = useMutation({
+    mutationFn: async ({ functionName, body }: { functionName: string; body: Record<string, string> }) => {
+      const { data, error } = await supabase.functions.invoke(functionName, { body });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error.message);
+      return data;
+    },
+    onSuccess: (result) => { setNotifyNote(result?.sent === false ? (result.reason === "ALREADY_NOTIFIED" ? "El correo ya fue enviado." : "No se reenvió: requiere revisión en el proveedor.") : "Operación completada. Revisa el estado actualizado."); },
+    onError: (e) => setError(e instanceof Error ? e.message : "Operación fallida"),
+    onSettled: () => { void queryClient.invalidateQueries({ queryKey: ["admin-order", id] }); },
   });
 
   if (isLoading || !data) {
@@ -129,6 +154,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       </p>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {notifyNote ? <p className="text-sm text-zinc-500">{notifyNote}</p> : null}
+
+      <section className="rounded border border-zinc-200 bg-white p-4 text-sm">
+        <h2 className="font-semibold">Pagos de prueba</h2>
+        {data.payments.map((payment) => <div key={payment.id} className="py-2">
+          <p>{payment.provider} · {payment.status} {payment.refund_state ? `· Reembolso: ${payment.refund_state}` : ""}</p>
+          {payment.incident ? <p role="alert" className="text-red-700">{payment.incident}</p> : null}
+          {payment.status === "approved" && !payment.refund_state ? <button disabled={operation.isPending} className="underline" onClick={() => { if (confirm("¿Reembolsar este pago de prueba mediante su proveedor?")) operation.mutate({ functionName: "checkout", body: { action: "refund", payment_id: payment.id } }); }}>Reembolsar con proveedor</button> : null}
+        </div>)}
+        {data.attempts.filter((a) => a.state === "review" || a.state === "processing").map((a) => <p key={a.id} className="text-amber-800">Intento {a.id}: {a.state} · {a.error_code ?? "pendiente"}. Verificar en el proveedor antes de liberar otro intento.</p>)}
+      </section>
+      <section className="rounded border border-zinc-200 bg-white p-4 text-sm">
+        <h2 className="font-semibold">Correos</h2>
+        {data.notifications.map((notification) => <div key={notification.id} className="py-2">
+          <p>{notification.event} · {notification.status}</p>
+          {notification.last_error ? <p className="text-red-700">{notification.last_error}</p> : null}
+          {notification.status === "failed" ? <button disabled={operation.isPending} className="underline" onClick={() => operation.mutate({ functionName: "notify", body: { order_id: id, event: notification.event } })}>Reintentar correo</button> : null}
+        </div>)}
+      </section>
 
       <section className="rounded border border-zinc-200 bg-white p-4">
         <h2 className="text-sm font-semibold mb-2">Cambiar estado</h2>

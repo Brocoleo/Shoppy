@@ -13,7 +13,7 @@
     "mobile:android": "npm --workspace apps/mobile run android",
     "mobile:ios": "npm --workspace apps/mobile run ios",
     "mobile:web": "npm --workspace apps/mobile run web",
-    "test:beta": "node --test apps/mobile/tests/*.test.mjs supabase/tests/*.test.mjs",
+    "test:beta": "node scripts/test-beta.mjs",
     "mobile:test": "node --test apps/mobile/tests/*.test.mjs",
     "mobile:typecheck": "npm --workspace apps/mobile run typecheck",
     "admin": "npm --workspace apps/admin run dev",

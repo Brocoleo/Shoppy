@@ -1,4 +1,6 @@
-# Shopy — E-commerce chileno de ropa de segunda mano
+> Beta en desarrollo: consulta [activación, pruebas y pendientes](docs/BETA.md). Esta versión aún no está desplegada ni validada en ambos celulares.
+
+# vinta.zhe — E-commerce chileno de ropa de segunda mano
 
 Monorepo: app móvil (Expo), panel admin (Next.js), paquetes compartidos y Supabase.
 

@@ -15,7 +15,7 @@ export function setupOnlineManager() {
   wired = true;
   onlineManager.setEventListener((setOnline) => {
     return NetInfo.addEventListener((state) => {
-      setOnline(state.isConnected ?? true);
+      setOnline(state.isConnected !== false && state.isInternetReachable !== false);
     });
   });
 }
@@ -24,7 +24,7 @@ export function useIsOnline() {
   const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
     return NetInfo.addEventListener((state) => {
-      setIsOnline(state.isConnected ?? true);
+      setIsOnline(state.isConnected !== false && state.isInternetReachable !== false);
     });
   }, []);
   return isOnline;

@@ -1,0 +1,32 @@
+
+> shopy@0.1.0 test:beta
+> node scripts/test-beta.mjs
+
+✔ preserva errores de negocio del backend (58.4756ms)
+✔ respuesta HTML se informa como respuesta inválida, no como desconexión (1.783286ms)
+✔ el timeout cubre también la lectura del cuerpo (1.397539ms)
+✔ devuelve cotización válida y clasifica fallos de red (2.895384ms)
+✔ propaga error de order_items sin mostrar pedido incompleto (1.902512ms)
+✔ propaga error de order_status_history sin mostrar pedido incompleto (0.816913ms)
+✔ propaga error de shipments sin mostrar pedido incompleto (0.827019ms)
+✔ pedido válido admite envío pendiente y pedido inexistente devuelve null (2.471596ms)
+✔ carrito invitado se transfiere una vez y las cuentas están aisladas (262.392694ms)
+✔ respuesta tardía no elimina una edición más reciente ni cruza cuentas (67.047791ms)
+✔ fusión pendiente conserva su clave al cerrar sesión (31.890083ms)
+✔ pedido pendiente guarda secretos fuera de AsyncStorage y separado por cuenta (25.82171ms)
+✔ ediciones durante fusión conservan productos remotos y cambios locales (44.536953ms)
+✔ confirmación repetida descuenta solo la compra y conserva nuevas prendas (33.56839ms)
+✔ dos solicitudes simultáneas crean un solo pedido y un solo pago (70.082122ms)
+✔ recuperación exige secreto y cuenta; un cambio de payload no crea otro pedido (15.104679ms)
+✔ respuesta desconocida del proveedor conserva pedido sin repetir llamada (8.602136ms)
+✔ JWT inválido nunca degrada compra a invitado (2.147897ms)
+✔ pago pendiente no se marca rechazado y confirmar exige propiedad (9.479297ms)
+✔ webhook con monto distinto no confirma el pedido (5.355006ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1115.30102

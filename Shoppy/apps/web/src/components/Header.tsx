@@ -32,13 +32,16 @@ export function Header() {
       <div className="mx-auto flex w-full max-w-[1440px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-14">
         <Link
           href="/"
-          aria-label="Shopy, inicio"
+          aria-label="vinta.zhe, inicio"
           className="inline-flex min-h-11 items-center font-display text-[2rem] tracking-[-0.07em] text-carbon"
         >
-          SHOPY
+          vinta.zhe
         </Link>
 
-        <nav aria-label="Principal" className="hidden flex-1 items-center justify-center gap-8 text-sm md:flex">
+        <nav
+          aria-label="Principal"
+          className="hidden flex-1 items-center justify-center gap-8 text-sm md:flex"
+        >
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -54,7 +57,9 @@ export function Header() {
 
         <Link
           href="/carrito"
-          aria-label={count > 0 ? `Carrito, ${count} prenda(s)` : "Carrito vacío"}
+          aria-label={
+            count > 0 ? `Carrito, ${count} prenda(s)` : "Carrito vacío"
+          }
           aria-current={pathname === "/carrito" ? "page" : undefined}
           className="inline-flex min-h-11 items-center px-2 py-1 text-sm text-carbon transition-colors hover:border-carbon"
         >
@@ -91,7 +96,9 @@ export function Header() {
             <span
               className={`absolute left-0 top-0 h-px w-full bg-current transition-transform ${open ? "translate-y-[7px] rotate-45" : ""}`}
             />
-            <span className={`absolute left-0 top-[7px] h-px w-full bg-current ${open ? "opacity-0" : ""}`} />
+            <span
+              className={`absolute left-0 top-[7px] h-px w-full bg-current ${open ? "opacity-0" : ""}`}
+            />
             <span
               className={`absolute bottom-0 left-0 h-px w-full bg-current transition-transform ${open ? "-translate-y-[6px] -rotate-45" : ""}`}
             />
@@ -101,50 +108,50 @@ export function Header() {
 
       <div className={`disclosure md:hidden ${open ? "disclosure-open" : ""}`}>
         <div>
-        <nav
-          id="menu-movil"
-          aria-label="Móvil"
-          inert={!open}
-          className="border-t border-line bg-ivory px-4 py-3"
-        >
-          <ul className="flex flex-col gap-1">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  aria-current={pathname === item.href ? "page" : undefined}
-                  className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
-                >
-                  {item.label}
-                </Link>
+          <nav
+            id="menu-movil"
+            aria-label="Móvil"
+            inert={!open}
+            className="border-t border-line bg-ivory px-4 py-3"
+          >
+            <ul className="flex flex-col gap-1">
+              {NAV.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    aria-current={pathname === item.href ? "page" : undefined}
+                    className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                {loading ? null : user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      signOut();
+                    }}
+                    className="flex min-h-11 items-center py-2 text-sm font-medium text-muted"
+                  >
+                    Salir
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    aria-current={pathname === "/login" ? "page" : undefined}
+                    className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
+                  >
+                    Entrar
+                  </Link>
+                )}
               </li>
-            ))}
-            <li>
-              {loading ? null : user ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    signOut();
-                  }}
-                  className="flex min-h-11 items-center py-2 text-sm font-medium text-muted"
-                >
-                  Salir
-                </button>
-              ) : (
-                <Link
-                  href="/login"
-                  onClick={() => setOpen(false)}
-                  aria-current={pathname === "/login" ? "page" : undefined}
-                  className="flex min-h-11 items-center py-2 text-sm font-medium text-carbon"
-                >
-                  Entrar
-                </Link>
-              )}
-            </li>
-          </ul>
-        </nav>
+            </ul>
+          </nav>
         </div>
       </div>
     </header>

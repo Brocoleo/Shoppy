@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { productGallery } from "@/src/data/images";
+import { productGallery, hasDemoPhotos } from "@/src/data/images";
 import { trackProductView } from "@/src/lib/analytics";
 import { useIsFavorite, useToggleFavorite } from "@/src/data/favorites";
 import { useProduct, useSearchProducts } from "@/src/query/hooks";
@@ -138,6 +138,7 @@ export default function ProductScreen() {
 
         <Text style={[styles.brand, { color: theme.muted }]}>{p.brand.toUpperCase()}</Text>
         <Text style={[styles.name, { color: theme.text }]}>{p.name}</Text>
+        {hasDemoPhotos(p) ? <Text style={{ color: theme.muted }}>Producto de demostración: estas imágenes no son fotos de una prenda real.</Text> : null}
         <View style={styles.priceRow}>
           <Text style={[styles.price, { color: theme.text }]}>{formatCLP(p.priceClp)}</Text>
           {p.compareAtPriceClp ? (

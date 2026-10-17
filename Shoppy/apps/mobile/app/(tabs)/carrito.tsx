@@ -21,6 +21,11 @@ const LINE_MESSAGES: Record<string, string> = {
 export default function CartScreen() {
   const theme = useTheme();
   const cart = useShopStore((s) => s.cart);
+  const syncStatus = useShopStore((s) => s.syncStatus);
+  const owner = useShopStore((s) => s.owner);
+  const legacyCart = useShopStore((s) => s.legacyCart);
+  const legacyFavorites = useShopStore((s) => s.legacyFavorites);
+  const legacyNotice = legacyCart.length || legacyFavorites.length ? <View style={{ padding: spacing.md, gap: spacing.sm }}><Text style={{ color: theme.text }}>Hay un carrito o favoritos de una versión anterior. No se mezcló automáticamente con tu cuenta.</Text><Pressable accessibilityRole="button" onPress={() => useShopStore.getState().recoverLegacy()}><Text style={{ color: theme.accent }}>Recuperar {legacyCart.length} prendas y {legacyFavorites.length} favoritos</Text></Pressable><Pressable accessibilityRole="button" onPress={() => useShopStore.getState().dismissLegacy()}><Text style={{ color: theme.muted }}>Descartar carrito anterior</Text></Pressable></View> : null;
   const setQty = useShopStore((s) => s.setQty);
   const catalog = useProducts("tendencia");
   const validation = useValidatedCart(cart);
@@ -41,6 +46,7 @@ export default function CartScreen() {
   if (cart.length === 0) {
     return (
       <Screen>
+        {legacyNotice}
         <EmptyState
           icon="bag-outline"
           title="Tu carrito está vacío"
@@ -91,6 +97,8 @@ export default function CartScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
+            {legacyNotice}
+            {owner !== "guest" && syncStatus !== "ready" ? <Text style={{ color: theme.muted }}>{syncStatus === "error" ? "Cambios guardados en este celular. Reintentaremos al recuperar conexión." : "Sincronizando cambios del carrito…"}</Text> : null}
             <Text style={[styles.title, { color: theme.text }]}>Carrito · {cart.length}</Text>
             {validation.isFetching ? (
               <Text style={[styles.sync, { color: theme.muted }]}>Verificando stock y precios…</Text>

@@ -1,0 +1,46 @@
+[
+  {
+    "check": "lint",
+    "exitCode": 0
+  },
+  {
+    "check": "typecheck",
+    "exitCode": 0
+  },
+  {
+    "check": "web-typecheck",
+    "exitCode": 0
+  },
+  {
+    "check": "web-build",
+    "exitCode": 0
+  },
+  {
+    "check": "admin-build",
+    "exitCode": 0
+  },
+  {
+    "check": "beta",
+    "exitCode": 0
+  },
+  {
+    "check": "cart-tests",
+    "exitCode": 0
+  },
+  {
+    "check": "catalog-tests",
+    "exitCode": 0
+  },
+  {
+    "check": "editorial-tests",
+    "exitCode": 0
+  },
+  {
+    "check": "import-tests",
+    "exitCode": 0
+  },
+  {
+    "check": "retire-tests",
+    "exitCode": 0
+  }
+]

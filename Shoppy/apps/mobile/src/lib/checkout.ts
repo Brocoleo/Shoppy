@@ -74,9 +74,8 @@ async function callCheckout<T>(action: string, payload: Record<string, unknown>)
   const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/checkout`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), CHECKOUT_TIMEOUT_MS);
-  let res: Response;
   try {
-    res = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -86,7 +85,21 @@ async function callCheckout<T>(action: string, payload: Record<string, unknown>)
       body: JSON.stringify({ action, ...payload }),
       signal: ctrl.signal,
     });
+    // Mantener el timeout hasta terminar de leer el cuerpo de la respuesta.
+    const body = await res.text();
+    let json: unknown;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      throw new CheckoutApiError(res.status, "INVALID_RESPONSE", "El servidor devolvió una respuesta inválida. Inténtalo de nuevo.");
+    }
+    if (!res.ok) {
+      const err = (json as { error?: { code?: string; message?: string } } | null)?.error;
+      throw new CheckoutApiError(res.status, err?.code ?? "ERROR", err?.message ?? "Error en el pago.");
+    }
+    return json as T;
   } catch (e) {
+    if (e instanceof CheckoutApiError) throw e;
     // AbortError = timeout propio; resto (TypeError por red/DNS caído) = offline.
     // Se compara por nombre: DOMException no existe en todos los runtimes (Hermes).
     if ((e as { name?: string } | null)?.name === "AbortError") {
@@ -96,12 +109,6 @@ async function callCheckout<T>(action: string, payload: Record<string, unknown>)
   } finally {
     clearTimeout(timer);
   }
-  const json = (await res.json()) as unknown;
-  if (!res.ok) {
-    const err = (json as { error?: { code?: string; message?: string } })?.error;
-    throw new CheckoutApiError(res.status, err?.code ?? "ERROR", err?.message ?? "Error en el pago.");
-  }
-  return json as T;
 }
 
 export function quoteCheckout(input: {
@@ -120,13 +127,29 @@ export function createOrder(input: {
   discount_code?: string;
   save_address?: boolean;
   return_url?: string;
+  expected_user_id?: string | null;
+  provider?: "mock" | "mercadopago" | "transbank";
+  idempotency_key?: string;
+  attempt_secret?: string;
 }): Promise<CreateResult> {
   return callCheckout<CreateResult>("create", input);
 }
 
-export function confirmOrder(order_id: string, guest_token?: string | null): Promise<ConfirmResult> {
+export function listPaymentProviders(): Promise<{ providers: ("mock" | "mercadopago" | "transbank")[]; sandbox: boolean }> {
+  return callCheckout("providers", {});
+}
+export function recoverCheckout(key: string, secret: string, owner?: string): Promise<CreateResult> {
+  return callCheckout("recover", { idempotency_key: key, attempt_secret: secret, ...(owner ? { expected_user_id: owner === "guest" ? null : owner } : {}) });
+}
+
+export function closeCheckoutAttempt(key: string, secret: string, owner: string): Promise<{ closed: boolean }> {
+  return callCheckout("close_attempt", { idempotency_key: key, attempt_secret: secret, expected_user_id: owner === "guest" ? null : owner });
+}
+
+export function confirmOrder(order_id: string, guest_token?: string | null, owner?: string): Promise<ConfirmResult> {
   return callCheckout<ConfirmResult>("confirm", {
     order_id,
+    ...(owner ? { expected_user_id: owner === "guest" ? null : owner } : {}),
     ...(guest_token ? { guest_token } : {}),
   });
 }
@@ -147,10 +170,10 @@ export async function listShippingRates(region: string): Promise<ShippingRate[]>
     .from("shipping_rates")
     .select("id,region,comuna,carrier,price_clp,eta_days_min,eta_days_max")
     .eq("is_active", true)
-    .in("region", [region, "OTRAS"])
     .order("price_clp");
   if (error) throw error;
-  return (data ?? []) as ShippingRate[];
+  const normalize = (value: string) => value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return ((data ?? []) as ShippingRate[]).filter((rate) => [normalize(region), "otras"].includes(normalize(rate.region)));
 }
 
 export interface OrderSummary {
@@ -204,11 +227,17 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
   if (error) throw error;
   if (!order) return null;
   const o = order as unknown as OrderDetail;
-  const [{ data: items }, { data: history }, { data: shipment }] = await Promise.all([
+  const [itemsResult, historyResult, shipmentResult] = await Promise.all([
     supabase.from("order_items").select("product_id,product_slug,product_name,image_url,unit_price_clp,qty").eq("order_id", orderId),
     supabase.from("order_status_history").select("from_status,to_status,created_at").eq("order_id", orderId).order("created_at"),
     supabase.from("shipments").select("carrier,tracking_number,tracking_url").eq("order_id", orderId).maybeSingle(),
   ]);
+  for (const result of [itemsResult, historyResult, shipmentResult]) {
+    if (result.error) throw result.error;
+  }
+  const { data: items } = itemsResult;
+  const { data: history } = historyResult;
+  const { data: shipment } = shipmentResult;
   const ship = shipment as unknown as { carrier: string; tracking_number: string; tracking_url: string } | null;
   return {
     ...o,

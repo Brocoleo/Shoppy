@@ -1,0 +1,25 @@
+PASS slug follows full name
+PASS manual slug is preserved
+PASS new product is always a draft
+PASS creation advances directly to Photos
+PASS cannot publish without cover
+PASS partial failure keeps first photo
+PASS retry does not duplicate successful photo
+PASS cover choice updates image
+PASS image order uses existing RPC
+PASS publish requires complete saved product
+PASS unsaved edits block leaving data step
+PASS data edits preserve publication date
+PASS published item cannot silently keep a zero price
+PASS concurrent edits are rejected without overwriting data
+PASS same-user auth event preserves unsaved form
+PASS home editor saves structured text
+PASS successive saves use current row version
+PASS home image framing is editable
+PASS archive visibility can be managed without sale conversion
+{
+  "checks": 19,
+  "errors": [],
+  "overflow": [],
+  "axe": []
+}

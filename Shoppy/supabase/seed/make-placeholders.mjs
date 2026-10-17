@@ -153,7 +153,7 @@ function drawText(px, text, x0, y0, scale, color) {
 /** Iniciales del slug: primeras letras de las 2 primeras palabras. */
 function initials(slug) {
   const words = slug.split("-").filter(Boolean);
-  return ((words[0]?.[0] ?? "S") + (words[1]?.[0] ?? "H")).toUpperCase();
+  return ((words[0]?.[0] ?? "V") + (words[1]?.[0] ?? "Z")).toUpperCase();
 }
 
 function designPng([top, bottom], mono, variant) {
@@ -192,7 +192,7 @@ function designPng([top, bottom], mono, variant) {
     }
   }
   drawText(px, `0${variant}`, 28, H - 68, 5, [255, 255, 255]);
-  drawText(px, "SHOPY", W - 28 - 5 * 6 * 5 + 5, H - 62, 5, [255, 255, 255]);
+  drawText(px, "VINTA-ZHE", W - 28 - (9 * 6 * 5 - 5), H - 62, 5, [255, 255, 255]);
 
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4);

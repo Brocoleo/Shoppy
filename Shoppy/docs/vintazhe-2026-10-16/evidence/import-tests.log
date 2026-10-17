@@ -1,0 +1,21 @@
+✔ dry run verifies assets without writes or record (11.874957ms)
+✔ apply, repeated import, and complete removal preserve unrelated data (19.716718ms)
+✔ partial upload failure resumes without uploading successful files again (7.863606ms)
+✔ database failure after uploads resumes without duplicate objects (7.924098ms)
+✔ foreign archive batch aborts before writes (2.638487ms)
+✔ existing foreign bytes abort before uploading any object (2.73842ms)
+✔ same-byte preexisting object is reused, never claimed or removed (7.627258ms)
+✔ later admin titles, visibility, and hero edits survive repeat and removal (12.123363ms)
+✔ product and unrelated home-section references protect owned objects (7.283258ms)
+✔ modified owned object is not deleted; missing record never removes data (8.08346ms)
+✔ corrupt local image fails before any remote mutation (2.801998ms)
+✔ already completed removal is harmless on repetition (10.046541ms)
+✔ an upload with interrupted local confirmation is reused without claiming ownership (11.223907ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 121.708804

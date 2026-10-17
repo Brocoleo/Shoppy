@@ -31,6 +31,7 @@ export interface SendEmailInput {
   to: string;
   subject: string;
   html: string;
+  idempotencyKey?: string;
 }
 
 export interface EmailProvider {
@@ -127,14 +128,17 @@ export class ResendEmailProvider implements EmailProvider {
 
   constructor(apiKey?: string, from?: string) {
     this.apiKey = apiKey ?? Deno.env.get("RESEND_API_KEY") ?? "";
-    this.from = from ?? Deno.env.get("EMAIL_FROM") ?? "Shopy <hola@shopy.cl>";
-    if (!this.apiKey) throw new Error("falta RESEND_API_KEY");
+    this.from = from ?? Deno.env.get("EMAIL_FROM") ?? "";
+    if (!this.apiKey || !this.from) throw new Error("faltan RESEND_API_KEY / EMAIL_FROM");
   }
 
   async send(input: SendEmailInput): Promise<{ id: string }> {
+    const allowed = (Deno.env.get("EMAIL_TEST_RECIPIENTS") ?? "").split(",").map((v) => v.trim().toLowerCase()).filter(Boolean);
+    if ((Deno.env.get("PAYMENT_MODE") ?? "sandbox") !== "live" && !allowed.includes(input.to.toLowerCase())) throw new Error("Destinatario no habilitado para beta");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json", ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}) },
+      signal: AbortSignal.timeout(15000),
       body: JSON.stringify({ from: this.from, to: input.to, subject: input.subject, html: input.html }),
     });
     const json = (await res.json().catch(() => null)) as { id?: string; message?: string } | null;

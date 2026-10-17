@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "archive does not depend on commercial requests",
+    "Todo keeps archive when products fail",
+    "failed commercial query recovers without hiding archive",
+    "Tendencia preserves score order when dates disagree",
+    "available tab excludes a reserved item with positive stock",
+    "real product can still be added to local cart",
+    "available products survive initial and client editorial failure",
+    "unrelated editorial failure does not become catalog error"
+  ],
+  "simulated": true,
+  "businessWrites": 0
+}

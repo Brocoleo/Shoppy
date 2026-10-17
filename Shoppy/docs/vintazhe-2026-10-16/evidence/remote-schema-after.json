@@ -1,0 +1,8 @@
+[
+  {
+    "cleanup_exists": true,
+    "cover_rpc_exists": true,
+    "order_rpc_exists": true,
+    "rls_enabled": true
+  }
+]

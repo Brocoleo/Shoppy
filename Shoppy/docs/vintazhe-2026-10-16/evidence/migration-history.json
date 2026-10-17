@@ -1,0 +1,18 @@
+[
+  {
+    "version": "20261016161216",
+    "name": "admin_images_vinta_20261016"
+  },
+  {
+    "version": "20261009190101",
+    "name": "remote_crons"
+  },
+  {
+    "version": "20260929000005",
+    "name": "storage_limits"
+  },
+  {
+    "version": "20260929000004",
+    "name": "hardening"
+  }
+]
