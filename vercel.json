@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "cd Shoppy && npm install",
+  "buildCommand": "cd Shoppy && npm --workspace apps/web run build",
+  "outputDirectory": "Shoppy/apps/web/.next"
+}
