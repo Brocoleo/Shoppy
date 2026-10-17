@@ -1,0 +1,14 @@
+✔ dos solicitudes simultáneas crean un solo pedido y un solo pago (72.945801ms)
+✔ recuperación exige secreto y cuenta; un cambio de payload no crea otro pedido (12.019404ms)
+✔ respuesta desconocida del proveedor conserva pedido sin repetir llamada (6.121642ms)
+✔ JWT inválido nunca degrada compra a invitado (1.573635ms)
+✔ pago pendiente no se marca rechazado y confirmar exige propiedad (4.992699ms)
+✔ webhook con monto distinto no confirma el pedido (4.085293ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 112.570031

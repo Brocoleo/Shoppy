@@ -1,0 +1,11 @@
+
+> shopy@0.1.0 typecheck
+> tsc --noEmit -p tsconfig.json && npm --workspace apps/mobile run typecheck && npm --workspace apps/admin run typecheck
+
+
+> shopy-mobile@0.1.0 typecheck
+> tsc --noEmit
+
+
+> shopy-admin@0.1.0 typecheck
+> tsc --noEmit

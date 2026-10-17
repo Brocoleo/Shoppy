@@ -1,0 +1,28 @@
+{
+  "origin": "https://vinta-admin-inky.vercel.app",
+  "views": [
+    {
+      "width": 390,
+      "route": "/productos",
+      "redirect": "/login"
+    },
+    {
+      "width": 390,
+      "route": "/acceso",
+      "unauthorizedForm": false
+    },
+    {
+      "width": 1440,
+      "route": "/productos",
+      "redirect": "/login"
+    },
+    {
+      "width": 1440,
+      "route": "/acceso",
+      "unauthorizedForm": false
+    }
+  ],
+  "errors": [],
+  "failed": [],
+  "realAdminSession": false
+}

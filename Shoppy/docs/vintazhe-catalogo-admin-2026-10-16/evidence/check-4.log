@@ -1,0 +1,27 @@
+(node:110) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/leandro/Documentos/ChatGPT/React%20Native/Shoppy/apps/web/src/lib/cartStore.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/leandro/Documentos/ChatGPT/React Native/Shoppy/apps/web/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ sanitizeLines
+  ✔ conserva líneas válidas (1.720697ms)
+  ✔ descarta no-arreglos y entradas inválidas (0.389526ms)
+  ✔ topa cantidades persistidas en 99 (0.230812ms)
+✔ sanitizeLines (3.923644ms)
+▶ mergeCarts
+  ✔ une sin duplicados con cantidad máxima (0.453368ms)
+  ✔ conserva el carrito propio cuando el guest está vacío y viceversa (0.365609ms)
+  ✔ no muta las entradas (1.763171ms)
+✔ mergeCarts (3.003925ms)
+▶ addLine/setLineQty
+  ✔ agrega y acumula con tope 99 (0.622321ms)
+  ✔ qty<=0 elimina la línea (0.279713ms)
+  ✔ fija cantidad con tope y sin mutación (0.235823ms)
+✔ addLine/setLineQty (1.65582ms)
+ℹ tests 9
+ℹ suites 3
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18.951566

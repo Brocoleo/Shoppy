@@ -1,0 +1,114 @@
+[
+  {
+    "command": [
+      "npm",
+      "run",
+      "lint"
+    ],
+    "exit": 0,
+    "tests": null
+  },
+  {
+    "command": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "exit": 0,
+    "tests": null
+  },
+  {
+    "command": [
+      "npm",
+      "--workspace",
+      "apps/web",
+      "run",
+      "typecheck",
+      "--",
+      "--incremental",
+      "false"
+    ],
+    "exit": 0,
+    "tests": null
+  },
+  {
+    "command": [
+      "node",
+      "scripts/editorial.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 6
+  },
+  {
+    "command": [
+      "node",
+      "apps/web/src/lib/cartStore.test.ts"
+    ],
+    "exit": 0,
+    "tests": 9
+  },
+  {
+    "command": [
+      "node",
+      "apps/web/src/lib/catalogProduct.test.ts"
+    ],
+    "exit": 0,
+    "tests": 4
+  },
+  {
+    "command": [
+      "node",
+      "supabase/seed/upload-placeholders.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 6
+  },
+  {
+    "command": [
+      "node",
+      "supabase/seed/vinta-archive/classify-examples.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 7
+  },
+  {
+    "command": [
+      "node",
+      "supabase/seed/vinta-archive/import.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 13
+  },
+  {
+    "command": [
+      "node",
+      "supabase/seed/vinta-archive/retire-demos.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 13
+  },
+  {
+    "command": [
+      "node",
+      "apps/mobile/tests/checkout.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 8
+  },
+  {
+    "command": [
+      "node",
+      "apps/mobile/tests/state.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 6
+  },
+  {
+    "command": [
+      "node",
+      "supabase/tests/checkout_api.test.mjs"
+    ],
+    "exit": 0,
+    "tests": 6
+  }
+]

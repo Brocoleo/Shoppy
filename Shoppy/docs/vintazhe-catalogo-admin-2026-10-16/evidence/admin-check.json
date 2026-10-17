@@ -1,0 +1,976 @@
+{
+  "checks": [
+    "examples separate from commercial products",
+    "original example has no edit or publish action",
+    "example base leaves commercial fields and condition pending",
+    "only category and segment copied",
+    "using base does not mutate original or insert before save",
+    "base requires explicit condition",
+    "base saves distinct draft without old commerce or images",
+    "base save preserves original example",
+    "commercial record cannot be used as example source",
+    "slug follows full name",
+    "manual slug is preserved",
+    "new product is always a draft",
+    "creation advances directly to Photos",
+    "cannot publish without cover",
+    "partial failure keeps first photo",
+    "retry does not duplicate successful photo",
+    "cover choice updates image",
+    "image order uses existing RPC",
+    "publish requires complete saved product",
+    "unsaved edits block leaving data step",
+    "data edits preserve publication date",
+    "published item cannot silently keep a zero price",
+    "concurrent edits are rejected without overwriting data",
+    "same-user auth event preserves unsaved form",
+    "home editor saves structured text",
+    "successive saves use current row version",
+    "home image framing is editable",
+    "archive visibility can be managed without sale conversion",
+    "non-admin login is rejected"
+  ],
+  "errors": [],
+  "views": [
+    {
+      "name": "admin-home",
+      "width": 320,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-products",
+      "width": 320,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-new",
+      "width": 320,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-edit",
+      "width": 320,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-home",
+      "width": 390,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-products",
+      "width": 390,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-new",
+      "width": 390,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-edit",
+      "width": 390,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-home",
+      "width": 768,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-products",
+      "width": 768,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-new",
+      "width": 768,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-edit",
+      "width": 768,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-home",
+      "width": 1440,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-products",
+      "width": 1440,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-new",
+      "width": 1440,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "name": "admin-edit",
+      "width": 1440,
+      "overflow": false,
+      "axe": []
+    }
+  ],
+  "calls": [
+    {
+      "method": "POST",
+      "path": "/auth/v1/token"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/orders"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/order_items"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/product-images/products/slug-elegido/73241f3d-5237-45d6-8be8-7e34f831cd7a-cdrmurrhvdo-1-00b2042461d3.webp"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/73241f3d-5237-45d6-8be8-7e34f831cd7a-cdrmurrhvdo-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/admin_set_product_cover"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/admin_swap_product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CMS5wJ-hhYX-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CDrmUrRhvDO-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/ChTOzSiLGb6-1-0d7ef71a8930.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodgH6ur3yz-1-427a6919c1e7.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodfzQHLZD2-1-7ac54de4b23a.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodegKzr1Tq-1-b1f70e3b8f6d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CoddYQ5rIJi-1-e7dac2914248.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Ck1wf4CrYeV-1-0b46ff316e11.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cka6K0Mg8lh-1-9c57e15e627b.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1WuISr2dh-1-c5e0be8ecf71.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1VvsILndI-1-2fedb5fb76a2.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CigXsWrLc-q-1-5fab2400ca01.webp"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "PATCH",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CMS5wJ-hhYX-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CDrmUrRhvDO-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/ChTOzSiLGb6-1-0d7ef71a8930.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodgH6ur3yz-1-427a6919c1e7.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodfzQHLZD2-1-7ac54de4b23a.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodegKzr1Tq-1-b1f70e3b8f6d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CoddYQ5rIJi-1-e7dac2914248.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Ck1wf4CrYeV-1-0b46ff316e11.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cka6K0Mg8lh-1-9c57e15e627b.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1WuISr2dh-1-c5e0be8ecf71.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1VvsILndI-1-2fedb5fb76a2.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CigXsWrLc-q-1-5fab2400ca01.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/73241f3d-5237-45d6-8be8-7e34f831cd7a-cdrmurrhvdo-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CMS5wJ-hhYX-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CDrmUrRhvDO-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/ChTOzSiLGb6-1-0d7ef71a8930.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodgH6ur3yz-1-427a6919c1e7.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodfzQHLZD2-1-7ac54de4b23a.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodegKzr1Tq-1-b1f70e3b8f6d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CoddYQ5rIJi-1-e7dac2914248.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Ck1wf4CrYeV-1-0b46ff316e11.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cka6K0Mg8lh-1-9c57e15e627b.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1WuISr2dh-1-c5e0be8ecf71.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1VvsILndI-1-2fedb5fb76a2.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CigXsWrLc-q-1-5fab2400ca01.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/73241f3d-5237-45d6-8be8-7e34f831cd7a-cdrmurrhvdo-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CMS5wJ-hhYX-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CDrmUrRhvDO-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/ChTOzSiLGb6-1-0d7ef71a8930.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodgH6ur3yz-1-427a6919c1e7.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodfzQHLZD2-1-7ac54de4b23a.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodegKzr1Tq-1-b1f70e3b8f6d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CoddYQ5rIJi-1-e7dac2914248.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Ck1wf4CrYeV-1-0b46ff316e11.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cka6K0Mg8lh-1-9c57e15e627b.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1WuISr2dh-1-c5e0be8ecf71.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1VvsILndI-1-2fedb5fb76a2.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CigXsWrLc-q-1-5fab2400ca01.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/73241f3d-5237-45d6-8be8-7e34f831cd7a-cdrmurrhvdo-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/home_sections"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CMS5wJ-hhYX-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CDrmUrRhvDO-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/ChTOzSiLGb6-1-0d7ef71a8930.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodgH6ur3yz-1-427a6919c1e7.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodfzQHLZD2-1-7ac54de4b23a.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CodegKzr1Tq-1-b1f70e3b8f6d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CoddYQ5rIJi-1-e7dac2914248.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Ck1wf4CrYeV-1-0b46ff316e11.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cka6K0Mg8lh-1-9c57e15e627b.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1WuISr2dh-1-c5e0be8ecf71.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/Cj1VvsILndI-1-2fedb5fb76a2.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/vinta/archive/2026-10-16/CigXsWrLc-q-1-5fab2400ca01.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/products"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/product_images"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/image_cleanup"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/brands"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/categories"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/73241f3d-5237-45d6-8be8-7e34f831cd7a-cdrmurrhvdo-1-00b2042461d3.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/storage/v1/object/public/product-images/products/slug-elegido/1fc57112-dcfc-4b72-82c0-d9d2500d4435-cms5wj-hhyx-1-29330ff44c3d.webp"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/token"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/profiles"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/logout"
+    }
+  ],
+  "simulated": true,
+  "remoteBusinessWrites": 0
+}

@@ -1,0 +1,147 @@
+{
+  "checks": [
+    "available links archive 320",
+    "offers links archive 320",
+    "available links archive 390",
+    "offers links archive 390",
+    "explicit reopen focuses acknowledgment",
+    "Escape restores opener focus",
+    "notice acknowledgment persists",
+    "archive gallery no cart",
+    "gallery selects second photo",
+    "example direct page has no buy button",
+    "reduced motion suppresses heading entrance",
+    "keyboard exposes skip link",
+    "available links archive 768",
+    "offers links archive 768",
+    "available links archive 1440",
+    "offers links archive 1440",
+    "legacy all acknowledgment",
+    "legacy necessary acknowledgment",
+    "blocked storage dismisses for this session",
+    "HTML includes archive and priority image"
+  ],
+  "views": [
+    {
+      "width": 320,
+      "name": "home",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 320,
+      "name": "catalog",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 320,
+      "name": "available",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 320,
+      "name": "offers",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 320,
+      "name": "archive",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 390,
+      "name": "home",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 390,
+      "name": "catalog",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 390,
+      "name": "available",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 390,
+      "name": "offers",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 390,
+      "name": "archive",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 768,
+      "name": "home",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 768,
+      "name": "catalog",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 768,
+      "name": "available",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 768,
+      "name": "offers",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 768,
+      "name": "archive",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 1440,
+      "name": "home",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 1440,
+      "name": "catalog",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 1440,
+      "name": "available",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 1440,
+      "name": "offers",
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 1440,
+      "name": "archive",
+      "overflow": false,
+      "axe": []
+    }
+  ],
+  "errors": []
+}

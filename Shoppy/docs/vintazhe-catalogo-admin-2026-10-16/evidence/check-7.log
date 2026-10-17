@@ -1,0 +1,15 @@
+✔ dry-run does not write; exact20 and commercial differences skipped (10.865278ms)
+✔ classification preserves metadata and repeat is idempotent (53.26317ms)
+✔ restore only own unchanged rows; never overwrites later edits (84.203978ms)
+✔ interrupted operation resumes completed rows and remaining snapshots (36.108118ms)
+✔ lost response is uncertain and not restored (11.719661ms)
+✔ wrong project and duplicate IDs rejected before writes (2.724379ms)
+✔ uncertainty survives apply resume and later restore (90.630016ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 301.168817

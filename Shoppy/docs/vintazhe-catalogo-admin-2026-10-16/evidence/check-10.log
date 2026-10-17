@@ -1,0 +1,16 @@
+✔ preserva errores de negocio del backend (30.747336ms)
+✔ respuesta HTML se informa como respuesta inválida, no como desconexión (1.453679ms)
+✔ el timeout cubre también la lectura del cuerpo (1.168981ms)
+✔ devuelve cotización válida y clasifica fallos de red (4.541578ms)
+✔ propaga error de order_items sin mostrar pedido incompleto (0.918601ms)
+✔ propaga error de order_status_history sin mostrar pedido incompleto (0.359829ms)
+✔ propaga error de shipments sin mostrar pedido incompleto (0.34345ms)
+✔ pedido válido admite envío pendiente y pedido inexistente devuelve null (0.824356ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.730766

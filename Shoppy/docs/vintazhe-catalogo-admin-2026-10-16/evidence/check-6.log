@@ -1,0 +1,14 @@
+✔ defaults to simulation without reading files or calling transport (4.824258ms)
+✔ requires explicit unambiguous apply (0.894052ms)
+✔ create-only upload protects existing and racing objects; repeat preserves bytes (1.265012ms)
+✔ reports failures per file and continues without retrying completed uploads (1.112412ms)
+✔ validates entire batch before writes (1.341412ms)
+✔ discovers PNGs recursively without following symlinks (25.600943ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 55.614395

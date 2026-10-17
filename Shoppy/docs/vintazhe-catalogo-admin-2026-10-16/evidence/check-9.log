@@ -1,0 +1,21 @@
+✔ exact twenty historical seeds and eight manifest demos; dry-run is read-only (9.767239ms)
+✔ only published_at changes; repeat keeps the original snapshots (59.595594ms)
+✔ legacy ID reused for a different real product aborts before writes (2.197187ms)
+✔ same ID and slug but changed legacy name also aborts (1.541584ms)
+✔ editorial demos require both demo marker and correct batch (1.614291ms)
+✔ timestamp conflict skips row without rewriting concurrent edits (52.929637ms)
+✔ restoration returns original dates and leaves already unpublished seeds unchanged (296.230887ms)
+✔ restore skips later admin edits or renamed products (330.084678ms)
+✔ database interruption resumes original record without repeating successful changes (262.233764ms)
+✔ restore without original record does not write (3.770835ms)
+✔ uncertain successful write without saved confirmation is never restored (76.431611ms)
+✔ wrong project is rejected before any transport call (1.626999ms)
+✔ Supabase adapter sends only publication field and optimistic concurrency filters (0.547829ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1111.0864

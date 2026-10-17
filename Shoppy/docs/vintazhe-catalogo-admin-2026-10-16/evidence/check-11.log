@@ -1,0 +1,14 @@
+✔ carrito invitado se transfiere una vez y las cuentas están aisladas (223.704134ms)
+✔ respuesta tardía no elimina una edición más reciente ni cruza cuentas (60.406808ms)
+✔ fusión pendiente conserva su clave al cerrar sesión (35.615648ms)
+✔ pedido pendiente guarda secretos fuera de AsyncStorage y separado por cuenta (20.116284ms)
+✔ ediciones durante fusión conservan productos remotos y cambios locales (70.414752ms)
+✔ confirmación repetida descuenta solo la compra y conserva nuevas prendas (36.770092ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 470.247628

@@ -1,0 +1,14 @@
+✔ dry-run never sends email or grants role (2.059795ms)
+✔ requires exact HTTPS callback before creating account (1.536948ms)
+✔ invite sets only matching profile role and repeat never resends (0.540156ms)
+✔ confirmed customer is never silently promoted or reinvited (0.326475ms)
+✔ mismatched profile blocks role change (0.425087ms)
+✔ partial role failure resumes without sending another invitation (0.422428ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15.521476

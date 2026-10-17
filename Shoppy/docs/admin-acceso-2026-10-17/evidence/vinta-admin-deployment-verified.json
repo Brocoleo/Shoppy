@@ -1,0 +1,18 @@
+{
+  "project": "vinta-admin",
+  "team": "leandro-mirandas-projects",
+  "url": "https://vinta-admin-inky.vercel.app",
+  "rootDirectory": "Shoppy/apps/admin",
+  "sourceFilesOutsideRootDirectory": true,
+  "buildCommand": "npm run build -- --webpack",
+  "deploymentId": "dpl_AiCQ4HWos1CtCv5x2MpLjfWx8MvV",
+  "readyState": "READY",
+  "aliases": [
+    "vinta-admin-inky.vercel.app",
+    "vinta-admin-leandro-mirandas-projects.vercel.app"
+  ],
+  "environmentKeys": [
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL"
+  ]
+}

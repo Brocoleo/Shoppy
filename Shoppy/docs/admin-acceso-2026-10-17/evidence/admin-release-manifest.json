@@ -1,0 +1,238 @@
+[
+  {
+    "path": ".vercelignore",
+    "sha256": "d8b74d15da2b66e8a276929a0c98aa08900e2eba1fddee132e2d2c6eb24f754c"
+  },
+  {
+    "path": "Shoppy/eslint.config.js",
+    "sha256": "7914d6890f1b7eddbcd4beb2750e8e83458d6ea8a3143a1bc9e3455769cc77a7"
+  },
+  {
+    "path": "Shoppy/package-lock.json",
+    "sha256": "735759fb15cb5e921ed97722fbd1e654b11abba3d8b78c70301a288e1a6f9f07"
+  },
+  {
+    "path": "Shoppy/tsconfig.json",
+    "sha256": "7d371ef327ddf57f8729a0686ac5b4918c87e9e30c8adc403af401cac118794e"
+  },
+  {
+    "path": "Shoppy/package.json",
+    "sha256": "753e10dd75e023f990b40c233d4a1488bf1eefe298abab4266aebc3c4f7f5553"
+  },
+  {
+    "path": "Shoppy/deploy/admin.vercel.json",
+    "sha256": "69d9cbac1e4653b58b50a52531fb2983402a22acd1a58e64c6ecfd6bdc3376f3"
+  },
+  {
+    "path": "Shoppy/apps/admin/postcss.config.mjs",
+    "sha256": "dfac7ac2d86d326a0e5adb024e7943c181393ed17a5fcb8f0315b24c7da6ddde"
+  },
+  {
+    "path": "Shoppy/apps/admin/AGENTS.md",
+    "sha256": "63f2c50380ed6303237cce215ce27af1d620d094c215e28d1b1538a3c070e3bb"
+  },
+  {
+    "path": "Shoppy/apps/admin/CLAUDE.md",
+    "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+  },
+  {
+    "path": "Shoppy/apps/admin/eslint.config.mjs",
+    "sha256": "870f1adccecf3051cbcd9fd307cef51d7633cf510979c181a81f4b1797273493"
+  },
+  {
+    "path": "Shoppy/apps/admin/next.config.ts",
+    "sha256": "5235c83d9326e845c87d3fd0bb3d98eccec56a52b110ef3f347ac1e8d3bab3cc"
+  },
+  {
+    "path": "Shoppy/apps/admin/.gitignore",
+    "sha256": "207e265ff4901f9ad9f96d8ce08530e04f9fc600815472a66d0a446096d654cd"
+  },
+  {
+    "path": "Shoppy/apps/admin/tsconfig.json",
+    "sha256": "5c51df4c59f4510d8c7dadf07a5c32132228826a3b331da5e286207b4df7ef9c"
+  },
+  {
+    "path": "Shoppy/apps/admin/package.json",
+    "sha256": "1d1c109c4a9db64bf53eec80b41a0a45778ed30943a1983c2b2ad0d5321b739a"
+  },
+  {
+    "path": "Shoppy/apps/admin/README.md",
+    "sha256": "60b55ff7df79af72590f9524208e46642bc32bdc175cdad41349681c0e2f958f"
+  },
+  {
+    "path": "Shoppy/apps/admin/next-env.d.ts",
+    "sha256": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b"
+  },
+  {
+    "path": "Shoppy/apps/web/package.json",
+    "sha256": "1f0d9211732adecc45676e4a9613b9fd15ae9f937f68a0913f07279268fb8bdc"
+  },
+  {
+    "path": "Shoppy/apps/mobile/package.json",
+    "sha256": "5a374f20819f6785a043258cbc5eece5145af40ff3ab493b50fc8a97936fa8fa"
+  },
+  {
+    "path": "Shoppy/apps/admin/public/vercel.svg",
+    "sha256": "f081337b2fee635b455b63275406a3e7f39d6a014e25ad90dab5a67e62a12ac4"
+  },
+  {
+    "path": "Shoppy/apps/admin/public/next.svg",
+    "sha256": "55995dfad6ecb4945a1e856ddca03c5e16aa5bf13fd21b4df6a74ae79357bcfc"
+  },
+  {
+    "path": "Shoppy/apps/admin/public/window.svg",
+    "sha256": "644768c4aaeb4767bce293344eeb0c125fb804a94d801440424072202d85e3a1"
+  },
+  {
+    "path": "Shoppy/apps/admin/public/file.svg",
+    "sha256": "2b67812c325c199a02536cdbeea0c593a72f707d323b72ee3e08dbab06753bd4"
+  },
+  {
+    "path": "Shoppy/apps/admin/public/globe.svg",
+    "sha256": "b614b9bf183925957661ac851498fe1d8029fd43a62fbfed86f9e2624a57e7cf"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/components/QueryState.tsx",
+    "sha256": "d1ff5f95f429abe4cb2be438879ce7ecbdc8750c7182ab05b877101049701d40"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/components/AdminShell.tsx",
+    "sha256": "3838987e71dce60ad63ba6e203c4b9967ba14b6938293e0e2f2c07a965397f8f"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/components/ProductForm.tsx",
+    "sha256": "6c8c11f8af4273c552cd0aefb0ef353cfa88a37625354e9e6dfa004832d99f2a"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/lib/prepareImage.ts",
+    "sha256": "91801bc9635d3c7a1df12e0e2f875643c056e72bff306a05311dd50659ca614c"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/lib/supabase.tsx",
+    "sha256": "944fdb0cafac2ccbbabd2453ce481f0000dde5547663b3c3e19781295891ac11"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/lib/paymentBridge.ts",
+    "sha256": "b740594a96b3aab11240453d8d0191a71bbecf022a6fb1bda7e75de4cdf20858"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/favicon.ico",
+    "sha256": "dfb11115dc500dcfe1f28bf0f6f03ee6be7e848a6b55d72d8d314829c94b1a1d"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/layout.tsx",
+    "sha256": "4abb3c361f76fe70cb347d0c306029159edf69789e9f431f850d9b42e5a114bd"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/globals.css",
+    "sha256": "3385f08a60eee8bb657beaa760ffb2b22ce3259e9209ff99ff2f357ef6791765"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/page.tsx",
+    "sha256": "ba30b863e899e30f52c92c099f4108d475d15d3c92a2f331ab1edc73cb2a0363"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/pedidos/page.tsx",
+    "sha256": "089c76eac9dfd7833438bd033db0b0129b0eb5a15d0e0c471833eb148d2091af"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/clientes/page.tsx",
+    "sha256": "e82d081c5945649f032790e44fd7fd611ef09bc7131a986e8399a3d46702c2c3"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/colecciones/page.tsx",
+    "sha256": "81f5aa575930043bc4e83327d10193aae4368f39bee585ecdf290e03af7a0c6d"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/categorias/page.tsx",
+    "sha256": "2b0d3735a1b4ae5300afe3fd4742c2d953989ee867e31b16c750c92f4245456a"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/acceso/page.tsx",
+    "sha256": "420e5e9892f30c1f2868b69aeee9c155b1d7e6ecfca61fe5fe149c6612eafbdf"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/descuentos/page.tsx",
+    "sha256": "e0a7491203cdaeca2717b59a15a4359fe76609f70993cdbc2d18450010cd4623"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/marcas/page.tsx",
+    "sha256": "e65f35e8ad419390e4d393b951834dd8ef8c21b2ab7cb247d03e8d569f999fd4"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/login/page.tsx",
+    "sha256": "091ec5c0a0097210f2f72b33df7ffb9d829b60825bcd9164e835709dc066a7dd"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/productos/page.tsx",
+    "sha256": "7b1637ab7c2c24a5971b1a964f876b16139d59ef86779a791be96d2f22996977"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/envios/page.tsx",
+    "sha256": "b2df464176b4c59363761a5221e77209ac8a60dbcbb421f277431fb7c88d5ee4"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/home/page.tsx",
+    "sha256": "62ed4dabd72cfc55e3e29ab37feccd0bf5a50af9b639149e5ecc22963e1ef4d3"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/pedidos/[id]/page.tsx",
+    "sha256": "df4885fd029494f01a749062a87d3ff85961bd0fe3d6b30297c6036b9560e2f3"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/api/payments/return/route.ts",
+    "sha256": "2bfc04d0877a5408d259b2f423580547c5951e52cc8d6830cd53388cdd419164"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/api/payments/start/route.ts",
+    "sha256": "d1d52877be78c053ffdab64a52b848fa0ccd28fd820782693d8e4ade2fc9c4e2"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/productos/[id]/page.tsx",
+    "sha256": "3992df45292147f44a42e01cce07d0d405580bf13e03b6a24436cd45873eec94"
+  },
+  {
+    "path": "Shoppy/apps/admin/src/app/productos/nuevo/page.tsx",
+    "sha256": "d69cb84f7e9f1459984889b91b917dfd6d0cb2a7369d560dd4902275f9021574"
+  },
+  {
+    "path": "Shoppy/packages/validation/package.json",
+    "sha256": "4ef2a252caec2c8ff7431eccb64c3f8eaa884bfea2da2e19010823825700fd19"
+  },
+  {
+    "path": "Shoppy/packages/types/package.json",
+    "sha256": "2086c938ba6aa7a4b0e4969a97cfeaf7b6fcac6538c04e61d8ca699998bc5546"
+  },
+  {
+    "path": "Shoppy/packages/shared/package.json",
+    "sha256": "0c691443b4f2e90a65169783bccc19b5ded67ac3cbd533652ed02c15b7476d92"
+  },
+  {
+    "path": "Shoppy/packages/validation/src/index.ts",
+    "sha256": "82280ff96f67e5c0051bfd31e55462f7d8b52bf44002ad4d750add9b4097fd92"
+  },
+  {
+    "path": "Shoppy/packages/types/src/index.ts",
+    "sha256": "a64e78728761b0e0b6f8cff7fa1f13398fd0cc63374847467632dc5f07e2bc5c"
+  },
+  {
+    "path": "Shoppy/packages/types/src/db.ts",
+    "sha256": "9b61721d2b8bd6ad49ce04676ca9ce274a2488e1c366c0846ea79a81b257f782"
+  },
+  {
+    "path": "Shoppy/packages/shared/src/format.ts",
+    "sha256": "b5903add0a3bbcd1ef726883084c45f07daa20af7d778373545090874c0e8718"
+  },
+  {
+    "path": "Shoppy/packages/shared/src/constants.ts",
+    "sha256": "e5de0854925799e3a8e662e39bae64036e54388dedcebb852c39778f3d93d446"
+  },
+  {
+    "path": "Shoppy/packages/shared/src/index.ts",
+    "sha256": "d1e9b7dee48ca6ffd5556c61dbb7b4c43f4a4c3b6ff49fb2a8fb224b9c49f877"
+  },
+  {
+    "path": "Shoppy/packages/shared/src/editorial.ts",
+    "sha256": "deaa83774a09bc5a5e570d27facb380477ef058924d382ebe58c54b8031ee9ac"
+  }
+]

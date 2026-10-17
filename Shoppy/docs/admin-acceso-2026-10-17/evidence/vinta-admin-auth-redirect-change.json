@@ -1,0 +1,13 @@
+{
+  "target": "https://vinta-admin-inky.vercel.app/acceso",
+  "siteUrlUnchanged": true,
+  "previous": [
+    "http://localhost:3000"
+  ],
+  "current": [
+    "http://localhost:3000",
+    "https://vinta-admin-inky.vercel.app/acceso"
+  ],
+  "changed": true,
+  "at": "2026-10-17T18:20:57.060Z"
+}

@@ -1,0 +1,10 @@
+PASS expired/missing invite never shows password form
+PASS URL error removed from history
+PASS customer cannot configure admin access
+PASS verified admin invitation presents form
+PASS mismatch sends no password update
+PASS backend rejection retains retry
+PASS success clears password inputs and offers admin access
+PASS no password stored in localStorage
+PASS expired server session blocks update despite local session
+PASS no browser errors

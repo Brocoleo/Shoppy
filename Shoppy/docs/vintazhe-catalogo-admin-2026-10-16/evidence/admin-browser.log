@@ -1,0 +1,35 @@
+PASS examples separate from commercial products
+PASS original example has no edit or publish action
+PASS example base leaves commercial fields and condition pending
+PASS only category and segment copied
+PASS using base does not mutate original or insert before save
+PASS base requires explicit condition
+PASS base saves distinct draft without old commerce or images
+PASS base save preserves original example
+PASS commercial record cannot be used as example source
+PASS slug follows full name
+PASS manual slug is preserved
+PASS new product is always a draft
+PASS creation advances directly to Photos
+PASS cannot publish without cover
+PASS partial failure keeps first photo
+PASS retry does not duplicate successful photo
+PASS cover choice updates image
+PASS image order uses existing RPC
+PASS publish requires complete saved product
+PASS unsaved edits block leaving data step
+PASS data edits preserve publication date
+PASS published item cannot silently keep a zero price
+PASS concurrent edits are rejected without overwriting data
+PASS same-user auth event preserves unsaved form
+PASS home editor saves structured text
+PASS successive saves use current row version
+PASS home image framing is editable
+PASS archive visibility can be managed without sale conversion
+PASS non-admin login is rejected
+{
+  "checks": 29,
+  "errors": [],
+  "overflow": [],
+  "axe": []
+}

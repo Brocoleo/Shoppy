@@ -1,0 +1,329 @@
+{
+  "examples": 20,
+  "unpublishedExamples": 20,
+  "demos": [
+    {
+      "id": "e6db9acd-19b1-5ae4-88b1-15f6f625a9de",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "32f39058-beb4-509e-be9d-3237213ba0f9",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "3f8e6546-46b7-5703-b948-db13fad1f4b6",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "5dd43f7d-bc7b-5008-8ea3-93a4b644afc1",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "ffa969d1-d247-5da4-84fb-ce2b062183c5",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "83cc5365-1dd8-582d-831e-f4df1210ae78",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "de3d27df-84d2-5da7-98df-efa448ebb853",
+      "demo": true,
+      "stock": 0
+    },
+    {
+      "id": "67da0315-47d1-5ac7-8924-6ba8b9d2b53b",
+      "demo": true,
+      "stock": 0
+    }
+  ],
+  "publicCommercial": 0,
+  "quotes": [
+    {
+      "id": "d0000000-0000-4000-8000-000000000001",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000002",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000003",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000004",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000005",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000006",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000007",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000008",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000009",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000010",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000011",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000012",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000013",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000014",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000015",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000016",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000017",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000018",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000019",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "d0000000-0000-4000-8000-000000000020",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "e6db9acd-19b1-5ae4-88b1-15f6f625a9de",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "32f39058-beb4-509e-be9d-3237213ba0f9",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "3f8e6546-46b7-5703-b948-db13fad1f4b6",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "5dd43f7d-bc7b-5008-8ea3-93a4b644afc1",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "ffa969d1-d247-5da4-84fb-ce2b062183c5",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "83cc5365-1dd8-582d-831e-f4df1210ae78",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "de3d27df-84d2-5da7-98df-efa448ebb853",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    },
+    {
+      "id": "67da0315-47d1-5ac7-8924-6ba8b9d2b53b",
+      "status": 409,
+      "body": {
+        "error": {
+          "code": "PRODUCT_UNAVAILABLE",
+          "message": "Una prenda ya no está disponible."
+        }
+      }
+    }
+  ]
+}

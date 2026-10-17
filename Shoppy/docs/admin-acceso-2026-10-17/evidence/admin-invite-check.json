@@ -1,0 +1,40 @@
+{
+  "checks": [
+    "expired/missing invite never shows password form",
+    "URL error removed from history",
+    "customer cannot configure admin access",
+    "verified admin invitation presents form",
+    "mismatch sends no password update",
+    "backend rejection retains retry",
+    "success clears password inputs and offers admin access",
+    "no password stored in localStorage",
+    "expired server session blocks update despite local session",
+    "no browser errors"
+  ],
+  "views": [
+    {
+      "width": 320,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "axe": []
+    },
+    {
+      "width": 1440,
+      "overflow": false,
+      "axe": []
+    }
+  ],
+  "errors": [],
+  "simulated": true,
+  "remoteEmails": 0,
+  "remoteAccounts": 0
+}
