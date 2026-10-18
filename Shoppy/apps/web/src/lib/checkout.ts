@@ -5,7 +5,14 @@
  * Toda la lógica de totales/reserva/pago vive en el backend;
  * aquí solo transporte + tipos (puerto del cliente móvil).
  */
-import { getSupabase, isSupabaseConfigured } from "./supabase";
+import { matchesShippingRegion } from "@shopy/validation";
+import { isSupabaseConfigured } from "./supabase-config";
+
+/** supabase-js con carga diferida: el carrito/pedidos no cargan este módulo del primero. */
+async function db() {
+  const { getSupabase } = await import("./supabase");
+  return getSupabase();
+}
 import type { AddressInput } from "@shopy/validation";
 
 export interface CheckoutItem {
@@ -64,7 +71,7 @@ const CHECKOUT_TIMEOUT_MS = 20_000;
 
 async function callCheckout<T>(action: string, payload: object): Promise<T> {
   if (!isSupabaseConfigured) throw new CheckoutApiError(0, "NO_BACKEND", "Falta configuración del backend.");
-  const supabase = getSupabase();
+  const supabase = await db();
   let session: { access_token: string } | null = null;
   try {
     const { data } = await supabase.auth.getSession();
@@ -166,15 +173,14 @@ export interface ShippingRate {
 }
 
 export async function listShippingRates(region: string): Promise<ShippingRate[]> {
-  const supabase = getSupabase();
+  const supabase = await db();
   const { data, error } = await supabase
     .from("shipping_rates")
     .select("id,region,comuna,carrier,price_clp,eta_days_min,eta_days_max")
     .eq("is_active", true)
     .order("price_clp");
   if (error) throw error;
-  const normalize = (value: string) => value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return ((data ?? []) as ShippingRate[]).filter((rate) => [normalize(region), "otras"].includes(normalize(rate.region)));
+  return ((data ?? []) as ShippingRate[]).filter((rate) => matchesShippingRegion(rate.region, region));
 }
 
 export interface OrderSummary {
@@ -186,7 +192,7 @@ export interface OrderSummary {
 }
 
 export async function listMyOrders(): Promise<OrderSummary[]> {
-  const supabase = getSupabase();
+  const supabase = await db();
   const { data, error } = await supabase
     .from("orders")
     .select("id,order_number,status,total_clp,created_at")
@@ -219,7 +225,7 @@ export interface OrderDetail {
 }
 
 export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | null> {
-  const supabase = getSupabase();
+  const supabase = await db();
   const { data: order, error } = await supabase
     .from("orders")
     .select("id,order_number,status,subtotal_clp,discount_clp,shipping_clp,total_clp,created_at")
@@ -269,7 +275,7 @@ export interface GuestOrderResult {
 export async function trackGuestOrder(orderId: string, token: string): Promise<GuestOrderResult> {
   let supabase;
   try {
-    supabase = getSupabase();
+    supabase = await db();
   } catch {
     throw new CheckoutApiError(0, "OFFLINE", "Sin conexión. Revisa tu internet e inténtalo de nuevo.");
   }

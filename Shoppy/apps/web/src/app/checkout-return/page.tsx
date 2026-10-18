@@ -60,8 +60,8 @@ function CheckoutReturnInner() {
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-      <p className="text-lg font-bold">Retorno del pago</p>
-      <p className="text-sm text-zinc-500">{message}</p>
+      <h1 className="text-lg font-bold">Retorno del pago</h1>
+      <p role="status" aria-live="polite" className="text-sm text-zinc-500">{message}</p>
       <Link href="/checkout" className="rounded bg-zinc-900 px-4 py-2 text-sm text-white">
         Volver al checkout
       </Link>

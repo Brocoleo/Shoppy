@@ -21,5 +21,3 @@ export function getSupabase(): SupabaseClient {
   }
   return client;
 }
-
-export { publicImageUrl } from "./productImageUrl";

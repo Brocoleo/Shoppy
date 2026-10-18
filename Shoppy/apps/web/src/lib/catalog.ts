@@ -5,7 +5,28 @@
  * Lee con la anon key bajo RLS: solo catálogo publicado, sin ARCHIVED.
  */
 import { isPublicProduct } from "@shopy/shared/editorial";
-import { getSupabase, publicImageUrl } from "./supabase";
+import { publicImageUrl } from "./productImageUrl";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** supabase-js con carga diferida: evita llevarlo al bundle crítico de TODAS las rutas. */
+async function db() {
+  const { getSupabase } = await import("./supabase");
+  return getSupabase();
+}
+
+/** Sondeo en vivo de una ficha: ¿sigue disponible o alguien la reservó/vendió? */
+export async function observeProduct(slug: string): Promise<{ stock: number; availability: string } | null> {
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("products")
+    .select("slug,stock,availability")
+    .eq("slug", slug)
+    .not("published_at", "is", null)
+    .neq("availability", "ARCHIVED")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? { stock: Number(data.stock ?? 0), availability: String(data.availability ?? "") } : null;
+}
 
 import {
   mapProduct,
@@ -45,7 +66,7 @@ async function taxonomy() {
 }
 
 async function loadTaxonomy() {
-  const supabase = getSupabase();
+  const supabase = await db();
   // En paralelo: antes eran 2 RTT secuenciales previos a cada consulta de
   // productos (retrasa el descubrimiento de la imagen LCP del hero).
   const [cats, brands] = await Promise.all([
@@ -111,7 +132,8 @@ export async function listProducts(
 ): Promise<CatalogProduct[]> {
   await taxonomy();
   const spec = sortSpec(sort);
-  const { data, error } = await getSupabase()
+  const supabase = await db();
+  const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
     .not("published_at", "is", null)
@@ -127,7 +149,8 @@ export async function getProductBySlug(
   slug: string,
 ): Promise<CatalogProduct | null> {
   await taxonomy();
-  const { data, error } = await getSupabase()
+  const supabase = await db();
+  const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
     .eq("slug", slug)
@@ -143,7 +166,8 @@ export async function getProductsByIds(
 ): Promise<CatalogProduct[]> {
   if (ids.length === 0) return [];
   await taxonomy();
-  const { data, error } = await getSupabase()
+  const supabase = await db();
+  const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
     .in("id", ids)
@@ -162,8 +186,7 @@ export async function getProductsByIds(
 
 /** Construye la query base con filtros por atributos (sin texto ni orden).
  *  Devuelve null cuando los filtros son imposibles (categoría/marca inexistente). */
-function filteredQuery(filters: ProductFilters) {
-  const supabase = getSupabase();
+function filteredQuery(filters: ProductFilters, supabase: SupabaseClient) {
   let query = supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
@@ -217,7 +240,7 @@ export async function searchProducts(
   const spec = sortSpec(sort);
 
   const run = async (mode: "ts" | "ilike"): Promise<CatalogProduct[]> => {
-    const base = filteredQuery(filters);
+    const base = filteredQuery(filters, await db());
     if (!base) return [];
     let withSearch = base;
     if (filters.query) {
@@ -263,7 +286,7 @@ export async function listBrands(): Promise<{ slug: string; name: string }[]> {
 export async function getCollection(
   slug: string,
 ): Promise<CatalogCollection | null> {
-  const supabase = getSupabase();
+  const supabase = await db();
   const { data: col, error } = await supabase
     .from("collections")
     .select("slug,name")

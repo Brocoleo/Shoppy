@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useWatch, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatCLP } from "../../lib/format";
-import { addressSchema, type AddressInput } from "@shopy/validation";
+import { addressSchema, REGIONES, type AddressInput } from "@shopy/validation";
 import {
   CheckoutApiError,
   closeCheckoutAttempt,
@@ -18,7 +18,8 @@ import {
   quoteCheckout,
   recoverCheckout,
 } from "../../lib/checkout";
-import { getSupabase, isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured } from "../../lib/supabase-config";
+import { getSupabase } from "../../lib/supabase";
 import { useSession } from "../../lib/session";
 import { useCart } from "../../lib/cart";
 import {
@@ -29,6 +30,7 @@ import {
   type PendingCheckout,
 } from "../../lib/pendingCheckout";
 import { ErrorState } from "../../components/States";
+import { AddressSelect } from "../../components/AddressSelect";
 
 type FieldName = keyof AddressInput;
 
@@ -37,8 +39,6 @@ const FIELDS: { name: FieldName; label: string; placeholder: string; autoComplet
   { name: "email", autoComplete: "email", label: "Email", placeholder: "maria@email.cl", type: "email" },
   { name: "phone", autoComplete: "tel", label: "Teléfono", placeholder: "+56912345678", type: "tel" },
   { name: "street", autoComplete: "street-address", label: "Calle y número", placeholder: "Av. Providencia 1234, dpto 56" },
-  { name: "comuna", autoComplete: "address-level2", label: "Comuna", placeholder: "Providencia" },
-  { name: "region", autoComplete: "address-level1", label: "Región", placeholder: "Metropolitana" },
 ];
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -76,8 +76,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
   const [provider, setProvider] = useState<"mock" | "mercadopago" | "transbank" | null>(null);
   const providers = useQuery({
     queryKey: ["payment-providers"],
-    queryFn: () =>
-      listPaymentProviders().catch(() => ({ providers: ["mock" as const], sandbox: true })),
+    queryFn: listPaymentProviders,
     enabled: isSupabaseConfigured,
   });
 
@@ -103,37 +102,57 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
     };
   }, [owner, restoreRetry]);
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<AddressInput>({ resolver: zodResolver(addressSchema) });
+  const { control, handleSubmit, reset, setValue, formState: { errors, dirtyFields } } = useForm<AddressInput>({ resolver: zodResolver(addressSchema) });
 
-  // Prefill con última dirección guardada (autenticados).
-  useQuery({
+  // Región → comuna: el select de comuna se llena solo con las comunas de la
+  // región elegida (16 regiones / 346 comunas oficiales, división SUBDERE).
+  const regionPicked = useWatch({ control, name: "region" }) ?? "";
+  const comunasDisponibles = REGIONES.find((r) => r.name === regionPicked)?.comunas ?? [];
+
+  // Keep dirty values when a slow saved-address request finishes.
+  void dirtyFields; // Subscribe so React Hook Form tracks keepDirtyValues.
+  const addressPrefilled = useRef(false);
+  const savedAddress = useQuery({
     queryKey: ["my-address", owner],
     queryFn: async () => {
-      const { data } = await getSupabase()
+      const { data, error } = await getSupabase()
         .from("addresses")
         .select("full_name,email,phone,street,comuna,region,zip_code,notes")
         .eq("user_id", owner)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) throw error;
       const row = data as unknown as Record<string, string | null> | null;
-      if (row) {
-        reset({
-          fullName: row["full_name"] ?? "",
-          email: row["email"] ?? "",
-          phone: row["phone"] ?? "",
-          street: row["street"] ?? "",
-          comuna: row["comuna"] ?? "",
-          region: row["region"] ?? "",
-          zipCode: row["zip_code"] ?? undefined,
-          notes: row["notes"] ?? undefined,
-        });
-      }
+
       return row;
     },
     enabled: isSupabaseConfigured && authed,
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    const row = savedAddress.data;
+    if (row && !addressPrefilled.current) {
+      addressPrefilled.current = true;
+      reset({
+        fullName: row["full_name"] ?? "",
+        email: row["email"] ?? "",
+        phone: row["phone"] ?? "",
+        street: row["street"] ?? "",
+        comuna: row["comuna"] ?? "",
+        region: row["region"] ?? "",
+        zipCode: row["zip_code"] ?? undefined,
+        notes: row["notes"] ?? undefined,
+      }, { keepDirtyValues: true });
+    }
+  }, [savedAddress.data, reset]);
+
+  const savedNeedsCorrection = savedAddress.data && !addressSchema.safeParse({
+    fullName: savedAddress.data.full_name, email: savedAddress.data.email,
+    phone: savedAddress.data.phone, street: savedAddress.data.street,
+    region: savedAddress.data.region, comuna: savedAddress.data.comuna,
+  }).success;
 
   const items = lines.map((l) => ({ product_id: l.productId, qty: l.qty }));
 
@@ -155,6 +174,12 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
       }),
     enabled: step >= 1 && Boolean(rateId && address?.region && items.length > 0),
   });
+
+  const canReview = rates.isSuccess && !rates.isFetching
+    && Boolean(rates.data.some((rate) => rate.id === rateId))
+    && quote.isSuccess && !quote.isFetching;
+  const canStartPayment = canReview && providers.isSuccess && !providers.isFetching
+    && Boolean(provider && providers.data.providers.includes(provider));
 
   const complete = async (res: Awaited<ReturnType<typeof confirmOrder>>, attempt = pending) => {
     if (res.status !== "PAID") throw new Error("Pago no confirmado");
@@ -178,7 +203,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
       try {
         let attempt = pending;
         if (!attempt) {
-          if (!address || !rateId || !provider || !quote.data || quote.isError || quote.isFetching) {
+          if (!address || !rateId || !provider || !canStartPayment) {
             throw new Error("Revisa los datos y la cotización.");
           }
           attempt = await newPendingCheckout(owner, {
@@ -316,12 +341,15 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
           onSubmit={handleSubmit((values) => {
             setAddress(values);
             setRateId(null);
+            setPayError(null);
             setStep(1);
           })}
         >
+          {savedAddress.isError ? <ErrorState message="No pudimos recuperar tu dirección guardada. Puedes escribirla aquí o reintentar." onRetry={() => void savedAddress.refetch()} /> : null}
+          {savedNeedsCorrection ? <p role="status" className="text-sm text-muted">Revisa tu dirección guardada: necesitamos calle y número, región y comuna válidas.</p> : null}
           {FIELDS.map((f) => (
-            <label key={f.name} className="flex flex-col gap-1 text-sm">
-              <span className="text-muted">{f.label}</span>
+            <div key={f.name} className="flex flex-col gap-1 text-sm">
+              <label htmlFor={`address-${f.name}`} className="text-muted">{f.label}</label>
               <Controller
                 control={control}
                 name={f.name}
@@ -332,7 +360,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                     id={`address-${name}`}
                     autoComplete={f.autoComplete}
                     aria-invalid={Boolean(errors[f.name])}
-                    aria-describedby={errors[f.name] ? `error-${name}` : undefined}
+                    aria-describedby={[errors[f.name] ? `error-${name}` : "", name === "street" ? "street-help" : ""].filter(Boolean).join(" ") || undefined}
                     type={f.type ?? "text"}
                     onBlur={onBlur}
                     onChange={onChange}
@@ -343,8 +371,29 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 )}
               />
               {errors[f.name] ? <span id={`error-${f.name}`} role="alert" className="text-xs text-red-700">{String(errors[f.name]?.message ?? "")}</span> : null}
-            </label>
+            </div>
           ))}
+          <p id="street-help" className="text-xs text-muted">Incluye el número después de la calle: 5 de Abril 1234. Es una comprobación de formato, no de ubicación.</p>
+          <div className="flex flex-col gap-1 text-sm">
+            <span id="address-region-label" className="text-muted">Región</span>
+            <Controller control={control} name="region" render={({ field }) => (
+              <AddressSelect {...field} id="address-region" value={field.value ?? ""}
+                placeholder="Selecciona tu región" options={REGIONES.map((region) => region.name)}
+                invalid={Boolean(errors.region)} describedBy={errors.region ? "error-region" : undefined}
+                onChange={(value) => { field.onChange(value); setValue("comuna", "", { shouldDirty: true }); }} />
+            )} />
+            {errors.region ? <span id="error-region" role="alert" className="text-xs text-red-700">{String(errors.region?.message ?? "")}</span> : null}
+          </div>
+          <div className="flex flex-col gap-1 text-sm">
+            <span id="address-comuna-label" className="text-muted">Comuna</span>
+            <Controller control={control} name="comuna" render={({ field }) => (
+              <AddressSelect {...field} id="address-comuna" value={field.value ?? ""}
+                placeholder={comunasDisponibles.length ? "Selecciona tu comuna" : "Primero elige tu región"}
+                options={comunasDisponibles} disabled={!comunasDisponibles.length}
+                invalid={Boolean(errors.comuna)} describedBy={errors.comuna ? "error-comuna" : undefined} />
+            )} />
+            {errors.comuna ? <span id="error-comuna" role="alert" className="text-xs text-red-700">{String(errors.comuna?.message ?? "")}</span> : null}
+          </div>
           <button type="submit" className="btn-press mt-2 h-11 bg-carbon text-sm font-semibold text-white transition-colors hover:bg-carbon-soft">
             Continuar al despacho
           </button>
@@ -354,10 +403,10 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
       {step === 1 ? (
         <div className="flex flex-col gap-3">
           <p className="font-medium">Despacho a {address?.comuna}, {address?.region}</p>
-          {rates.isPending ? <p className="text-sm text-muted">Cargando tarifas…</p> : null}
-          {rates.isError ? <p className="text-sm text-red-700">No pudimos cargar las tarifas. Revisa tu conexión.</p> : null}
+          {rates.isPending ? <p role="status" className="text-sm text-muted">Cargando tarifas…</p> : null}
+          {rates.isError ? <ErrorState message="No pudimos cargar las tarifas. Revisa tu conexión." onRetry={() => void rates.refetch()} /> : null}
           {!rates.isPending && !rates.isError && (rates.data ?? []).length === 0 ? (
-            <p className="text-sm text-red-700">No hay tarifas para esta región. Prueba con otra comuna.</p>
+            <p className="text-sm text-red-700">No hay tarifas disponibles para esta región. Puedes revisar tu dirección o volver al catálogo.</p>
           ) : null}
           {(rates.data ?? []).map((r) => (
             <label
@@ -415,7 +464,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
             </button>
             <button
               type="button"
-              disabled={!rateId || !quote.data || quote.isError || quote.isFetching}
+              disabled={!canReview}
               onClick={() => setStep(2)}
               className="btn-press bg-carbon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-carbon-soft disabled:opacity-50"
             >
@@ -458,6 +507,8 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                   No se pudieron cargar los medios. Reintentar
                 </button>
               ) : null}
+              {providers.isPending ? <p role="status" className="text-sm text-muted">Cargando medios de pago…</p> : null}
+              {providers.isSuccess && providers.data.providers.length === 0 ? <p role="status" className="text-sm text-muted">No hay medios de pago disponibles en este momento.</p> : null}
               {(providers.data?.providers ?? []).map((name) => (
                 <label
                   key={name}
@@ -492,7 +543,8 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               Ver pedido guardado
             </Link>
           ) : null}
-          {payError ? <p className="text-sm text-red-700">{payError}</p> : null}
+          {!pending && !canReview ? <p role="status" className="text-sm text-muted">La cotización se está revisando o dejó de estar disponible. Vuelve a despacho para revisarla.</p> : null}
+          {payError ? <p role="alert" className="text-sm text-red-700">{payError}</p> : null}
           <div className="mt-2 flex items-center justify-between">
             <button
               type="button"
@@ -507,7 +559,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
             </button>
             <button
               type="button"
-              disabled={pay.isPending || verifying || !restored || (!pending && (!provider || !quote.data || quote.isError || quote.isFetching))}
+              disabled={pay.isPending || verifying || !restored || (!pending && !canStartPayment)}
               onClick={() => {
                 setPayError(null);
                 pay.mutate();

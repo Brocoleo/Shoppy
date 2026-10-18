@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ["@shopy/types", "@shopy/shared", "@shopy/validation"],
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2_678_400,
     remotePatterns: [
       {
         protocol: "https",

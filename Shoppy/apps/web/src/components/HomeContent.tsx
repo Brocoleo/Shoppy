@@ -15,7 +15,7 @@ import { EditorialHero } from "./EditorialHero";
 import { Reveal } from "./Reveal";
 import { ProductGrid, ProductGridSkeleton } from "./ProductCard";
 import { ErrorState, SectionTitle, backendErrorMessage } from "./States";
-import { isSupabaseConfigured } from "../lib/supabase";
+import { isSupabaseConfigured } from "../lib/supabase-config";
 
 export default function HomeContent({
   initialProducts,

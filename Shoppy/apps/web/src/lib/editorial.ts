@@ -4,9 +4,14 @@ import {
   parseHero,
   type ArchiveEntry,
 } from "@shopy/shared/editorial";
-import { getSupabase } from "./supabase";
+/** supabase-js con carga diferida: solo los chunks que editan al fetch lo importan. */
+async function db() {
+  const { getSupabase } = await import("./supabase");
+  return getSupabase();
+}
 export async function loadEditorial() {
-  const { data, error } = await getSupabase()
+  const supabase = await db();
+  const { data, error } = await supabase
     .from("home_sections")
     .select("key,config")
     .in("key", ["hero", ARCHIVE_KEY])

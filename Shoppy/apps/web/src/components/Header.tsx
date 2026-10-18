@@ -66,7 +66,14 @@ export function Header() {
           Carrito{count > 0 ? ` (${count})` : ""}
         </Link>
 
-        {loading ? null : user ? (
+        {loading ? (
+          // Espacio reservado del slot de sesión: evita CLS cuando la sesión
+          // resuelve después de la hidratación (mismo alto que "Entrar"/"Salir").
+          <span
+            aria-hidden="true"
+            className="hidden min-h-11 min-w-[4.5rem] sm:block"
+          />
+        ) : user ? (
           <button
             type="button"
             onClick={() => signOut()}

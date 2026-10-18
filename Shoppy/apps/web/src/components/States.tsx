@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 export function LoadingState({ message = "Cargando…" }: { message?: string }) {
   return (
@@ -56,4 +57,16 @@ export function SectionTitle({ title, action, id }: { title: string; action?: Re
 
 export function backendErrorMessage(): string {
   return "Revisa tu conexión. Si el problema continúa, vuelve a intentarlo más tarde.";
+}
+
+/** Retry a failed server read without discarding the surrounding client state. */
+export function ServerReadError({ message }: { message: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <div aria-busy={pending}>
+      <ErrorState message={message} onRetry={() => startTransition(() => router.refresh())} />
+      {pending ? <p role="status" className="mt-3 text-center text-sm">Reintentando…</p> : null}
+    </div>
+  );
 }

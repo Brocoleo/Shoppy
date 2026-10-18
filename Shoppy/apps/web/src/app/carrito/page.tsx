@@ -6,7 +6,7 @@ import { formatCLP } from "../../lib/format";
 import { useCart } from "../../lib/cart";
 import { getProductsByIds } from "../../lib/catalog";
 import { ErrorState, LoadingState, backendErrorMessage } from "../../components/States";
-import { isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured } from "../../lib/supabase-config";
 
 export default function CarritoPage() {
   const { lines, ready, setQty, remove, clear } = useCart();

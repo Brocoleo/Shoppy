@@ -44,9 +44,22 @@ export function bridgeReturnHtml(
   webOrigin: string,
   ua: string,
 ): Response {
+  // A public HTTPS tunnel and localhost do not share the pending checkout storage.
+  // An explicit sandbox-only origin brings the same browser back to its local cart.
+  const sandboxOrigin = process.env.PAYMENT_SANDBOX_RETURN_ORIGIN;
+  if (sandboxOrigin) {
+    if (process.env.PAYMENT_MODE !== "sandbox") throw new Error("Retorno local solo permitido en sandbox");
+    const destination = new URL(sandboxOrigin);
+    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(destination.hostname);
+    if (destination.username || destination.password || destination.search || destination.hash
+      || destination.pathname !== "/" || (destination.protocol !== "https:" && !(destination.protocol === "http:" && loopback))) {
+      throw new Error("Origen de retorno sandbox inválido");
+    }
+    webOrigin = destination.origin;
+  }
   const appTarget = `shopy://checkout-return?state=${encodeURIComponent(state)}`;
   const webTarget = `${webOrigin}/checkout-return?state=${encodeURIComponent(state)}`;
-  const target = isMobileUa(ua) ? appTarget : webTarget;
+  const target = !sandboxOrigin && isMobileUa(ua) ? appTarget : webTarget;
   return bridgeHtml(
     `<p>Vuelve a vinta.zhe para verificar el resultado con el proveedor.</p>` +
       `<p><a href="${escapeHtml(webTarget)}">Continuar en la web</a> · <a href="${escapeHtml(appTarget)}">Abrir la app</a></p>` +

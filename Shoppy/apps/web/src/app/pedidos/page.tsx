@@ -6,7 +6,7 @@ import { formatCLP } from "../../lib/format";
 import { listMyOrders } from "../../lib/checkout";
 import { useSession } from "../../lib/session";
 import { ErrorState, LoadingState, backendErrorMessage } from "../../components/States";
-import { isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured } from "../../lib/supabase-config";
 
 export default function PedidosPage() {
   const { user, loading } = useSession();

@@ -24,7 +24,7 @@ import {
   editorialQueryKey,
   filterArchive,
 } from "../../lib/editorial";
-import { isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured } from "../../lib/supabase-config";
 
 const SORTS: { value: ProductSort; label: string }[] = [
   { value: "tendencia", label: "Tendencia" },
