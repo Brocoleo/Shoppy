@@ -1,4 +1,17 @@
-/** Use native decoding; unsupported HEIC is reported without pretending to convert it. */
+/**
+ * Preparación editorial de fotos de producto: recorte centrado a 4:5 (la
+ * proporción del grid del sitio) + compresión WebP. Así toda foto subida —
+ * aunque sea 1:1 o panorámica — queda en el mismo canvas y las tarjetas de
+ * catálogo se ven sin marcos ni bandas.
+ *
+ * Recorta tipo "cover": si la fuente es más ancha que 4:5 se recorta a los
+ * lados; si es más larga, se recorta arriba/abajo. Nunca agranda la foto.
+ */
+
+const MAX_LADO = 1800;
+const RATIO_W = 4;
+const RATIO_H = 5;
+
 export async function prepareImage(file: File): Promise<File> {
   if (file.size === 0 || file.size > 30 * 1024 * 1024)
     throw new Error(`${file.name}: elige una foto de hasta 30 MB.`);
@@ -13,13 +26,37 @@ export async function prepareImage(file: File): Promise<File> {
     );
   }
   try {
-    const scale = Math.min(1, 1800 / Math.max(bitmap.width, bitmap.height));
+    // 1) Escala lineal que respeta el lado máximo sin agrandar.
+    const scale = Math.min(
+      1,
+      MAX_LADO / Math.max(bitmap.width, bitmap.height),
+    );
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+
+    // 2) Canvas 4:5 cubierto por la imagen escalada (recorte centrado).
+    let canvasW: number;
+    let canvasH: number;
+    if (w / h > RATIO_W / RATIO_H) {
+      canvasH = h;
+      canvasW = Math.round((h * RATIO_W) / RATIO_H);
+    } else {
+      canvasW = w;
+      canvasH = Math.round((w * RATIO_H) / RATIO_W);
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.width = canvasW;
+    canvas.height = canvasH;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("No se pudo preparar la fotografía.");
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      bitmap,
+      (canvasW - w) / 2,
+      (canvasH - h) / 2,
+      w,
+      h,
+    );
     const blob = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(
         (b) =>
@@ -41,4 +78,31 @@ export async function prepareImage(file: File): Promise<File> {
   } finally {
     bitmap.close();
   }
+}
+
+/** Prueba del recorte centrado sin navegador (misma matemática en Node). */
+export function corteCentrado4x5(width: number, height: number): {
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+} {
+  const scale = Math.min(1, MAX_LADO / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  let canvasW: number;
+  let canvasH: number;
+  if (w / h > RATIO_W / RATIO_H) {
+    canvasH = h;
+    canvasW = Math.round((h * RATIO_W) / RATIO_H);
+  } else {
+    canvasW = w;
+    canvasH = Math.round((w * RATIO_H) / RATIO_W);
+  }
+  return {
+    width: canvasW,
+    height: canvasH,
+    offsetX: Math.round((canvasW - w) / 2),
+    offsetY: Math.round((canvasH - h) / 2),
+  };
 }
