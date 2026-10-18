@@ -16,6 +16,7 @@ import { timingSafeEqual } from "node:crypto";
 export function enabledPaymentProviders(): string[] {
   const names = (Deno.env.get("PAYMENT_PROVIDERS") ?? Deno.env.get("PAYMENT_PROVIDER") ?? "mock").split(",").map((v) => v.trim().toLowerCase());
   if (names.some((v) => !["mock", "mercadopago", "transbank"].includes(v))) throw new Error("PAYMENT_PROVIDERS inválido");
+  if (!sandboxOnly() && names.includes("mock")) throw new Error("mock no permitido en modo live");
   return [...new Set(names)];
 }
 
@@ -93,6 +94,35 @@ function mpAuth(): { accessToken: string; webhookSecret: string } {
   return { accessToken, webhookSecret };
 }
 
+type MercadoPagoTestIdentity = { sellerId: string; buyerId: string };
+
+/** Test-user credentials use the regular API and may return live_mode=true.
+ * This explicit flow requires a server-verified test seller and a pinned buyer;
+ * it never treats the browser return or the live_mode flag as proof of payment.
+ */
+async function mpTestIdentity(accessToken: string): Promise<MercadoPagoTestIdentity | null> {
+  if (Deno.env.get("MERCADOPAGO_TEST_USER_FLOW") !== "true") return null;
+  if (!sandboxOnly()) throw new Error("Flujo de usuarios test no permitido en modo live");
+  const buyerId = Deno.env.get("MERCADOPAGO_TEST_BUYER_ID") ?? "";
+  if (!/^\d+$/.test(buyerId)) throw new Error("Falta comprador de prueba configurado");
+  const seller = await mpFetch(accessToken, "/users/me");
+  const tags = seller["tags"];
+  const sellerId = String(seller["id"] ?? "");
+  if (!Array.isArray(tags) || !tags.includes("test_user") || seller["site_id"] !== "MLC"
+    || !/^\d+$/.test(sellerId) || sellerId === buyerId) {
+    throw new Error("La credencial no pertenece a un vendedor de prueba chileno");
+  }
+  return { sellerId, buyerId };
+}
+
+function mpPaymentEnvironmentMatches(payment: Record<string, unknown>, identity: MercadoPagoTestIdentity | null): boolean {
+  if (!identity) return payment["live_mode"] === !sandboxOnly();
+  const payer = payment["payer"] as { id?: unknown } | null;
+  return typeof payment["live_mode"] === "boolean"
+    && String(payment["collector_id"] ?? "") === identity.sellerId
+    && String(payer?.id ?? "") === identity.buyerId;
+}
+
 async function mpFetch(accessToken: string, path: string, init?: RequestInit) {
   const res = await fetch(`${MP_API}${path}`, {
     ...init,
@@ -137,7 +167,12 @@ export class MercadoPagoProvider implements PaymentProvider {
   readonly name = "mercadopago" as const;
 
   async createPayment(input: CreatePaymentInput, _idempotencyKey: string): Promise<PaymentResult> {
-    const { accessToken } = mpAuth();
+    const { accessToken, webhookSecret } = mpAuth();
+    await mpTestIdentity(accessToken);
+    if (!sandboxOnly() && !webhookSecret) throw new Error("falta MERCADOPAGO_WEBHOOK_SECRET para modo live");
+    const buyerEmail = sandboxOnly()
+      ? Deno.env.get("MERCADOPAGO_TEST_BUYER_EMAIL") ?? input.email
+      : input.email;
     const pref = await mpFetch(accessToken, "/checkout/preferences", {
       method: "POST",
       body: JSON.stringify({
@@ -150,33 +185,38 @@ export class MercadoPagoProvider implements PaymentProvider {
             unit_price: input.amountClp,
           },
         ],
-        payer: input.email ? { email: input.email } : undefined,
+        payer: buyerEmail ? { email: buyerEmail } : undefined,
         back_urls: input.returnUrl
           ? { success: input.returnUrl, pending: input.returnUrl, failure: input.returnUrl }
           : undefined,
         auto_return: input.returnUrl ? "approved" : undefined,
-        notification_url: input.webhookUrl,
+        notification_url: webhookSecret ? input.webhookUrl : undefined,
         external_reference: input.orderId,
       }),
     });
     const id = String(pref["id"] ?? "");
-    const url = (sandboxOnly() ? pref["sandbox_init_point"] : pref["init_point"]) as string | null;
+    // Test-user purchases also use init_point; the legacy sandbox URL fails.
+    const url = pref["init_point"] as string | null;
     if (!id || !url) throw new Error("mercadopago no devolvió preferencia válida");
     return { providerPaymentId: `mp_pref_${id}`, checkoutUrl: url, status: "PENDING" };
   }
 
   async verifyPayment(providerPaymentId: string, expectedAmountClp: number, orderId?: string): Promise<PaymentStatus> {
     const { accessToken } = mpAuth();
+    const testIdentity = await mpTestIdentity(accessToken);
     const ref = orderId ?? providerPaymentId;
     const search = await mpFetch(
       accessToken,
       `/v1/payments/search?external_reference=${encodeURIComponent(ref)}&sort=date_created&criteria=desc`,
     );
     const results = (search["results"] ?? []) as Record<string, unknown>[];
-    const approved = results.find(
-      (p) => p["status"] === "approved" && Number(p["transaction_amount"]) === expectedAmountClp && p["currency_id"] === "CLP" && p["external_reference"] === ref && (!sandboxOnly() || p["live_mode"] === false),
+    const matching = results.filter(
+      (p) => Number(p["transaction_amount"]) === expectedAmountClp && p["currency_id"] === "CLP" && p["external_reference"] === ref && mpPaymentEnvironmentMatches(p, testIdentity),
     );
-    return approved ? "APPROVED" : "PENDING";
+    if (matching.some((p) => p["status"] === "approved")) return "APPROVED";
+    // La búsqueda está ordenada por fecha descendente. Un intento pendiente
+    // más reciente no se rechaza por un pago fallido anterior.
+    return ["rejected", "cancelled", "refunded", "charged_back"].includes(String(matching[0]?.["status"])) ? "REJECTED" : "PENDING";
   }
 
   async refundPayment(providerPaymentId: string, amountClp?: number, orderId?: string): Promise<void> {
@@ -185,7 +225,7 @@ export class MercadoPagoProvider implements PaymentProvider {
     if (!/^\d+$/.test(paymentId)) {
       if (!orderId || !amountClp) throw new Error("Faltan datos para recuperar el pago");
       const search = await mpFetch(accessToken, `/v1/payments/search?external_reference=${encodeURIComponent(orderId)}`);
-      const payment = ((search["results"] ?? []) as Record<string, unknown>[]).find((p) => p["status"] === "approved" && p["external_reference"] === orderId && p["currency_id"] === "CLP" && Number(p["transaction_amount"]) === amountClp && (!sandboxOnly() || p["live_mode"] === false));
+      const payment = ((search["results"] ?? []) as Record<string, unknown>[]).find((p) => p["status"] === "approved" && p["external_reference"] === orderId && p["currency_id"] === "CLP" && Number(p["transaction_amount"]) === amountClp && p["live_mode"] === !sandboxOnly());
       if (!payment) throw new Error("Pago aprobado no encontrado");
       paymentId = String(payment["id"]);
     }
@@ -208,7 +248,9 @@ export class MercadoPagoProvider implements PaymentProvider {
     const payment = await mpFetch(accessToken, `/v1/payments/${encodeURIComponent(dataId)}`);
     const orderId = String(payment["external_reference"] ?? "");
     if (!orderId) throw new Error("webhook MP: sin external_reference");
-    if (sandboxOnly() && payment["live_mode"] !== false) throw new Error("Pago productivo no permitido en beta");
+    if (String(payment["id"]) !== dataId) throw new Error("webhook MP: identificador no coincide");
+    const testIdentity = await mpTestIdentity(accessToken);
+    if (!mpPaymentEnvironmentMatches(payment, testIdentity)) throw new Error("Modo de pago incompatible con el entorno");
     return { orderId, status: payment["status"] === "approved" ? "APPROVED" : "PENDING", amountClp: Number(payment["transaction_amount"]), currency: String(payment["currency_id"]), providerPaymentId: String(payment["id"]) };
   }
 }
@@ -308,6 +350,7 @@ export function getPaymentProvider(selected?: string): PaymentProvider {
   const name = (selected ?? Deno.env.get("PAYMENT_PROVIDER") ?? "mock").toLowerCase();
   if (name === "mercadopago") return new MercadoPagoProvider();
   if (name === "transbank") return new TransbankProvider();
+  if (name === "mock" && !sandboxOnly()) throw new Error("mock no permitido en modo live");
   if (name !== "mock") throw new Error(`provider ${name} desconocido (mock|mercadopago|transbank)`);
   return new MockPaymentProvider();
 }

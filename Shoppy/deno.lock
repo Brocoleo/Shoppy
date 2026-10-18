@@ -61,9 +61,9 @@
             "npm:@types/node@20",
             "npm:@types/react-dom@19",
             "npm:@types/react@19",
-            "npm:eslint-config-next@16.3.6",
+            "npm:eslint-config-next@16.4.2",
             "npm:eslint@9",
-            "npm:next@16.3.6",
+            "npm:next@16.4.2",
             "npm:react-dom@19.2.8",
             "npm:react@19.2.8",
             "npm:tailwindcss@4",
@@ -109,6 +109,31 @@
             "npm:typescript@~6.0.3",
             "npm:zod@^3.23.8",
             "npm:zustand@^5.0.2"
+          ]
+        }
+      },
+      "apps/web": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@hookform/resolvers@^5.9.1",
+            "npm:@shopy/shared@*",
+            "npm:@shopy/types@*",
+            "npm:@shopy/validation@*",
+            "npm:@supabase/supabase-js@^2.47.0",
+            "npm:@tailwindcss/postcss@4",
+            "npm:@tanstack/react-query@^5.104.0",
+            "npm:@types/node@20",
+            "npm:@types/react-dom@19",
+            "npm:@types/react@19",
+            "npm:eslint-config-next@16.4.2",
+            "npm:eslint@9",
+            "npm:next@16.4.2",
+            "npm:react-dom@19.2.8",
+            "npm:react-hook-form@^7.54.0",
+            "npm:react@19.2.8",
+            "npm:tailwindcss@4",
+            "npm:typescript@5",
+            "npm:zod@^3.23.8"
           ]
         }
       },

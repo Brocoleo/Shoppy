@@ -1,80 +1,7 @@
 import assert from "node:assert/strict";
-import { randomUUID, timingSafeEqual } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { test } from "node:test";
-import ts from "typescript";
-import { z } from "zod";
-
-const product = "10000000-0000-4000-8000-000000000001";
-const rate = "20000000-0000-4000-8000-000000000001";
-const source = readFileSync(new URL("../functions/checkout/index.ts", import.meta.url), "utf8");
-const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
-function fixture({ failProvider = false, verdict = "APPROVED", webhookAmount = 1000 } = {}) {
-  const rows = {
-    products: [{ id: product, slug: "prenda", name: "Prenda", price_clp: 1000, stock: 1, availability: "AVAILABLE", published_at: "2026-01-01", condition: "bueno" }],
-    shipping_rates: [{ id: rate, region: "Metropolitana", price_clp: 0, is_active: true }],
-    checkout_attempts: [], orders: [], order_items: [], payments: [], product_images: [], brands: [], addresses: [], profiles: [],
-  };
-  let createCalls = 0;
-  const db = {
-    auth: { getUser: async (token) => ({ data: { user: token === "valid" ? { id: "account" } : null } }) },
-    from(table) {
-      let filters = []; let operation = "select"; let payload;
-      const execute = () => {
-        const selected = rows[table].filter((row) => filters.every((fn) => fn(row)));
-        if (operation === "insert") {
-          if (table === "checkout_attempts" && rows[table].some((row) => row.id === payload.id)) return { data: null, error: { code: "23505" } };
-          const inserted = (Array.isArray(payload) ? payload : [payload]).map((row) => ({ id: randomUUID(), ...row }));
-          rows[table].push(...inserted); return { data: inserted, error: null };
-        }
-        if (operation === "update") selected.forEach((row) => Object.assign(row, payload));
-        return { data: selected, error: null };
-      };
-      const query = {
-        select() { return query; }, insert(value) { operation = "insert"; payload = value; return query; },
-        update(value) { operation = "update"; payload = value; return query; },
-        eq(key, value) { filters.push((row) => row[key] === value); return query; },
-        is(key, value) { filters.push((row) => (row[key] ?? null) === value); return query; },
-        in(key, values) { filters.push((row) => values.includes(row[key])); return query; },
-        order() { return query; }, limit() { return query; },
-        async single() { const result = execute(); return { ...result, data: result.data?.[0] ?? null }; },
-        async maybeSingle() { return query.single(); },
-        then(resolve, reject) { return Promise.resolve(execute()).then(resolve, reject); },
-      }; return query;
-    },
-    async rpc(name, input) {
-      if (name === "create_checkout_order") {
-        const order = { id: randomUUID(), order_number: "SHO-TEST", guest_token: input.p_guest_token, user_id: input.p_user, total_clp: input.p_quote.total_clp, status: "PENDING_PAYMENT" };
-        rows.orders.push(order); rows.checkout_attempts.find((a) => a.id === input.p_attempt).order_id = order.id;
-        return { data: order, error: null };
-      }
-      if (name === "settle_checkout_payment") {
-        rows.payments.find((p) => p.id === input.p_payment).status = "approved";
-        return { data: "PAID", error: null };
-      }
-      throw new Error(`Unexpected RPC ${name}`);
-    },
-  };
-  let handler;
-  const provider = {
-    name: "mock",
-    async createPayment() { createCalls++; if (failProvider) throw new Error("Lost response"); return { providerPaymentId: "mock-payment", status: "PENDING", checkoutUrl: null }; },
-    async verifyPayment() { return verdict; },
-    async handleWebhook() { return { orderId: rows.orders[0]?.id, status: "APPROVED", amountClp: webhookAmount, currency: "CLP", providerPaymentId: "123" }; },
-  };
-  const modules = {
-    "https://deno.land/std@0.208.0/http/server.ts": { serve: (fn) => { handler = fn; } },
-    "node:crypto": { timingSafeEqual },
-    "https://esm.sh/@supabase/supabase-js@2.117.2": { createClient: () => db },
-    "npm:zod": { z },
-    "../_shared/payment.ts": { getPaymentProvider: () => provider, enabledPaymentProviders: () => ["mock"], sandboxOnly: () => true },
-    "../_shared/notify.ts": { sendOrderEmail: async () => ({ sent: true }) },
-    "../_shared/ratelimit.ts": { rateLimit: () => null },
-  };
-  new Function("require", "exports", "Deno", outputText)((id) => { if (!modules[id]) throw new Error(id); return modules[id]; }, {}, { env: { get: (key) => ({ SUPABASE_URL: "https://example.test", SUPABASE_SECRET_KEY: "test" })[key] } });
-  return { rows, get createCalls() { return createCalls; }, async call(body, token) { return handler(new Request("https://example.test/functions/v1/checkout", { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) })); } };
-}
-function input() { return { action: "create", items: [{ product_id: product, qty: 1 }], shipping_rate_id: rate, address: { fullName: "Test User", email: "test@example.test", phone: "+56911111111", street: "Calle 123", comuna: "Santiago", region: "Metropolitana" }, idempotency_key: randomUUID(), attempt_secret: randomUUID() }; }
+import { fixture, input, product, rate } from "./helpers/checkout-fixture.mjs";
 
 test("dos solicitudes simultáneas crean un solo pedido y un solo pago", async () => {
   const f = fixture(); const request = input();
@@ -114,4 +41,158 @@ test("webhook con monto distinto no confirma el pedido", async () => {
   const f = fixture({ webhookAmount: 999 }); await f.call(input());
   assert.equal((await f.call({ action: "webhook" })).status, 400);
   assert.equal(f.rows.payments[0].status, "pending");
+});
+
+test("CORS cubre preflight, éxito y errores sin credenciales", async () => {
+  const f = fixture();
+  for (const response of [await f.call(null, null, { method: "OPTIONS" }), await f.call({ action: "providers" }), await f.call({ action: "unknown" })]) {
+    assert.equal(response.headers.get("access-control-allow-origin"), "https://store.test");
+    assert.match(response.headers.get("vary"), /Origin/i);
+    assert.equal(response.headers.get("access-control-allow-credentials"), null);
+  }
+});
+test("servidor rechaza direcciones manipuladas y no crea pedidos", async () => {
+  for (const address of [{ street: "123" }, { street: "5 de Abril" }, { comuna: "Temuco" }, { region: "Desconocida" }]) {
+    const f = fixture(); const request = input();
+    assert.equal((await f.call({ ...request, address: { ...request.address, ...address } })).status, 400);
+    assert.equal(f.rows.orders.length, 0);
+    assert.equal(f.rows.checkout_attempts.length, 0);
+  }
+});
+test("quote rechaza cantidades, duplicados y región desconocida", async () => {
+  const f = fixture();
+  const quote = { action: "quote", shipping_rate_id: rate, region: "Metropolitana", items: [{ product_id: product, qty: 1 }] };
+  for (const patch of [{ items: [{ product_id: product, qty: 0 }] }, { items: [{ product_id: product, qty: 1.5 }] }, { items: [...quote.items, ...quote.items] }, { region: "inventada" }]) {
+    assert.equal((await f.call({ ...quote, ...patch })).status, 400);
+  }
+});
+test("precios y totales del cliente se ignoran; precios monetarios inválidos se rechazan", async () => {
+  const f = fixture();
+  const quote = { action: "quote", shipping_rate_id: rate, region: "Metropolitana", items: [{ product_id: product, qty: 1, price_clp: 1 }], total_clp: 1 };
+  assert.equal((await (await f.call(quote)).json()).total_clp, 1000);
+  for (const price of [-1, 0, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    f.rows.products[0].price_clp = price;
+    assert.equal((await f.call(quote)).status, 409);
+  }
+});
+test("ejemplos, demos, ocultos y stock insuficiente no se compran", async () => {
+  for (const patch of [{ metadata: { example: true } }, { metadata: { demo: true } }, { published_at: null }, { availability: "ARCHIVED" }, { availability: "SOLD" }, { stock: 0 }]) {
+    const f = fixture(); Object.assign(f.rows.products[0], patch);
+    assert.equal((await f.call(input())).status, 409);
+    assert.equal(f.rows.orders.length, 0);
+    assert.equal(f.createCalls, 0);
+  }
+});
+test("tarifas ajenas e inactivas se rechazan; OTRAS admite región conocida", async () => {
+  const f = fixture();
+  const quote = { action: "quote", shipping_rate_id: rate, region: "Ñuble", items: [{ product_id: product, qty: 1 }] };
+  f.rows.shipping_rates[0].region = "Biobío";
+  assert.equal((await f.call(quote)).status, 400);
+  f.rows.shipping_rates[0].region = "OTRAS";
+  assert.equal((await f.call(quote)).status, 200);
+  f.rows.shipping_rates[0].is_active = false;
+  assert.equal((await f.call(quote)).status, 400);
+});
+test("cuenta ajena e invitado no pueden confirmar pedido autenticado", async () => {
+  const f = fixture(); const created = await (await f.call(input(), "valid")).json();
+  assert.equal((await f.call({ action: "confirm", order_id: created.order_id })).status, 403);
+  assert.equal((await f.call({ action: "confirm", order_id: created.order_id, guest_token: "cualquier" })).status, 403);
+  f.rows.orders[0].user_id = "other-account";
+  assert.equal((await f.call({ action: "confirm", order_id: created.order_id }, "valid")).status, 403);
+});
+test("save_address asigna exclusivamente el dueño autenticado", async () => {
+  const f = fixture(); const request = input();
+  await f.call({ ...request, save_address: true, user_id: "attacker", address: { ...request.address, user_id: "attacker" } }, "valid");
+  assert.equal(f.rows.addresses.length, 1);
+  assert.equal(f.rows.addresses[0].user_id, "account");
+  assert.equal(f.rows.addresses[0].region, "Metropolitana");
+});
+test("pago rechazado no liquida ni descuenta stock adicional a la reserva", async () => {
+  const f = fixture({ verdict: "REJECTED" }); const created = await (await f.call(input())).json();
+  assert.equal((await f.call({ action: "confirm", order_id: created.order_id, guest_token: created.guest_token })).status, 402);
+  assert.equal(f.rows.orders[0].status, "PENDING_PAYMENT");
+  assert.equal(f.rows.products[0].stock, 0);
+});
+test("confirmaciones repetidas convergen sin repetir descuento (RPC simulado)", async () => {
+  const f = fixture(); const created = await (await f.call(input())).json();
+  const confirm = { action: "confirm", order_id: created.order_id, guest_token: created.guest_token };
+  assert.equal((await f.call(confirm)).status, 200);
+  assert.equal((await f.call(confirm)).status, 200);
+  assert.equal(f.rows.products[0].stock, 0);
+  assert.equal(f.rows.orders[0].status, "PAID");
+});
+test("monto de pago almacenado distinto al pedido impide confirmación", async () => {
+  const f = fixture(); const created = await (await f.call(input())).json(); f.rows.payments[0].amount_clp = 999;
+  assert.equal((await f.call({ action: "confirm", order_id: created.order_id, guest_token: created.guest_token })).status, 409);
+  assert.equal(f.rows.orders[0].status, "PENDING_PAYMENT");
+});
+test("webhook inválido, moneda incorrecta y pendiente nunca liquidan", async () => {
+  for (const options of [{ webhookError: true }, { webhookCurrency: "USD" }, { webhookStatus: "PENDING" }]) {
+    const f = fixture(options); await f.call(input());
+    const response = await f.call({ action: "webhook" });
+    assert.equal(response.status, options.webhookError ? 401 : options.webhookCurrency ? 400 : 200);
+    assert.equal(f.rows.products[0].stock, 0);
+    assert.equal(f.rows.payments[0].status, "pending");
+    assert.doesNotMatch(await response.text(), /secret credentials/);
+  }
+});
+test("webhooks duplicados y pendientes tardíos no revierten PAID (RPC simulado)", async () => {
+  const f = fixture(); await f.call(input()); f.rows.payments[0].provider = "mercadopago";
+  assert.equal((await f.call({ action: "webhook" })).status, 200);
+  assert.equal((await f.call({ action: "webhook" })).status, 200);
+  f.setWebhookStatus("PENDING");
+  assert.equal((await f.call({ action: "webhook" })).status, 200);
+  assert.equal(f.rows.products[0].stock, 0);
+  assert.equal(f.rows.orders[0].status, "PAID");
+});
+test("errores de DB no exponen detalles y error de liquidación permanece reintentable", async () => {
+  const broken = fixture({ dbError: true }); const failed = await broken.call(input());
+  assert.equal(failed.status, 500); assert.doesNotMatch(await failed.text(), /credentials/);
+  const f = fixture({ settleError: true }); const created = await (await f.call(input())).json();
+  const response = await f.call({ action: "confirm", order_id: created.order_id, guest_token: created.guest_token });
+  assert.equal(response.status, 500); assert.doesNotMatch(await response.text(), /private SQL/);
+  assert.equal(f.rows.products[0].stock, 0);
+});
+
+test("fallo transitorio del proveedor en webhook devuelve 503 para reintentar", async () => {
+  const f = fixture({ webhookError: "mercadopago HTTP 503: secret credentials" }); await f.call(input());
+  const response = await f.call({ action: "webhook" });
+  assert.equal(response.status, 503); assert.doesNotMatch(await response.text(), /secret credentials/);
+  assert.equal(f.rows.orders[0].status, "PENDING_PAYMENT");
+});
+
+test("cupón se calcula en servidor y descuento corrupto no produce total negativo", async () => {
+  const quote = { action: "quote", shipping_rate_id: rate, region: "Metropolitana", items: [{ product_id: product, qty: 1 }], discount_code: "TEST", discount_clp: 999 };
+  const f = fixture();
+  const result = await (await f.call(quote)).json();
+  assert.equal(result.discount_clp, 100); assert.equal(result.total_clp, 900);
+  for (const discountAmount of [-1, 1001, 0.5]) {
+    const bad = fixture({ discountAmount });
+    assert.equal((await bad.call(quote)).status, 500);
+  }
+});
+
+test("crear reserva stock una sola vez; confirmaciones duplicadas no vuelven a descontar (RPC simulado)", async () => {
+  const f = fixture(); const request = input();
+  const created = await (await f.call(request)).json();
+  assert.equal(f.rows.orders[0].status, "PENDING_PAYMENT");
+  assert.equal(f.rows.products[0].stock, 0);
+  assert.equal(f.stockDeductions, 1);
+  assert.equal((await f.call(request)).status, 200);
+  assert.equal(f.stockDeductions, 1);
+  const confirm = { action: "confirm", order_id: created.order_id, guest_token: created.guest_token };
+  assert.equal((await f.call(confirm)).status, 200);
+  assert.equal((await f.call(confirm)).status, 200);
+  assert.equal(f.stockDeductions, 1);
+  assert.equal(f.rows.products[0].stock, 0);
+  assert.equal(f.rows.orders[0].status, "PAID");
+});
+
+test("errores desconocidos de RPC no se publican como códigos internos", async () => {
+  const f = fixture({ discountError: true });
+  const response = await f.call({ action: "quote", items: [{ product_id: product, qty: 1 }], region: "Metropolitana", shipping_rate_id: rate, discount_code: "TEST" });
+  const body = await response.json();
+  assert.equal(response.status, 400);
+  assert.equal(body.error.code, "INVALID_DISCOUNT");
+  assert.doesNotMatch(JSON.stringify(body), /PRIVATE_CREDENTIAL|private diagnostic/);
 });

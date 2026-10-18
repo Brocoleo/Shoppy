@@ -10,20 +10,25 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { timingSafeEqual } from "node:crypto";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
-import { z } from "npm:zod";
+import { z } from "npm:zod@3.25.76";
 import { getPaymentProvider, enabledPaymentProviders, sandboxOnly } from "../_shared/payment.ts";
 import { sendOrderEmail } from "../_shared/notify.ts";
 import { rateLimit } from "../_shared/ratelimit.ts";
+import { addressFields, addressIssues, isKnownRegion, matchesShippingRegion, isCommercialProduct } from "../_shared/checkout-rules.ts";
 
 const addressSchema = z.object({
-  fullName: z.string().min(2).max(120),
-  email: z.string().email().max(160),
-  phone: z.string().min(6).max(30),
-  street: z.string().min(3).max(200),
-  comuna: z.string().min(2).max(100),
-  region: z.string().min(2).max(100),
-  zipCode: z.string().max(20).nullish(),
-  notes: z.string().max(500).nullish(),
+  fullName: z.string().min(addressFields.fullName.min).max(addressFields.fullName.max),
+  email: z.string().email().max(addressFields.email.max),
+  phone: z.string().min(addressFields.phone.min).max(addressFields.phone.max),
+  street: z.string().min(addressFields.street.min).max(addressFields.street.max),
+  comuna: z.string().min(addressFields.comuna.min).max(addressFields.comuna.max),
+  region: z.string().min(addressFields.region.min).max(addressFields.region.max),
+  zipCode: z.string().max(addressFields.zipCode.max).nullish(),
+  notes: z.string().max(addressFields.notes.max).nullish(),
+}).superRefine((address, ctx) => {
+  for (const issue of addressIssues(address)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: [issue.path], message: issue.message });
+  }
 });
 
 const itemSchema = z.object({
@@ -36,7 +41,7 @@ const quoteSchema = z.object({
   items: z.array(itemSchema).min(1).max(50),
   shipping_rate_id: z.string().uuid(),
   discount_code: z.string().max(40).nullish(),
-  region: z.string().min(2).max(100),
+  region: z.string().min(2).max(100).refine(isKnownRegion, "Región inválida."),
 });
 
 const createSchema = z.object({
@@ -110,8 +115,14 @@ function storageBase(): string {
 
 function dbCode(err: { message?: string } | null, fallback: string): string {
   const msg = err?.message ?? "";
-  const m = msg.match(/([A-Z_]+)(:|$)/);
-  return m ? (m[1] as string) : fallback;
+  const code = msg.match(/^([A-Z_]+)(:|$)/)?.[1];
+  const publicCodes = new Set([
+    "DISCOUNT_NOT_FOUND", "DISCOUNT_INACTIVE", "DISCOUNT_NOT_STARTED",
+    "DISCOUNT_EXPIRED", "DISCOUNT_MIN_SUBTOTAL", "DISCOUNT_USAGE_LIMIT",
+    "ATTEMPT_NOT_AVAILABLE", "INSUFFICIENT_STOCK", "PRODUCT_UNAVAILABLE",
+    "INVALID_QTY", "ORDER_NOT_FOUND", "RESERVATION_EXPIRED",
+  ]);
+  return code && publicCodes.has(code) ? code : fallback;
 }
 
 async function computeQuote(
@@ -119,9 +130,10 @@ async function computeQuote(
   input: { items: { product_id: string; qty: number }[]; shipping_rate_id: string; discount_code?: string | null; region: string },
 ): Promise<Quote> {
   const ids = [...new Set(input.items.map((i) => i.product_id))];
+  if (ids.length !== input.items.length) throw new CheckoutError(400, "VALIDATION", "Productos repetidos.");
   const { data: products, error: pErr } = await db
     .from("products")
-    .select("id,slug,name,brand_id,size,color,condition,price_clp,stock,availability,published_at")
+    .select("id,slug,name,brand_id,size,color,condition,price_clp,stock,availability,published_at,metadata")
     .in("id", ids);
   if (pErr) throw new CheckoutError(500, "DB_ERROR", "No se pudo validar el carrito.");
   const byId = new Map(((products ?? []) as Record<string, unknown>[]).map((r) => [r["id"] as string, r]));
@@ -151,10 +163,13 @@ async function computeQuote(
       | {
         slug: string; name: string; brand_id: string | null; size: string | null;
         color: string | null; condition: string; price_clp: number; stock: number;
-        availability: string; published_at: string | null;
+        id: string; metadata?: unknown; availability: string; published_at: string | null;
       }
       | undefined;
-    if (!p || !p.published_at || p.availability === "ARCHIVED" || p.availability === "SOLD") {
+    if (!p || !isCommercialProduct(p)) {
+      throw new CheckoutError(409, "PRODUCT_UNAVAILABLE", "Una prenda ya no está disponible.");
+    }
+    if (!Number.isSafeInteger(p.stock) || !Number.isSafeInteger(p.price_clp) || p.price_clp <= 0) {
       throw new CheckoutError(409, "PRODUCT_UNAVAILABLE", "Una prenda ya no está disponible.");
     }
     if (p.stock < item.qty) {
@@ -184,12 +199,11 @@ async function computeQuote(
   if (rErr || !rate) throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inválida.");
   const typedRate = rate as unknown as { region: string; price_clp: number; is_active: boolean };
   if (!typedRate.is_active) throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inactiva.");
-  // Comparación insensible a mayúsculas/tildes/espacios ("Metropolitana" =
-  // "METROPOLITANA "). "OTRAS" sigue como comodín.
-  const normRegion = (s: string) =>
-    s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  if (normRegion(typedRate.region) !== normRegion(input.region) && normRegion(typedRate.region) !== "otras") {
+  if (!matchesShippingRegion(typedRate.region, input.region)) {
     throw new CheckoutError(400, "INVALID_RATE", "La tarifa no corresponde a tu región.");
+  }
+  if (!Number.isSafeInteger(typedRate.price_clp) || typedRate.price_clp < 0) {
+    throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inválida.");
   }
 
   let discount_clp = 0;
@@ -216,10 +230,16 @@ async function computeQuote(
       discount_id: string;
       amount_clp: number;
     };
+    if (!row || !Number.isSafeInteger(row.amount_clp) || row.amount_clp < 0 || row.amount_clp > subtotal) {
+      throw new CheckoutError(500, "DB_ERROR", "No se pudo validar el cupón.");
+    }
     discount_id = row.discount_id;
     discount_clp = row.amount_clp;
   }
 
+  if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(subtotal - discount_clp + typedRate.price_clp)) {
+    throw new CheckoutError(409, "INVALID_TOTAL", "No se pudo calcular el total del pedido.");
+  }
   return {
     lines,
     subtotal_clp: subtotal,
@@ -291,13 +311,14 @@ async function handleCreate(db: SupabaseClient, userId: string | null, body: unk
   let createdOrder = false;
   try {
     const quote = await computeQuote(db, { ...input, region: input.address.region });
+    const mode = sandboxOnly() ? "test" : "live";
     const { data: order, error } = await db.rpc("create_checkout_order", {
-      p_attempt: key, p_user: userId, p_guest_token: userId ? null : crypto.randomUUID(), p_input: input, p_quote: quote,
+      p_attempt: key, p_user: userId, p_guest_token: userId ? null : crypto.randomUUID(), p_input: input, p_quote: quote, p_mode: mode,
     });
     if (error || !order) throw new CheckoutError(409, dbCode(error, "CREATE_FAILED"), "No se pudo reservar el pedido. Revisa stock y cupón.");
     createdOrder = true;
     const returnToken = crypto.randomUUID();
-    const { data: payRow, error: payError } = await db.from("payments").insert({ order_id: order.id, provider: provider.name, amount_clp: order.total_clp, status: "pending", idempotency_key: key, return_token: returnToken }).select("id").single();
+    const { data: payRow, error: payError } = await db.from("payments").insert({ order_id: order.id, provider: provider.name, amount_clp: order.total_clp, status: "pending", idempotency_key: key, return_token: returnToken, mode }).select("id").single();
     if (payError) throw new Error("No se pudo registrar el intento de pago");
     const functionsBase = (Deno.env.get("FUNCTIONS_PUBLIC_URL") ?? `${Deno.env.get("SUPABASE_URL")}/functions/v1`).replace(/\/$/, "").replace(/\/functions\/v1$/, "");
     const payment = await provider.createPayment({ orderId: order.id, orderNumber: order.order_number, amountClp: order.total_clp,
@@ -330,7 +351,7 @@ async function convergePaid(db: SupabaseClient, order: { id: string; order_numbe
   return ok({ order_id: order.id, order_number: order.order_number, status: "PAID", guest_token: order.guest_token });
 }
 
-/** Resuelve el user_id desde el JWT (null si ausente/inválido → invitado). */
+/** Solo la ausencia de JWT permite un pedido invitado; un JWT inválido se rechaza. */
 async function authUserId(db: SupabaseClient, req: Request): Promise<string | null> {
   const jwt = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!jwt) return null;
@@ -384,6 +405,9 @@ async function handleConfirm(db: SupabaseClient, userId: string | null, body: un
   } | null;
   if (!typedPayment) return bad(404, "PAYMENT_NOT_FOUND", "Pago no encontrado.");
 
+  if (typedPayment.amount_clp !== typedOrder.total_clp || !["mock", "mercadopago", "transbank"].includes(typedPayment.provider)) {
+    return bad(409, "PAYMENT_MISMATCH", "Los datos del pago requieren revisión.");
+  }
   if (typedPayment.status === "refunded") return bad(409, "REFUNDED", "El pago fue reembolsado.");
   if (typedPayment.status === "approved") return (await convergePaid(db, typedOrder, typedPayment.id))!;
   if (!typedPayment.provider_payment_id) return bad(409, "ATTEMPT_REVIEW", "El proveedor aún no está registrado. Requiere revisión.");
@@ -420,8 +444,9 @@ async function handleWebhook(db: SupabaseClient, req: Request, body: unknown): P
     result = await provider.handleWebhook({ headers, query, body });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "webhook inválido";
-    const status = msg.includes("firma inválida") ? 401 : 400;
-    return bad(status, "WEBHOOK_REJECTED", msg);
+    const status = msg.includes("firma inválida") ? 401
+      : /^(webhook MP:|Modo de pago)/.test(msg) ? 400 : 503;
+    return bad(status, status === 503 ? "PAYMENT_UNAVAILABLE" : "WEBHOOK_REJECTED", "No se pudo validar la notificación de pago.");
   }
   if (result.status !== "APPROVED") {
     return Response.json({ received: true }, { status: 200 });
@@ -435,17 +460,19 @@ async function handleWebhook(db: SupabaseClient, req: Request, body: unknown): P
     id: string; order_number: string; status: string; guest_token: string | null; total_clp: number;
   } | null;
   if (!typedOrder) return Response.json({ received: true }, { status: 200 });
-  if (result.amountClp !== typedOrder.total_clp || result.currency !== "CLP") return bad(400, "PAYMENT_MISMATCH", "Monto o moneda inválido.");
+  if (!result.providerPaymentId || result.amountClp !== typedOrder.total_clp || result.currency !== "CLP") return bad(400, "PAYMENT_MISMATCH", "Monto o moneda inválido.");
   const { data: payment } = await db
     .from("payments")
-    .select("id")
+    .select("id,amount_clp")
     .eq("order_id", result.orderId)
     .eq("provider", "mercadopago")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const paymentId = (payment as unknown as { id: string } | null)?.id;
+  const typedPayment = payment as unknown as { id: string; amount_clp: number } | null;
+  const paymentId = typedPayment?.id;
   if (!paymentId) return Response.json({ received: true }, { status: 200 });
+  if (typedPayment?.amount_clp !== result.amountClp) return bad(400, "PAYMENT_MISMATCH", "Monto o moneda inválido.");
   const { error: eventError } = await db.from("payments").update({ raw_payload: { payment_id: result.providerPaymentId } }).eq("id", paymentId);
   if (eventError) throw eventError;
   const converged = await convergePaid(db, typedOrder, paymentId);
@@ -503,7 +530,39 @@ function bad(status: number, code: string, message: string): Response {
   return Response.json({ error: { code, message } }, { status });
 }
 
+/**
+ * CORS: el browser llama quote/create/confirm desde el sitio (apikey +
+ * Authorization, sin cookies/credenciales). ACAO = echo del Origin del
+ * request — cubre cualquier dominio de la tienda sin wildcard (y sin el
+ * comportamiento de enriquecimiento que duplicaba el header `*`).
+ */
+function corsHeaders(req: Request): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": req.headers.get("Origin") ?? "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, apikey, Authorization, x-client-info",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders(req) });
+  }
+  const res = await handleCheckout(req);
+  const headers = new Headers(res.headers);
+  for (const [key, value] of Object.entries(corsHeaders(req))) {
+    if (key === "Vary") {
+      const fields = (headers.get("Vary") ?? "").split(",").map((field) => field.trim()).filter(Boolean);
+      if (!fields.some((field) => field.toLowerCase() === "origin")) fields.push("Origin");
+      headers.set("Vary", fields.join(", "));
+    } else headers.set(key, value);
+  }
+  return new Response(res.body, { status: res.status, headers });
+});
+
+async function handleCheckout(req: Request): Promise<Response> {
   if (req.method !== "POST") return bad(405, "METHOD", "Solo POST.");
   let body: unknown;
   try {
@@ -535,9 +594,9 @@ serve(async (req) => {
     if (action === "recover") {
       const parsed = z.object({ idempotency_key: z.string().uuid(), attempt_secret: z.string().uuid() }).safeParse(body);
       if (!parsed.success) return bad(400, "VALIDATION", "Intento inválido.");
-      return recoverAttempt(db, await authUserId(db, req), parsed.data.idempotency_key, parsed.data.attempt_secret);
+      return await recoverAttempt(db, await authUserId(db, req), parsed.data.idempotency_key, parsed.data.attempt_secret);
     }
-    if (action === "close_attempt") return closeAttempt(db, await authUserId(db, req), body);
+    if (action === "close_attempt") return await closeAttempt(db, await authUserId(db, req), body);
     if (action === "refund") return await handleRefund(db, await authUserId(db, req), body);
     if (action === "quote") return await handleQuote(db, body);
     if (action === "create") {
@@ -547,7 +606,8 @@ serve(async (req) => {
     return bad(400, "VALIDATION", "action debe ser quote|create|confirm|webhook.");
   } catch (e) {
     if (e instanceof CheckoutError) return bad(e.status, e.code, e.message);
-    console.error("checkout error:", e);
+    // No registrar excepciones de proveedores/DB: pueden contener datos personales o secretos.
+    console.error("checkout error: INTERNAL");
     return bad(500, "INTERNAL", "Error interno.");
   }
-});
+}

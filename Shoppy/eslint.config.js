@@ -16,12 +16,20 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["supabase/**/*.mjs", "apps/mobile/tests/**/*.mjs"],
+    files: ["supabase/**/*.mjs", "apps/mobile/tests/**/*.mjs", "scripts/*.test.mjs", "scripts/local-checkout/**/*.{mjs,cjs}"],
     languageOptions: { globals: globals.node },
   },
   {
+    files: ["scripts/local-checkout/browser-tools.js"],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    files: ["scripts/local-checkout/network-guard.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
     // Los scripts de auditoría ejecutan Node y funciones dentro de Chrome.
-    files: ["docs/auditoria-web-*/**/*.{cjs,mjs}"],
+    files: ["docs/auditoria-web-*/**/*.{cjs,mjs}", "docs/checkout-seguridad-*/**/*.{cjs,mjs}"],
     languageOptions: { globals: { ...globals.node, ...globals.browser, axe: "readonly" } },
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },

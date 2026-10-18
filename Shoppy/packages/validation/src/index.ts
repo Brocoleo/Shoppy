@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { addressIssues, addressFields } from "../../../supabase/functions/_shared/checkout-rules.ts";
 
 export const productConditionSchema = z.enum([
   "como_nuevo",
@@ -14,16 +15,25 @@ export const productAvailabilitySchema = z.enum([
   "ARCHIVED",
 ]);
 
-export const addressSchema = z.object({
-  fullName: z.string().min(2).max(120),
-  email: z.string().email().max(160),
-  phone: z.string().min(6).max(30),
-  street: z.string().min(3).max(200),
-  comuna: z.string().min(2).max(100),
-  region: z.string().min(2).max(100),
-  zipCode: z.string().max(20).nullish(),
-  notes: z.string().max(500).nullish(),
-});
+export const addressSchema = z
+  .object({
+    fullName: z.string({ required_error: "Ingresa tu nombre completo" }).min(addressFields.fullName.min, "Ingresa tu nombre completo").max(addressFields.fullName.max),
+    email: z.string({ required_error: "Ingresa un email válido" }).email("Ingresa un email válido").max(addressFields.email.max),
+    phone: z.string({ required_error: "Ingresa un teléfono válido" }).min(addressFields.phone.min, "Ingresa un teléfono válido").max(addressFields.phone.max),
+    street: z.string({ required_error: "Ingresa tu calle y número" }).min(addressFields.street.min, "Ingresa tu calle y número").max(addressFields.street.max),
+    comuna: z.string({ required_error: "Selecciona tu comuna" }).min(addressFields.comuna.min, "Selecciona tu comuna").max(addressFields.comuna.max),
+    region: z.string({ required_error: "Selecciona tu región" }).min(addressFields.region.min, "Selecciona tu región").max(addressFields.region.max),
+    zipCode: z.string().max(addressFields.zipCode.max).nullish(),
+    notes: z.string().max(addressFields.notes.max).nullish(),
+  })
+  .superRefine((address, ctx) => {
+    for (const issue of addressIssues(address)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [issue.path], message: issue.message });
+    }
+  });
+
+export { REGIONES, RATE_BUCKETS, shippingRegionOf, type ChileRegion } from "./chile";
+export { matchesShippingRegion, isKnownRegion } from "../../../supabase/functions/_shared/checkout-rules.ts";
 
 export const cartItemSchema = z.object({
   productId: z.string().uuid(),
