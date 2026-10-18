@@ -1,0 +1,35 @@
+{
+  "preparedOn": "2026-10-18",
+  "projectRef": "evzlqwiipdjgtrqjlwba",
+  "files": {
+    "supabase/migrations/20261017233000_checkout_sandbox_prerequisites.sql": "46f5dd23817731db79f35e37246505ac2b02e058ab6d531d3125162bc1e0a40f",
+    "supabase/functions/checkout/index.ts": "22c884c05c3155b0e7732539182279184fec15618b9673cf308848f1bb80653b",
+    "supabase/functions/_shared/payment.ts": "a609e32f0cb2ce24c92f93f153a9f069983d607543f26998cd8d62690f1d9f9f",
+    "apps/web/src/lib/paymentBridge.ts": "152c867898ac14c18159df99840421da996341ce0d2b2267f69cdad6cf895046"
+  },
+  "sellerCredentialsVerified": {
+    "isTestUser": true,
+    "country": "MLC",
+    "differentBuyer": true
+  },
+  "remoteChangesApplied": true,
+  "paymentsCreated": false,
+  "webhookSecretConfigured": false,
+  "remoteBackup": {
+    "metadata": "/tmp/vintah-checkout-remote-before.json",
+    "bundle": "/tmp/vintah-checkout-remote-before.bundle",
+    "bundleSha256": "78d3e03bd9fcd5bbc457e96890b19f7d3598cf9a9a435c7c2121767fdabff974",
+    "sourceDirectory": "/tmp/vintah-checkout-source-before"
+  },
+  "localTests": 61,
+  "isolatedWebBuild": "pass",
+  "postgresTemporaryContainer": "stopped and removed",
+  "buyerValidation": {
+    "publicProfileMatchesTestNaming": true,
+    "country": "MLC",
+    "loginVerified": false
+  },
+  "preferenceCreated": true,
+  "paymentApproved": false,
+  "activationEvidence": "remote-activation.json"
+}

@@ -1,0 +1,48 @@
+
+> shopy-web@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.4.2 (webpack)
+- Environments: .env.local
+✓ Running next.config.ts took 29ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.0s
+  Running TypeScript ...
+  Finished TypeScript in 6.4s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/16) ...
+  Generating static pages using 3 workers (4/16) 
+  Generating static pages using 3 workers (8/16) 
+  Generating static pages using 3 workers (12/16) 
+✓ Generating static pages using 3 workers (16/16) in 8.7s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/payments/return
+├ ƒ /api/payments/start
+├ ○ /carrito
+├ ƒ /catalogo
+├ ƒ /catalogo/archivo/[slug]
+├ ○ /checkout
+├ ○ /checkout-return
+├ ƒ /coleccion/[slug]
+├ ○ /devoluciones
+├ ○ /envios
+├ ○ /legal/cookies
+├ ○ /legal/privacidad
+├ ○ /legal/terminos
+├ ○ /login
+├ ƒ /pedido/[id]
+├ ○ /pedidos
+├ ƒ /producto/[slug]
+├ ○ /robots.txt
+└ ƒ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

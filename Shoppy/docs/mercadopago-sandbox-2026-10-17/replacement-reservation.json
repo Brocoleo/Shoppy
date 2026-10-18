@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-18T15:59:23.366Z",
+  "reservations": [
+    {
+      "id": "b646955a-1c82-4ed2-b9b5-ee23f10c72b3",
+      "qty": 1,
+      "status": "active",
+      "expires_at": "2026-10-18T16:13:04.332729+00:00",
+      "expired": false
+    }
+  ],
+  "providerPayments": [
+    {
+      "id": 183824352339,
+      "status": "approved",
+      "live_mode": true,
+      "currency": "CLP",
+      "amount": 15980,
+      "reference": "d34dd8b8-3be7-4536-8f42-393a550e2616"
+    }
+  ]
+}

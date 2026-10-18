@@ -1,0 +1,45 @@
+{
+  "migrationApplied": true,
+  "appliedAt": "2026-10-18T15:32:22.616Z",
+  "history": [
+    {
+      "version": "20261017233000",
+      "name": "checkout_sandbox_prerequisites"
+    }
+  ],
+  "checkoutDeployed": true,
+  "paymentsCreated": false,
+  "sandboxSecretsConfigured": true,
+  "secretNames": [
+    "PAYMENT_MODE",
+    "PAYMENT_PROVIDER",
+    "PAYMENT_PROVIDERS",
+    "EMAIL_PROVIDER",
+    "MERCADOPAGO_ACCESS_TOKEN",
+    "MERCADOPAGO_TEST_BUYER_EMAIL",
+    "PAYMENT_BRIDGE_URL",
+    "FUNCTIONS_PUBLIC_URL"
+  ],
+  "returnTunnel": "https://vessel-settings-triangle-tunes.trycloudflare.com",
+  "localOrigin": "http://localhost:3015",
+  "webhookVerified": false,
+  "checkoutVersion": 16,
+  "checkoutStatus": "ACTIVE",
+  "verifyJwt": false,
+  "deployedAt": "2026-10-18T16:18:36.430Z",
+  "preferenceCreated": true,
+  "testOrderId": "d34dd8b8-3be7-4536-8f42-393a550e2616",
+  "paymentApproved": true,
+  "buyerLoginVerified": true,
+  "browserState": "MercadoPago Sandbox: cuenta Test autenticada; formulario de tarjeta abierto",
+  "providerPaymentApproved": true,
+  "providerPaymentId": "183824352339",
+  "providerLiveMode": true,
+  "orderPaid": false,
+  "blockedReason": "RESERVATION_EXPIRED: pago reconocido; pedido no liquidado",
+  "replacementCount": 1,
+  "testUserFlowConfigured": true,
+  "confirmationRepeated": true,
+  "refundInitiated": false,
+  "stockAfterConfirmation": 10
+}

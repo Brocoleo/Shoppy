@@ -1,0 +1,408 @@
+{
+  "environment": {
+    "target": "http://127.0.0.1:3015",
+    "before": null,
+    "widths": [
+      320,
+      390,
+      768,
+      1440
+    ],
+    "browser": "Chromium",
+    "transport": "mocked cross-origin; no orders or payments submitted"
+  },
+  "checks": [
+    {
+      "name": "Invalid numeric street name and error focus 320",
+      "status": "pass",
+      "evidence": "5 de Abril rejected; focus on street input"
+    },
+    {
+      "name": "Native region keyboard 320",
+      "status": "pass",
+      "evidence": "Selected via keyboard: Tarapacá"
+    },
+    {
+      "name": "Address → shipping → review 320",
+      "status": "pass",
+      "evidence": "1 mocked quote; no create/confirm/payment action"
+    },
+    {
+      "name": "No horizontal overflow 320",
+      "status": "pass",
+      "evidence": "document.scrollWidth <= viewport width"
+    },
+    {
+      "name": "Region change resets commune/rate/quote 320",
+      "status": "pass",
+      "evidence": "Ñuble only uses OTRAS, no stale selected rate or review access"
+    },
+    {
+      "name": "Invalid numeric street name and error focus 390",
+      "status": "pass",
+      "evidence": "5 de Abril rejected; focus on street input"
+    },
+    {
+      "name": "Native region keyboard 390",
+      "status": "pass",
+      "evidence": "Selected via keyboard: Tarapacá"
+    },
+    {
+      "name": "Address → shipping → review 390",
+      "status": "pass",
+      "evidence": "1 mocked quote; no create/confirm/payment action"
+    },
+    {
+      "name": "No horizontal overflow 390",
+      "status": "pass",
+      "evidence": "document.scrollWidth <= viewport width"
+    },
+    {
+      "name": "Region change resets commune/rate/quote 390",
+      "status": "pass",
+      "evidence": "Ñuble only uses OTRAS, no stale selected rate or review access"
+    },
+    {
+      "name": "Rates failure, blocked advance and retry",
+      "status": "pass",
+      "evidence": "503 mock; retry restores rates without page reload"
+    },
+    {
+      "name": "Empty rates blocks advance",
+      "status": "pass",
+      "evidence": "Explanation visible; review disabled"
+    },
+    {
+      "name": "Invalid numeric street name and error focus 768",
+      "status": "pass",
+      "evidence": "5 de Abril rejected; focus on street input"
+    },
+    {
+      "name": "Native region keyboard 768",
+      "status": "pass",
+      "evidence": "Selected via keyboard: Tarapacá"
+    },
+    {
+      "name": "Address → shipping → review 768",
+      "status": "pass",
+      "evidence": "1 mocked quote; no create/confirm/payment action"
+    },
+    {
+      "name": "No horizontal overflow 768",
+      "status": "pass",
+      "evidence": "document.scrollWidth <= viewport width"
+    },
+    {
+      "name": "Region change resets commune/rate/quote 768",
+      "status": "pass",
+      "evidence": "Ñuble only uses OTRAS, no stale selected rate or review access"
+    },
+    {
+      "name": "Invalid numeric street name and error focus 1440",
+      "status": "pass",
+      "evidence": "5 de Abril rejected; focus on street input"
+    },
+    {
+      "name": "Native region keyboard 1440",
+      "status": "pass",
+      "evidence": "Selected via keyboard: Tarapacá"
+    },
+    {
+      "name": "Address → shipping → review 1440",
+      "status": "pass",
+      "evidence": "1 mocked quote; no create/confirm/payment action"
+    },
+    {
+      "name": "No horizontal overflow 1440",
+      "status": "pass",
+      "evidence": "document.scrollWidth <= viewport width"
+    },
+    {
+      "name": "Region change resets commune/rate/quote 1440",
+      "status": "pass",
+      "evidence": "Ñuble only uses OTRAS, no stale selected rate or review access"
+    },
+    {
+      "name": "Provider failure blocks payment without fabricated fallback; retry recovers",
+      "status": "pass",
+      "evidence": "503 providers mock, no mock option until successful retry"
+    },
+    {
+      "name": "Background tariff refresh during review blocks stale payment",
+      "status": "pass",
+      "evidence": "Reconnect after staleTime refetches empty rates; previous quote cannot enable Pagar"
+    },
+    {
+      "name": "Delayed saved address preserves dirty fields and exposes invalid legacy values",
+      "status": "pass",
+      "evidence": "Edited name retained; legacy street/region remain visible and prevent progression"
+    },
+    {
+      "name": "Mobile menu Escape returns focus",
+      "status": "pass",
+      "evidence": "Opened menu and pressed Escape; focus restored to trigger"
+    },
+    {
+      "name": "Cached saved address repopulates remounted checkout",
+      "status": "pass",
+      "evidence": "React Query cached address reapplied without another REST request"
+    },
+    {
+      "name": "No order or payment operations",
+      "status": "pass",
+      "evidence": "Only providers and quote requests were allowed"
+    },
+    {
+      "name": "axe WCAG A/AA",
+      "status": "pass",
+      "evidence": "12 scans, zero violations"
+    }
+  ],
+  "axe": [
+    {
+      "label": "address",
+      "width": 320,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "shipping",
+      "width": 320,
+      "violations": [],
+      "passes": 26,
+      "incomplete": 0
+    },
+    {
+      "label": "review",
+      "width": 320,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "address",
+      "width": 390,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "shipping",
+      "width": 390,
+      "violations": [],
+      "passes": 26,
+      "incomplete": 0
+    },
+    {
+      "label": "review",
+      "width": 390,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "address",
+      "width": 768,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "shipping",
+      "width": 768,
+      "violations": [],
+      "passes": 26,
+      "incomplete": 0
+    },
+    {
+      "label": "review",
+      "width": 768,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "address",
+      "width": 1440,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    },
+    {
+      "label": "shipping",
+      "width": 1440,
+      "violations": [],
+      "passes": 26,
+      "incomplete": 0
+    },
+    {
+      "label": "review",
+      "width": 1440,
+      "violations": [],
+      "passes": 25,
+      "incomplete": 0
+    }
+  ],
+  "consoleErrors": [
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    },
+    {
+      "width": 390,
+      "text": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    }
+  ],
+  "pageErrors": [],
+  "mockedActions": [
+    {
+      "action": "providers",
+      "region": null,
+      "width": 320
+    },
+    {
+      "action": "quote",
+      "region": "Metropolitana",
+      "width": 320
+    },
+    {
+      "action": "quote",
+      "region": "Ñuble",
+      "width": 320
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 390
+    },
+    {
+      "action": "quote",
+      "region": "Metropolitana",
+      "width": 390
+    },
+    {
+      "action": "quote",
+      "region": "Ñuble",
+      "width": 390
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 768
+    },
+    {
+      "action": "quote",
+      "region": "Metropolitana",
+      "width": 768
+    },
+    {
+      "action": "quote",
+      "region": "Ñuble",
+      "width": 768
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 1440
+    },
+    {
+      "action": "quote",
+      "region": "Metropolitana",
+      "width": 1440
+    },
+    {
+      "action": "quote",
+      "region": "Ñuble",
+      "width": 1440
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 390
+    },
+    {
+      "action": "quote",
+      "region": "Metropolitana",
+      "width": 390
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 390
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 390
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 390
+    },
+    {
+      "action": "quote",
+      "region": "Metropolitana",
+      "width": 390
+    },
+    {
+      "action": "providers",
+      "region": null,
+      "width": 390
+    }
+  ],
+  "blockedRequests": [],
+  "screenshots": [
+    "after-address-320.png",
+    "after-shipping-320.png",
+    "after-review-320.png",
+    "after-address-390.png",
+    "after-shipping-390.png",
+    "after-review-390.png",
+    "after-rates-error-390.png",
+    "after-rates-empty-390.png",
+    "after-address-768.png",
+    "after-shipping-768.png",
+    "after-review-768.png",
+    "after-address-1440.png",
+    "after-shipping-1440.png",
+    "after-review-1440.png",
+    "after-provider-retry-390.png",
+    "after-review-rates-invalidated-390.png",
+    "after-saved-address-dirty-legacy-390.png",
+    "after-saved-address-cached-remount-390.png"
+  ]
+}

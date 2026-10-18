@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-18T15:59:56.143Z",
+  "paymentId": 183824352339,
+  "status": "approved",
+  "statusDetail": "accredited",
+  "liveMode": true,
+  "operationType": "regular_payment",
+  "paymentTags": null,
+  "metadataKeys": [],
+  "sellerIsTest": true,
+  "sellerMatchesPayment": true,
+  "buyerMatchesPayment": true,
+  "buyerHasTestNaming": true,
+  "buyerEmailIsTest": true,
+  "cardLastFour": "2580",
+  "issuerId": "200",
+  "currency": "CLP",
+  "amount": 15980,
+  "reference": "d34dd8b8-3be7-4536-8f42-393a550e2616"
+}

@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-18T15:34:48.333Z",
+  "product": [
+    {
+      "id": "5eb899ca-26cd-4a0d-8f0e-e16c8ee23028",
+      "name": "Polera Nike Dry-Fit (PRUEBA sandbox)",
+      "slug": "polera-nike-dryfit-prueba-sandbox",
+      "price_clp": 12990,
+      "stock": 10,
+      "availability": "AVAILABLE",
+      "published_at": "2026-10-17T23:03:21+00:00"
+    }
+  ],
+  "preflightStatus": 204,
+  "corsOrigin": "http://localhost:3015",
+  "vary": "Accept-Encoding, Origin",
+  "invalidActionStatus": 400,
+  "invalidActionCode": "VALIDATION"
+}

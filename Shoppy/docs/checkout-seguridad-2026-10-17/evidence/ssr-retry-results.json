@@ -1,0 +1,157 @@
+{
+  "target": "http://127.0.0.1:3016",
+  "checks": [
+    {
+      "name": "product: failed SSR read presents retry",
+      "status": "pass",
+      "evidence": "503 transport fixture produces error UI rather than empty/404"
+    },
+    {
+      "name": "product: browser retry refreshes server data",
+      "status": "pass",
+      "evidence": "Same URL recovers rendered heading after removing failure flag; no full browser reload"
+    },
+    {
+      "name": "collection: failed SSR read presents retry",
+      "status": "pass",
+      "evidence": "503 transport fixture produces error UI rather than empty/404"
+    },
+    {
+      "name": "collection: browser retry refreshes server data",
+      "status": "pass",
+      "evidence": "Same URL recovers rendered heading after removing failure flag; no full browser reload"
+    },
+    {
+      "name": "SSR transport remains read-only and isolated",
+      "status": "pass",
+      "evidence": "23 intercepted GETs; zero unexpected external operations"
+    }
+  ],
+  "screenshots": [
+    "after-ssr-product-failure-390.png",
+    "after-ssr-product-recovered-390.png",
+    "after-ssr-collection-failure-390.png",
+    "after-ssr-collection-recovered-390.png"
+  ],
+  "pageErrors": [],
+  "browserBlocked": [],
+  "transport": [
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 503
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "table": "collections",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "table": "collection_products",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "table": "products",
+      "status": 200
+    }
+  ],
+  "limitation": "Isolated SSR+browser transport fixtures; no Supabase or payment requests reach the network.",
+  "isolatedServerStopped": true
+}

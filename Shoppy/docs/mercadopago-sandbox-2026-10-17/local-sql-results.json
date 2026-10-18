@@ -1,0 +1,17 @@
+{
+  "engine": "PostgreSQL 16 Docker, isolated no network",
+  "baselineMigrationAndRepeat": "pass",
+  "fullSchemaMigrationAndRepeat": "pass",
+  "permissionsReservationSettlementRollback": "pass on both schemas",
+  "lastUnitConcurrentConnections": [
+    {
+      "status": 0,
+      "stockOrAvailabilityRejected": false
+    },
+    {
+      "status": 3,
+      "stockOrAvailabilityRejected": true
+    }
+  ],
+  "remoteWrites": false
+}

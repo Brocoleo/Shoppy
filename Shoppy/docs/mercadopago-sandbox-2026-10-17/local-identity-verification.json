@@ -1,0 +1,8 @@
+{
+  "checkedAt": "2026-10-18T16:04:44.855Z",
+  "localProviderVerdict": "APPROVED",
+  "transport": "real MercadoPago read-only API",
+  "remoteCheckoutChanged": false,
+  "orderSettled": false,
+  "criteria": "explicit test-user flow + server verified test seller + matching collector and configured buyer + amount/currency/reference"
+}

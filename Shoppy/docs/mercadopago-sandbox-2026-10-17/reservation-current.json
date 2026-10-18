@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-18T15:51:48.644Z",
+  "reservations": [
+    {
+      "id": "b56daf14-b2e4-4810-b5ec-98052a878b4c",
+      "qty": 1,
+      "status": "expired",
+      "expires_at": "2026-10-18T15:50:56.669291+00:00",
+      "expired": true
+    }
+  ],
+  "providerPayments": []
+}

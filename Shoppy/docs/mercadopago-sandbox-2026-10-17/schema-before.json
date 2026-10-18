@@ -1,0 +1,117 @@
+[
+  {
+    "snapshot": {
+      "columns": [
+        {
+          "type": "uuid",
+          "table": "order_notifications",
+          "column": "id"
+        },
+        {
+          "type": "uuid",
+          "table": "order_notifications",
+          "column": "order_id"
+        },
+        {
+          "type": "text",
+          "table": "order_notifications",
+          "column": "event"
+        },
+        {
+          "type": "text",
+          "table": "order_notifications",
+          "column": "channel"
+        },
+        {
+          "type": "text",
+          "table": "order_notifications",
+          "column": "recipient"
+        },
+        {
+          "type": "text",
+          "table": "order_notifications",
+          "column": "provider_message_id"
+        },
+        {
+          "type": "timestamp with time zone",
+          "table": "order_notifications",
+          "column": "created_at"
+        },
+        {
+          "type": "uuid",
+          "table": "payments",
+          "column": "id"
+        },
+        {
+          "type": "uuid",
+          "table": "payments",
+          "column": "order_id"
+        },
+        {
+          "type": "text",
+          "table": "payments",
+          "column": "provider"
+        },
+        {
+          "type": "text",
+          "table": "payments",
+          "column": "provider_payment_id"
+        },
+        {
+          "type": "integer",
+          "table": "payments",
+          "column": "amount_clp"
+        },
+        {
+          "type": "USER-DEFINED",
+          "table": "payments",
+          "column": "status"
+        },
+        {
+          "type": "text",
+          "table": "payments",
+          "column": "idempotency_key"
+        },
+        {
+          "type": "jsonb",
+          "table": "payments",
+          "column": "raw_payload"
+        },
+        {
+          "type": "timestamp with time zone",
+          "table": "payments",
+          "column": "created_at"
+        },
+        {
+          "type": "timestamp with time zone",
+          "table": "payments",
+          "column": "updated_at"
+        }
+      ],
+      "triggers": [
+        "CREATE TRIGGER orders_guard_transition BEFORE UPDATE OF status ON public.orders FOR EACH ROW EXECUTE FUNCTION check_order_transition()",
+        "CREATE TRIGGER orders_record_history AFTER UPDATE OF status ON public.orders FOR EACH ROW EXECUTE FUNCTION record_order_history()",
+        "CREATE TRIGGER orders_set_number BEFORE INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION generate_order_number()",
+        "CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION touch_updated_at()"
+      ],
+      "functions": [
+        {
+          "name": "can_write_order_items",
+          "definition": "CREATE OR REPLACE FUNCTION public.can_write_order_items(p_order_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  select exists (\n    select 1 from public.orders o\n    where o.id = p_order_id\n      and o.status = 'PENDING_PAYMENT'\n      and o.user_id is not null\n      and o.user_id = auth.uid()\n  );\n$function$\n"
+        },
+        {
+          "name": "mark_order_paid",
+          "definition": "CREATE OR REPLACE FUNCTION public.mark_order_paid(p_order_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare o public.orders%rowtype;\nbegin\n  if not (auth.role() = 'service_role' or public.is_admin()) then\n    raise exception 'FORBIDDEN: only backend can mark orders as paid';\n  end if;\n\n  select * into o from public.orders where id = p_order_id for update;\n  if not found then raise exception 'ORDER_NOT_FOUND: %', p_order_id; end if;\n  if o.status = 'PAID' then return; end if;\n  if o.status <> 'PENDING_PAYMENT' then\n    raise exception 'INVALID_ORDER_TRANSITION: % -> PAID', o.status;\n  end if;\n  if not exists (\n    select 1 from public.product_reservations\n    where order_id = p_order_id and status = 'active' and expires_at >= now()\n  ) then\n    raise exception 'RESERVATION_EXPIRED: %', p_order_id;\n  end if;\n\n  update public.product_reservations\n  set status = 'consumed' where order_id = p_order_id and status = 'active';\n\n  update public.products p\n  set availability = 'SOLD', updated_at = now()\n  from public.order_items i\n  where i.order_id = p_order_id and i.product_id = p.id and p.stock = 0;\n\n  update public.orders set status = 'PAID', updated_at = now() where id = p_order_id;\nend $function$\n"
+        },
+        {
+          "name": "release_expired_reservations",
+          "definition": "CREATE OR REPLACE FUNCTION public.release_expired_reservations()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  r record;\n  n integer := 0;\nbegin\n  for r in\n    select id, product_id, qty from public.product_reservations\n    where status = 'active' and expires_at < now()\n    order by expires_at\n    for update skip locked\n  loop\n    update public.products\n    set stock = stock + r.qty,\n        availability = case when availability = 'RESERVED' then 'AVAILABLE'::product_availability\n                            else availability end,\n        updated_at = now()\n    where id = r.product_id;\n\n    update public.product_reservations\n    set status = 'expired' where id = r.id;\n\n    n := n + 1;\n  end loop;\n  return n;\nend $function$\n"
+        },
+        {
+          "name": "reserve_products",
+          "definition": "CREATE OR REPLACE FUNCTION public.reserve_products(p_order_id uuid, p_items jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  item record;\n  prod public.products%rowtype;\nbegin\n  for item in\n    select (e.value ->> 'product_id')::uuid as product_id,\n           coalesce((e.value ->> 'qty')::int, 1) as qty\n    from jsonb_array_elements(p_items) as e\n    order by 1\n  loop\n    if item.qty < 1 then\n      raise exception 'INVALID_QTY: %', item.product_id;\n    end if;\n\n    select * into prod from public.products where id = item.product_id for update;\n\n    if not found then\n      raise exception 'PRODUCT_NOT_FOUND: %', item.product_id;\n    end if;\n    if prod.published_at is null or prod.availability = 'ARCHIVED' or prod.availability = 'SOLD' then\n      raise exception 'PRODUCT_UNAVAILABLE: %', prod.slug;\n    end if;\n    if prod.stock < item.qty then\n      raise exception 'INSUFFICIENT_STOCK: %', prod.slug;\n    end if;\n\n    update public.products\n    set stock = stock - item.qty,\n        availability = case when stock - item.qty = 0 then 'RESERVED'::product_availability\n                            else availability end,\n        updated_at = now()\n    where id = item.product_id;\n\n    insert into public.product_reservations (product_id, order_id, qty, expires_at)\n    values (item.product_id, p_order_id, item.qty, now() + interval '15 minutes');\n  end loop;\nend $function$\n"
+        }
+      ]
+    }
+  }
+]

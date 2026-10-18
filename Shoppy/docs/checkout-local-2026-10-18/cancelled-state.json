@@ -1,0 +1,1 @@
+{"simulation":true,"offline":false,"requests":47,"orders":[{"id":"11e31c0b-af0a-4e49-8f7e-3d93cc94518e","status":"CANCELLED","total_clp":15980,"region":"Metropolitana"}],"payments":[{"status":"rejected","incident":null}],"stock":5,"creates":1,"stockDeductions":1,"paidTransitions":0}

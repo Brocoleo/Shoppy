@@ -1,0 +1,136 @@
+
+> shopy@0.1.0 test:checkout
+> node scripts/test-checkout.mjs
+
+✔ formato de calle distingue nombre numérico y domicilio, sin geocodificar (30.581939ms)
+✔ web comparte límites y correspondencia de región/comuna con el servidor (4.172889ms)
+✔ tarifas explícitas y OTRAS, sin equivalencias geográficas (0.831457ms)
+✔ IDs de seed y demos siguen no comerciales aunque se retire metadata (3.461594ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 90.902462
+✔ dos solicitudes simultáneas crean un solo pedido y un solo pago (635.185004ms)
+✔ recuperación exige secreto y cuenta; un cambio de payload no crea otro pedido (242.433012ms)
+✔ respuesta desconocida del proveedor conserva pedido sin repetir llamada (234.877519ms)
+✔ JWT inválido nunca degrada compra a invitado (206.483353ms)
+✔ pago pendiente no se marca rechazado y confirmar exige propiedad (266.452422ms)
+✔ webhook con monto distinto no confirma el pedido (66.379217ms)
+✔ CORS cubre preflight, éxito y errores sin credenciales (90.49768ms)
+✔ servidor rechaza direcciones manipuladas y no crea pedidos (701.46357ms)
+✔ quote rechaza cantidades, duplicados y región desconocida (184.878388ms)
+✔ precios y totales del cliente se ignoran; precios monetarios inválidos se rechazan (160.343018ms)
+✔ ejemplos, demos, ocultos y stock insuficiente no se compran (661.308807ms)
+✔ tarifas ajenas e inactivas se rechazan; OTRAS admite región conocida (127.996762ms)
+✔ cuenta ajena e invitado no pueden confirmar pedido autenticado (128.915584ms)
+✔ save_address asigna exclusivamente el dueño autenticado (56.516341ms)
+✔ pago rechazado no liquida ni descuenta stock adicional a la reserva (143.257818ms)
+✔ confirmaciones repetidas convergen sin repetir descuento (RPC simulado) (127.209273ms)
+✔ monto de pago almacenado distinto al pedido impide confirmación (115.158578ms)
+✔ webhook inválido, moneda incorrecta y pendiente nunca liquidan (201.459562ms)
+✔ webhooks duplicados y pendientes tardíos no revierten PAID (RPC simulado) (58.715245ms)
+✔ errores de DB no exponen detalles y error de liquidación permanece reintentable (55.214658ms)
+✔ fallo transitorio del proveedor en webhook devuelve 503 para reintentar (48.073619ms)
+✔ cupón se calcula en servidor y descuento corrupto no produce total negativo (211.201865ms)
+✔ crear reserva stock una sola vez; confirmaciones duplicadas no vuelven a descontar (RPC simulado) (40.133173ms)
+✔ errores desconocidos de RPC no se publican como códigos internos (16.652699ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4876.111627
+✔ MP consulta al proveedor y valida importe, moneda, referencia y entorno (168.189106ms)
+✔ MP distingue pendiente, rechazado y cancelado sin acreditar retorno (10.005108ms)
+✔ MP webhook verifica firma antes de consultar; no confía en datos del body (42.196701ms)
+✔ MP webhook exige que el pago consultado corresponda al identificador firmado (2.825846ms)
+✔ modo live rechaza pagos sandbox y proveedor mock (4.184472ms)
+✔ sandbox rechaza notificaciones de pagos live (10.388288ms)
+✔ fallo HTTP del proveedor no acredita un pago (1.529827ms)
+✔ Transbank valida monto y sesión; repetición no repite commit (4.954818ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 292.486118
+(node:60) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/leandro/Documentos/ChatGPT/React%20Native/Shoppy/apps/web/src/lib/sessionConnection.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/leandro/Documentos/ChatGPT/React Native/Shoppy/apps/web/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ failed import retries on the next auth action and installs a working subscription (13.956157ms)
+✔ concurrent actions and repeated successful connects share one listener (1.609506ms)
+✔ failed session read removes its listener before a successful retry (2.131036ms)
+✔ late getSession cannot overwrite a newer sign-in event (1.807444ms)
+✔ unmount during import does not subscribe and a new mount can initialize (0.799564ms)
+✔ unmount during session read removes the listener and suppresses the late snapshot (0.658715ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.458308
+✔ SSR public transport forces no-store without cookies or persistent auth (386.563704ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 417.793392
+(node:75) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/leandro/Documentos/ChatGPT/React%20Native/Shoppy/apps/web/src/lib/cartStore.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/leandro/Documentos/ChatGPT/React Native/Shoppy/apps/web/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ sanitizeLines
+  ✔ conserva líneas válidas (7.021773ms)
+  ✔ descarta no-arreglos y entradas inválidas (1.369339ms)
+  ✔ topa cantidades persistidas en 99 (0.500616ms)
+✔ sanitizeLines (15.197766ms)
+▶ mergeCarts
+  ✔ une sin duplicados con cantidad máxima (0.652837ms)
+  ✔ conserva el carrito propio cuando el guest está vacío y viceversa (0.354525ms)
+  ✔ no muta las entradas (1.216654ms)
+✔ mergeCarts (4.963672ms)
+▶ addLine/setLineQty
+  ✔ agrega y acumula con tope 99 (2.378371ms)
+  ✔ qty<=0 elimina la línea (0.463586ms)
+  ✔ fija cantidad con tope y sin mutación (1.852247ms)
+✔ addLine/setLineQty (7.419913ms)
+ℹ tests 9
+ℹ suites 3
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 62.1602
+(node:82) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/leandro/Documentos/ChatGPT/React%20Native/Shoppy/apps/web/src/lib/catalogProduct.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/leandro/Documentos/ChatGPT/React Native/Shoppy/apps/web/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▶ shared product mapping
+  ✔ preserves product values, cover order and defect photos (2.866678ms)
+  ✔ identifies only explicit demo metadata and preserves real stock (1.564322ms)
+  ✔ supports the initial home without taxonomy and keeps client defaults (1.828868ms)
+  ✔ preserves reservation availability independently of stock (0.366568ms)
+✔ shared product mapping (12.250304ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43.591252

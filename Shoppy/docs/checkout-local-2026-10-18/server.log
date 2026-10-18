@@ -1,0 +1,33 @@
+Simulador local: http://127.0.0.1:4010. Sin conexiones externas.
+Vista aislada: http://localhost:3020/prueba-local.html
+▲ Next.js 16.3.6 (webpack)
+- Local:         http://127.0.0.1:3020
+- Network:       http://127.0.0.1:3020
+✓ Ready in 745ms
+✓ Running next.config.ts took 121ms
+
+○ Compiling /checkout ...
+ GET /checkout 200 in 10.3s (next.js: 9.7s, application-code: 573ms)
+ GET /checkout 200 in 385ms (next.js: 74ms, application-code: 310ms)
+○ Compiling /checkout-return ...
+ GET /checkout-return?state=8a5a8db9-51cb-4b1e-b0a2-4fad9961cfac 200 in 4.6s (next.js: 3.7s, application-code: 887ms)
+ GET /pedido/77940aa2-d1c4-463f-a84f-46657acab6da?token=43734af4-207e-4fbd-8b9d-b964d0fe56af 200 in 5.2s (next.js: 5.0s, application-code: 184ms)
+ GET /checkout 200 in 874ms (next.js: 43ms, application-code: 831ms)
+ GET /checkout-return?state=a676ced2-a8c9-423c-b5d2-e0f5e1d0017e 200 in 240ms (next.js: 6ms, application-code: 235ms)
+ GET /checkout 200 in 114ms (next.js: 3ms, application-code: 112ms)
+ GET /checkout 200 in 94ms (next.js: 4ms, application-code: 90ms)
+ GET /checkout 200 in 108ms (next.js: 7ms, application-code: 102ms)
+ GET /checkout-return?state=34fd294e-5a78-48eb-8665-3b7d8ade3254 200 in 87ms (next.js: 3ms, application-code: 84ms)
+ GET /checkout 200 in 115ms (next.js: 4ms, application-code: 111ms)
+ GET /checkout-return?state=e89d2be1-91e9-4ff5-be3f-7707702d26ed 200 in 205ms (next.js: 5ms, application-code: 199ms)
+ GET /checkout 200 in 85ms (next.js: 5ms, application-code: 79ms)
+ GET /checkout 200 in 105ms (next.js: 6ms, application-code: 99ms)
+ GET /checkout-return?state=cb134ba2-fdcf-42a2-86e1-5f1f3297b001 200 in 141ms (next.js: 4ms, application-code: 136ms)
+ GET /checkout 200 in 192ms (next.js: 17ms, application-code: 175ms)
+ GET /checkout-return?state=8568f0f3-5b12-4e64-aa34-05648701a230 200 in 65ms (next.js: 6ms, application-code: 59ms)
+ GET /checkout 200 in 89ms (next.js: 2ms, application-code: 87ms)
+ GET /checkout 200 in 545ms (next.js: 370ms, application-code: 175ms)
+ GET /checkout 200 in 1134ms (next.js: 4ms, application-code: 1130ms)
+ GET /checkout 200 in 108ms (next.js: 4ms, application-code: 104ms)
+ GET /checkout-return?state=55c1f635-16d8-4ce1-bffc-6d5232470e12 200 in 106ms (next.js: 12ms, application-code: 94ms)
+○ Compiling / ...

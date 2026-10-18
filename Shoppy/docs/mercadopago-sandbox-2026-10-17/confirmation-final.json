@@ -1,0 +1,45 @@
+{
+  "payments": [
+    {
+      "id": "fde1029f-53fc-4fe5-b2d4-1040c0335d3f",
+      "provider": "mercadopago",
+      "status": "approved",
+      "amount_clp": 15980,
+      "incident": "RESERVATION_EXPIRED: pago aprobado; requiere reembolso",
+      "refund_state": null
+    }
+  ],
+  "checkedAt": "2026-10-18T16:19:19.670Z",
+  "orders": [
+    {
+      "id": "ca815186-d185-46e3-a10d-4f99586ca2a7",
+      "status": "CANCELLED",
+      "total_clp": 15980
+    },
+    {
+      "id": "d34dd8b8-3be7-4536-8f42-393a550e2616",
+      "status": "PENDING_PAYMENT",
+      "total_clp": 15980
+    }
+  ],
+  "reservations": [
+    {
+      "order_id": "ca815186-d185-46e3-a10d-4f99586ca2a7",
+      "qty": 1,
+      "status": "expired",
+      "expires_at": "2026-10-18T15:50:56.669291+00:00"
+    },
+    {
+      "order_id": "d34dd8b8-3be7-4536-8f42-393a550e2616",
+      "qty": 1,
+      "status": "expired",
+      "expires_at": "2026-10-18T16:13:04.332729+00:00"
+    }
+  ],
+  "stock": [
+    {
+      "id": "5eb899ca-26cd-4a0d-8f0e-e16c8ee23028",
+      "stock": 10
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+✔ archive keeps images and provenance, never commercial fields (2.836079ms)
+✔ rejects traversal, external photos and foreign source URLs (0.625205ms)
+✔ duplicates are discarded and visibility defaults to hidden (0.355776ms)
+✔ hero rejects external action and preserves known image framing (0.556059ms)
+✔ hides only explicit demos and keeps real inventory public (0.731119ms)
+✔ examples are never commercial even when published elsewhere (0.350409ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25.724428

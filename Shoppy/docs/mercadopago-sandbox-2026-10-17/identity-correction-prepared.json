@@ -1,0 +1,17 @@
+{
+  "providerFileSha256": "a5e3767c9ba0824f7d7f0aeb162f1b816136f1756938f7aedffe1ebb1e9ba510",
+  "localTests": 68,
+  "lint": "pass",
+  "denoCheck": "pass",
+  "webTypecheck": "pass",
+  "readOnlyProviderValidation": "APPROVED",
+  "deployed": true,
+  "proposedServerVariables": [
+    "MERCADOPAGO_TEST_USER_FLOW",
+    "MERCADOPAGO_TEST_BUYER_ID"
+  ],
+  "createNewOrder": false,
+  "checkoutVersion": 16,
+  "confirmationResult": "REFUND_REQUIRED",
+  "orderPaid": false
+}

@@ -1,0 +1,17 @@
+
+> shopy@0.1.0 test:beta
+> node scripts/test-beta.mjs
+
+✔ apps/mobile/tests/checkout.test.mjs (1450.041656ms)
+✔ apps/mobile/tests/state.test.mjs (1957.847215ms)
+✔ supabase/tests/checkout_api.test.mjs (3847.529616ms)
+✔ supabase/tests/checkout_rules.test.mjs (1775.215792ms)
+✔ supabase/tests/payment_provider.test.mjs (1806.110503ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3877.894905

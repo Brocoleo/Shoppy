@@ -1,0 +1,1 @@
+{"simulation":true,"offline":false,"requests":69,"orders":[{"id":"60edd74a-3199-48bf-a5f2-96da1beff5dd","status":"PAID","total_clp":15980,"region":"Metropolitana"}],"payments":[{"status":"approved","incident":null}],"stock":4,"creates":1,"stockDeductions":1,"paidTransitions":1}

@@ -1,0 +1,19 @@
+{
+  "status": 200,
+  "keys": [
+    "id",
+    "nickname",
+    "country_id",
+    "address",
+    "user_type",
+    "site_id",
+    "permalink",
+    "seller_reputation",
+    "status"
+  ],
+  "tags": null,
+  "userType": "normal",
+  "testNickname": true,
+  "testEmailDomain": true,
+  "sameEmail": null
+}

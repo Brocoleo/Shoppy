@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-18T15:59:25.914Z",
+  "orders": [
+    {
+      "id": "d34dd8b8-3be7-4536-8f42-393a550e2616",
+      "status": "PENDING_PAYMENT",
+      "total_clp": 15980,
+      "shipping_clp": 2990,
+      "subtotal_clp": 12990,
+      "region": "Metropolitana",
+      "comuna": "Santiago"
+    }
+  ],
+  "payments": [
+    {
+      "id": "fde1029f-53fc-4fe5-b2d4-1040c0335d3f",
+      "provider": "mercadopago",
+      "provider_payment_id": "mp_pref_3774263534-2307d932-851d-440e-85a4-491d114f2381",
+      "status": "pending",
+      "amount_clp": 15980
+    }
+  ],
+  "stock": [
+    {
+      "id": "5eb899ca-26cd-4a0d-8f0e-e16c8ee23028",
+      "stock": 9,
+      "availability": "AVAILABLE"
+    }
+  ],
+  "provider": {
+    "externalReference": "d34dd8b8-3be7-4536-8f42-393a550e2616",
+    "currency": "CLP",
+    "amount": 15980,
+    "sandboxUrlPresent": true,
+    "notificationUrlConfigured": false
+  },
+  "paymentApproved": false
+}

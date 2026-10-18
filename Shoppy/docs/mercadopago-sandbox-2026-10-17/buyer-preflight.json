@@ -1,0 +1,9 @@
+{
+  "buyerLookupStatus": 200,
+  "isTestUser": null,
+  "reason": "Public users endpoint does not expose test-user tags",
+  "country": "MLC",
+  "testNickname": true,
+  "testEmailDomain": true,
+  "buyerLoginVerified": false
+}

@@ -1,0 +1,150 @@
+[
+  {
+    "screen": "despacho",
+    "axe": {
+      "url": "/checkout",
+      "violations": [],
+      "passes": 18,
+      "overflow": false
+    }
+  },
+  {
+    "screen": "revision",
+    "regionChange": "Metropolitana → Valparaíso: comuna reiniciada, tarifa 2990 → 4990",
+    "axe": {
+      "url": "/checkout",
+      "violations": [],
+      "passes": 14,
+      "overflow": false
+    }
+  },
+  {
+    "screen": "pedido-pagado-simulado",
+    "axe": {
+      "url": "/pedido/77940aa2-d1c4-463f-a84f-46657acab6da",
+      "violations": [],
+      "passes": 7,
+      "overflow": false
+    }
+  },
+  {
+    "scenario": "aprobado",
+    "state": {
+      "simulation": true,
+      "offline": false,
+      "requests": 14,
+      "orders": [
+        {
+          "id": "77940aa2-d1c4-463f-a84f-46657acab6da",
+          "status": "PAID",
+          "total_clp": 17980,
+          "region": "Valparaíso"
+        }
+      ],
+      "payments": [
+        {
+          "status": "approved",
+          "incident": null
+        }
+      ],
+      "stock": 4,
+      "creates": 1,
+      "stockDeductions": 1,
+      "paidTransitions": 1
+    }
+  },
+  {
+    "scenario": "pendiente",
+    "message": "El proveedor aún no confirma el pago."
+  },
+  {
+    "scenario": "recarga-pendiente",
+    "message": "El proveedor aún no confirma el pago."
+  },
+  {
+    "scenario": "rechazado",
+    "message": "El pago fue rechazado."
+  },
+  {
+    "scenario": "cancelado",
+    "message": "El pago fue rechazado.",
+    "note": "El proveedor usa el estado REJECTED para cancelación, igual que el contrato actual."
+  },
+  {
+    "scenario": "reserva-vencida",
+    "message": "La reserva venció después del pago. Tu pago está en revisión para reembolso."
+  },
+  {
+    "scenario": "conexion-interrumpida",
+    "message": "Conexión interrumpida en el simulador local. Restablécela desde el panel de pruebas.",
+    "transport": "HTTP 503 simulado"
+  },
+  {
+    "scenario": "conexion-recuperada",
+    "message": "¡Pedido confirmado!"
+  },
+  {
+    "screen": "direccion-vacia",
+    "focus": "address-fullName"
+  },
+  {
+    "screen": "direccion-errores",
+    "axe": {
+      "url": "/checkout",
+      "violations": [],
+      "passes": 24,
+      "overflow": false
+    }
+  },
+  {
+    "screen": "direccion-errores",
+    "width": 320,
+    "metrics": {
+      "contentWidth": 305,
+      "overflow": false,
+      "viewport": 320
+    }
+  },
+  {
+    "screen": "direccion-errores",
+    "width": 390,
+    "metrics": {
+      "contentWidth": 375,
+      "overflow": false,
+      "viewport": 390
+    }
+  },
+  {
+    "screen": "direccion-errores",
+    "width": 768,
+    "metrics": {
+      "contentWidth": 753,
+      "overflow": false,
+      "viewport": 768
+    }
+  },
+  {
+    "screen": "direccion-errores",
+    "width": 1440,
+    "metrics": {
+      "contentWidth": 1425,
+      "overflow": false,
+      "viewport": 1440
+    }
+  },
+  {
+    "scenario": "sin-tarifas",
+    "message": "No hay tarifas disponibles para esta región. Puedes revisar tu dirección o volver al catálogo.",
+    "reviewDisabled": true
+  },
+  {
+    "screen": "retorno-pendiente",
+    "axe": {
+      "url": "/checkout-return",
+      "violations": [],
+      "passes": 17,
+      "overflow": false
+    },
+    "liveRegion": "polite"
+  }
+]

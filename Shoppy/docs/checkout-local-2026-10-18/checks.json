@@ -1,0 +1,15 @@
+{
+  "checkoutTests": 78,
+  "checkoutFailures": 0,
+  "betaTests": 5,
+  "webTypecheck": "pass",
+  "rootTypecheck": "pass",
+  "lint": "pass",
+  "isolatedBuild": "pass",
+  "remoteActionsThisStage": false,
+  "permanentDependenciesAdded": false,
+  "webUrl": "http://localhost:3020/prueba-local.html",
+  "webProcessSession": 31168,
+  "simulationStorage": "in-memory",
+  "networkInterruption": "HTTP 503 simulation"
+}
