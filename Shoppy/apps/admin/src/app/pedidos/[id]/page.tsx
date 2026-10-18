@@ -148,10 +148,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
-      <h1 className="text-2xl font-bold tracking-tight">{String(order["order_number"] ?? "")}</h1>
+      <h1 className="flex items-center gap-2 font-serif text-3xl tracking-tight">{String(order["order_number"] ?? "")}{String(order["mode"] ?? "") === "test" ? (
+        <span className="inline-flex shrink-0 items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Prueba</span>
+      ) : null}</h1>
       <p className="text-sm">
         Estado actual: <strong>{status}</strong> · Total {formatCLP(Number(order["total_clp"] ?? 0))}
       </p>
+      {String(order["mode"] ?? "") === "test" ? (
+        <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">Compra de prueba (sandbox de pagos). No involucra dinero ni afecta las estadísticas de negocio.</p>
+      ) : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {notifyNote ? <p className="text-sm text-zinc-500">{notifyNote}</p> : null}
 
