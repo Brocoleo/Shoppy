@@ -25,14 +25,14 @@ export function ProductCard({ product, eager = false }: { product: CatalogProduc
         aria-label={`${product.name}, ${product.brand}, ${formatCLP(product.priceClp)}${product.isDemo ? ", producto de demostración, precio ilustrativo" : soldOut ? ", agotada" : ""}`}
         className="group flex h-full flex-col"
       >
-        <span className="relative block aspect-[3/4] w-full overflow-hidden bg-parchment">
+        <span className="relative block aspect-[4/5] w-full overflow-hidden bg-parchment">
           {cover ? (
             <Image
               src={cover}
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="card-zoom object-contain"
+              className="card-zoom object-cover"
               loading={eager ? "eager" : "lazy"}
             />
           ) : null}
@@ -87,7 +87,7 @@ export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
     <div role="status" aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex flex-col">
-          <div className="shimmer aspect-[3/4] w-full animate-shimmer" />
+          <div className="shimmer aspect-[4/5] w-full animate-shimmer" />
           <div className="shimmer mt-2.5 h-3 w-1/3 animate-shimmer" />
           <div className="shimmer mt-1.5 h-4 w-4/5 animate-shimmer" />
           <div className="shimmer mt-1.5 h-3 w-1/2 animate-shimmer" />

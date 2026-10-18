@@ -8,13 +8,13 @@ export function ArchiveGallery({ entry }: { entry: ArchiveEntry }) {
     current = entry.images[selected] ?? entry.images[0];
   return (
     <div className="min-w-0">
-      <div className="relative aspect-[3/4] bg-parchment">
+      <div className="relative aspect-[4/5] overflow-hidden bg-parchment">
         <Image
           src={publicImageUrl(current.storagePath)}
           alt={current.alt}
           fill
           sizes="(max-width:767px) calc(100vw - 40px), 48vw"
-          className="object-contain"
+          className="object-cover"
         />
       </div>
       <div
@@ -36,7 +36,7 @@ export function ArchiveGallery({ entry }: { entry: ArchiveEntry }) {
               alt=""
               fill
               sizes="64px"
-              className="object-contain"
+              className="object-cover"
             />
           </button>
         ))}

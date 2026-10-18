@@ -16,14 +16,14 @@ export function ArchiveCard({
         href={`/catalogo/archivo/${entry.slug}`}
         className="group flex h-full flex-col gap-3"
       >
-        <div className="relative aspect-[3/4] overflow-hidden bg-parchment">
+        <div className="relative aspect-[4/5] overflow-hidden bg-parchment">
           <Image
             src={publicImageUrl(image.storagePath)}
             alt={image.alt}
             fill
             loading={eager ? "eager" : "lazy"}
             sizes="(max-width: 639px) 46vw, (max-width: 1023px) 30vw, 23vw"
-            className="card-zoom object-contain"
+            className="card-zoom object-cover"
           />
         </div>
         <div className="flex flex-1 flex-col gap-1">

@@ -62,8 +62,8 @@ export default function ProductDetail({ product: p }: { product: CatalogProduct 
       <div className="min-w-0 md:col-start-1 md:row-span-2 md:row-start-1">
         {/* Altura determinista en el primer layout: aspect-ratio siempre, con cap 340px en móvil.
             (Antes `h-[min(85vw,340px)] md:aspect-[3/4]` variaba según resolución del CSS.) */}
-        <div className="relative aspect-[3/4] max-h-[340px] w-full overflow-hidden bg-parchment md:max-h-none">
-          {cover ? <Image src={cover} alt={`${p.name}${currentImage?.isDefect ? ": detalle del estado" : ""}`} fill sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1199px) 50vw, 528px" className="object-contain" priority /> : <p className="flex h-full items-center justify-center text-sm text-muted">Imagen no disponible</p>}
+        <div className="relative aspect-[4/5] max-h-[340px] w-full overflow-hidden bg-parchment md:max-h-none">
+          {cover ? <Image src={cover} alt={`${p.name}${currentImage?.isDefect ? ": detalle del estado" : ""}`} fill sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1199px) 50vw, 528px" className="object-cover" priority /> : <p className="flex h-full items-center justify-center text-sm text-muted">Imagen no disponible</p>}
           {onSale && !agotada ? <span className="absolute bottom-3 left-3 bg-carbon px-3 py-1 text-xs text-ivory">Oferta</span> : null}
         </div>
         {images.length > 1 ? (
