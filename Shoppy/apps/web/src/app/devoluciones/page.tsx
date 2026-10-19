@@ -22,7 +22,7 @@ export default function DevolucionesPage() {
           Para ejercerlo, entra a tu pedido en el sitio y usa la opción{" "}
           <strong>&laquo;Solicitar devolución&raquo;</strong>, indicando el
           motivo. También puedes escribirnos a{" "}
-          <strong>[correo de contacto]</strong>.
+          <strong>leomir2656@icloud.com</strong>.
         </p>
       </LegalSection>
 
@@ -40,8 +40,9 @@ export default function DevolucionesPage() {
         <p>
           Aprobada y recibida la devolución, reembolsamos el monto pagado por la
           prenda con el mismo medio de pago que usaste (por ejemplo,
-          MercadoPago). El plazo de acreditación depende del medio de pago, pero
-          no supera los <strong>[plazo]</strong> días desde la recepción.
+          MercadoPago). El reembolso se acredita en un plazo de
+          <strong>10 días hábiles</strong> desde la recepción de la prenda en
+          nuestras manos.
         </p>
       </LegalSection>
 
@@ -51,7 +52,7 @@ export default function DevolucionesPage() {
           publicación, tienes derecho a exigir, a tu elección, la reparación, la
           reposición o la devolución de lo pagado, según los plazos y
           condiciones que fija la ley. Escríbenos a{" "}
-          <strong>[correo de contacto]</strong> con el detalle y una fotografía.
+          <strong>leomir2656@icloud.com</strong> con el detalle y una fotografía.
         </p>
       </LegalSection>
 
@@ -68,7 +69,7 @@ export default function DevolucionesPage() {
         <p>
           Responsable: <strong>vinta.zhe</strong> · RUT{" "}
           <strong>[pendiente]</strong> · Correo{" "}
-          <strong>[correo de contacto]</strong>.
+          <strong>leomir2656@icloud.com</strong>.
         </p>
         <p>
           Este texto es un borrador del piloto y debe revisarse antes de
