@@ -206,6 +206,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <p>{addr["street"] ?? ""}, {addr["comuna"] ?? ""}, {addr["region"] ?? ""}</p>
       </section>
 
+      <DteCard
+        orderId={id}
+        initial={{
+          kind: String(order["dte_kind"] ?? ""),
+          folio: String(order["dte_folio"] ?? ""),
+          pdfUrl: String(order["dte_pdf_url"] ?? ""),
+          status: String(order["dte_status"] ?? "pending"),
+        }}
+      />
+
       <section className="rounded border border-zinc-200 bg-white p-4 text-sm">
         <h2 className="text-sm font-semibold mb-1">Historial</h2>
         {history.map((h, idx) => (
@@ -215,6 +225,82 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         ))}
       </section>
     </div>
+  );
+}
+
+function DteCard({
+  orderId,
+  initial,
+}: {
+  orderId: string;
+  initial: { kind: string; folio: string; pdfUrl: string; status: string };
+}) {
+  const queryClient = useQueryClient();
+  const [kind, setKind] = useState(initial.kind || "boleta");
+  const [folio, setFolio] = useState(initial.folio);
+  const [pdfUrl, setPdfUrl] = useState(initial.pdfUrl);
+  const [note, setNote] = useState<string | null>(null);
+
+  const issued = initial.status === "issued" || initial.status === "accepted";
+  const save = useMutation({
+    mutationFn: async () => {
+      if (pdfUrl && !/^https:\/\//i.test(pdfUrl)) throw new Error("El enlace del PDF debe ser una URL HTTPS.");
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          dte_kind: kind,
+          dte_folio: folio.trim() || null,
+          dte_pdf_url: pdfUrl.trim() || null,
+          dte_status: "issued",
+          dte_provider: "manual",
+          dte_issued_at: new Date().toISOString(),
+        })
+        .eq("id", orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNote("DTE registrado en el pedido.");
+      void queryClient.invalidateQueries({ queryKey: ["admin-order", orderId] });
+    },
+    onError: (e) => setNote(e instanceof Error ? e.message : "No se pudo guardar."),
+  });
+
+  return (
+    <section className="rounded border border-zinc-200 bg-white p-4 text-sm">
+      <h2 className="text-sm font-semibold mb-1">Boleta / DTE</h2>
+      <p className="mb-2 text-xs text-zinc-500">
+        Emite el documento en el <strong>Portal MiPyme del SII</strong> (gratuito y oficial) y registra aquí su folio y PDF
+        para dejar trazabilidad y poder reenviarlo al cliente.
+      </p>
+      <p className="mb-3">
+        Estado: <strong>{issued ? (initial.folio ? `emitida · folio ${initial.folio}` : "emitida") : "sin emitir"}</strong>
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-zinc-500">Tipo</span>
+          <select aria-label="Tipo de documento" className="rounded border border-zinc-300 px-3 h-10" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="boleta">Boleta</option>
+            <option value="factura">Factura</option>
+            <option value="exenta">Boleta exenta</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-zinc-500">Folio</span>
+          <input aria-label="Folio" placeholder="N° de documento" className="rounded border border-zinc-300 px-3 h-10" value={folio} onChange={(e) => setFolio(e.target.value)} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-zinc-500">PDF (URL HTTPS)</span>
+          <input aria-label="URL del PDF" placeholder="https://…" className="rounded border border-zinc-300 px-3 h-10" value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} />
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button type="button" disabled={save.isPending} onClick={() => { setNote(null); save.mutate(); }} className="rounded-full bg-zinc-900 text-white px-4 h-10 text-sm font-semibold disabled:opacity-50">
+          Registrar DTE
+        </button>
+        {initial.pdfUrl ? <a className="underline" href={initial.pdfUrl} target="_blank" rel="noreferrer">Ver PDF</a> : null}
+        {note ? <span className="text-xs text-zinc-500">{note}</span> : null}
+      </div>
+    </section>
   );
 }
 

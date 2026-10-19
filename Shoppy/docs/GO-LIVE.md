@@ -20,12 +20,13 @@
 | **Reservas / cron** | ✅ `release_expired_reservations` + `refresh_trending_scores` en `pg_cron` | Verificar `pg_cron` activo en Cloud |
 | **Reembolsos** | ⚙️ RPC `finish_checkout_refund` existe | Flujo RMA cliente (solicitud) + política real |
 | **Retiro en tienda** | ❌ | Opción pickup en checkout + notificación |
-| **Facturación SII** | ❌ | Integración (LibreDTE/Facturama) |
+| **Facturación SII** | ✅ registro DTE en el pedido (folio/PDF) | Emitir en el **Portal MiPyme** del SII (gratis) y registrar |
 | **Dominio** | ⚙️ Vercel linkeado (`shopy-web`) | Apuntar `vintah.net` + `NEXT_PUBLIC_SITE_URL` |
 | **Carrier en vivo** | ⚙️ esqueletos `chilexpress`/`starken` | Homologación API (opcional) |
 
 **Conclusión:** es viable lanzar sin escribir más backend, cargando tarifas
-reales, activando Resend y MP live. Pickup, RMA y SII son incrementos.
+reales, activando Resend y MP live, y emitiendo boletas en el Portal MiPyme del
+SII (gratis). Pickup y RMA son incrementos.
 
 ---
 
@@ -108,17 +109,43 @@ El motor existe. Pasos:
 
 ---
 
-## 7. Fase 5 — Retiro en tienda (feature nueva)
+## 7. Fase 5 — Retiro en tienda (opcional)
 
-- [ ] Opción “Retiro en tienda” en checkout (Santiago / Rancagua).
+El negocio es **virtual** (no hay local): **no hace falta** implementar pickup.
+Solo aplica si más adelante abres un punto de entrega. En ese caso:
+
+- [ ] Opción “Retiro en tienda” en checkout.
 - [ ] Marcar pedido “listo para retirar” → email `order_preparing`.
 
 ---
 
-## 8. Fase 6 — Facturación electrónica SII (feature nueva)
+## 8. Fase 6 — Facturación electrónica SII ($0 con el Portal MiPyme)
 
-- [ ] Elegir **LibreDTE** (self-host, $0) o **Facturama** (free tier).
-- [ ] Emitir boleta/factura al `payment_confirmed` y adjuntar PDF en el email.
+**Contexto verificado (19-oct-2026):** en Chile **todo** DTE (boleta/factura) es
+obligatorio desde la primera venta, sin umbral de volumen. **Facturama es
+mexicano (CFDI)** y **no** emite documentos chilenos. El sistema **gratuito y
+oficial** del SII es el **Portal MiPyme**.
+
+Opciones reales:
+
+| Ruta | Costo | Automatización | Notas |
+|---|---|---|---|
+| **Portal MiPyme (SII)** | **$0 para siempre** | Manual (web) | Oficial, válido, sin certificación propia. **Recomendado para el piloto.** |
+| LibreDTE self-hosted | $0 software + **servidor** (~$5 USD/mes) | Total (API REST) | Único $0 *automático*; rompe el techo $0 por el VPS. |
+| FacBox / BaseAPI / SimpleAPI | Gratis con límites que **excluyen boletas** o vencen a 1 año | Total (API REST) | No sirven como “definitivo $0” para B2C. |
+
+**Plan del piloto ($0, sin servidor):**
+
+- [ ] Obtener inicio de actividades + firma electrónica en el SII (una vez).
+- [ ] Por cada pedido `PAID`, emitir la **boleta (39)** en el Portal MiPyme y
+      dejarla enviada al correo del cliente.
+- [ ] Registrarla en el admin → pedido → **Boleta / DTE** (tipo + folio + URL
+      del PDF). El cliente la ve en su ficha de pedido.
+- [ ] El upstream del pago ya dispara `payment_confirmed` para los emails.
+
+**Automatización futura (opcional):** cuando el volumen lo justifique, levantar
+LibreDTE en un servidor y emitir por API; el modelo ya está preparado
+(`orders.dte_provider`), sin migración adicional.
 
 ---
 

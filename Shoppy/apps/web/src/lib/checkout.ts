@@ -213,6 +213,9 @@ export interface OrderDetail {
   carrier: string | null;
   tracking_number: string | null;
   tracking_url: string | null;
+  dte_kind: string | null;
+  dte_folio: string | null;
+  dte_pdf_url: string | null;
   items: {
     product_id: string | null;
     product_slug: string;
@@ -228,7 +231,7 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
   const supabase = await db();
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id,order_number,status,subtotal_clp,discount_clp,shipping_clp,total_clp,created_at")
+    .select("id,order_number,status,subtotal_clp,discount_clp,shipping_clp,total_clp,created_at,dte_kind,dte_folio,dte_pdf_url")
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw error;

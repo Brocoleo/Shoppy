@@ -111,6 +111,19 @@ function PedidoInner({ id }: { id: string }) {
           Rastrear despacho
         </a>
       ) : null}
+      {o.dte_folio ? (
+        <div className="border border-line bg-ivory p-4 text-sm">
+          <p className="mb-1 font-semibold">Documento tributario</p>
+          <p className="text-muted">
+            {o.dte_kind === "factura" ? "Factura" : o.dte_kind === "exenta" ? "Boleta exenta" : "Boleta"} N° {o.dte_folio}
+          </p>
+          {o.dte_pdf_url ? (
+            <a href={o.dte_pdf_url} target="_blank" rel="noreferrer" className="text-carbon underline underline-offset-4">
+              Descargar PDF
+            </a>
+          ) : null}
+        </div>
+      ) : null}
       <Items items={o.items} />
       {o.history.length > 0 ? (
         <div className="border border-line bg-ivory p-4 text-sm">
