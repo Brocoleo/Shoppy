@@ -24,6 +24,17 @@ interface Product {
   availability: string;
   view_count: number;
   favorite_count: number;
+  metadata?: Record<string, unknown>;
+}
+
+/** Clasifica producto como test/demo vs real (producción). */
+function isTestProduct(p: Product): boolean {
+  const meta = p.metadata ?? {};
+  return (
+    meta.example === true ||
+    meta.demo === true ||
+    /^d0000000-0000-4000-8000-0000000000/.test(p.id)
+  );
 }
 
 const PAIDISH = new Set(["PAID", "PREPARING", "SHIPPED", "DELIVERED"]);
@@ -31,7 +42,7 @@ const PAIDISH = new Set(["PAID", "PREPARING", "SHIPPED", "DELIVERED"]);
 async function fetchDashboard() {
   const [oRes, pRes, iRes] = await Promise.all([
     supabase.from("orders").select("id,order_number,status,total_clp,created_at,mode").order("created_at", { ascending: false }).limit(400),
-    supabase.from("products").select("id,name,price_clp,stock,availability,view_count,favorite_count").order("trending_score", { ascending: false }).limit(200),
+    supabase.from("products").select("id,name,price_clp,stock,availability,view_count,favorite_count,metadata").order("trending_score", { ascending: false }).limit(200),
     supabase.from("order_items").select("qty,order_id"),
   ]);
   const firstError = oRes.error ?? pRes.error ?? iRes.error;
@@ -49,7 +60,6 @@ async function fetchDashboard() {
       .reduce((n, oo) => n + oo.total_clp, 0);
     return { key: key.slice(5), total };
   });
-  // Mapa order_id -> mode/status para filtrar items
   const orderMode = new Map(orders.map((od) => [od.id, { mode: od.mode ?? "live", status: od.status }]));
   return {
     now,
@@ -80,44 +90,71 @@ export default function DashboardPage() {
   }
 
   const { orders, products, items, orderMode, last7, now } = data;
-  // Separación por origen: las compras marcadas como prueba (sandbox) no
-  // cuentan en las estadísticas de negocio salvo que se pidan explícitamente.
-  const real = orders.filter((o) => o.mode !== "test" && PAIDISH.has(o.status));
-  const pruebas = orders.filter((o) => o.mode === "test" && PAIDISH.has(o.status));
-  const base = includeTest ? [...real, ...pruebas] : real;
-  const baseOrderIds = new Set(base.map((o) => o.id));
-  // soldQty solo de órdenes PAID (y según includeTest)
-  const soldQty = items
-    .filter((it) => baseOrderIds.has(it.order_id))
-    .reduce((n, it) => n + it.qty, 0);
+
+  // Separación por origen: compras
+  const realOrders = orders.filter((o) => o.mode !== "test" && PAIDISH.has(o.status));
+  const testOrders = orders.filter((o) => o.mode === "test" && PAIDISH.has(o.status));
+  const baseOrders = includeTest ? [...realOrders, ...testOrders] : realOrders;
+  const baseOrderIds = new Set(baseOrders.map((o) => o.id));
+  const soldQty = items.filter((it) => baseOrderIds.has(it.order_id)).reduce((n, it) => n + it.qty, 0);
+
+  // Separación por origen: productos
+  const realProducts = products.filter((p) => !isTestProduct(p));
+  const testProducts = products.filter((p) => isTestProduct(p));
+  const baseProducts = includeTest ? [...realProducts, ...testProducts] : realProducts;
+
   const day = 86_400_000;
-  const inRange = (ms: number) => base.filter((o) => now - o.ts <= ms);
+  const inRange = (ms: number) => baseOrders.filter((o) => now - o.ts <= ms);
   const sum = (list: { total_clp: number }[]) => list.reduce((n, o) => n + o.total_clp, 0);
   const today = inRange(day)!;
   const week = inRange(7 * day);
   const month = inRange(30 * day);
   const ticket = week.length > 0 ? Math.round(sum(week) / week.length) : 0;
-  const bars = last7(base);
+  const bars = last7(baseOrders);
   const maxBar = Math.max(1, ...bars.map((b) => b.total));
 
-  const topViewed = [...products].sort((a, b) => b.view_count - a.view_count).slice(0, 5);
-  const topFav = [...products].sort((a, b) => b.favorite_count - a.favorite_count).slice(0, 5);
-  const lowStock = products.filter((p) => p.availability === "AVAILABLE" && p.stock === 0).slice(0, 8);
+  // Métricas filtradas por modo
+  const topViewed = [...baseProducts].sort((a, b) => b.view_count - a.view_count).slice(0, 5);
+  const topFav = [...baseProducts].sort((a, b) => b.favorite_count - a.favorite_count).slice(0, 5);
+  const lowStock = baseProducts.filter((p) => p.availability === "AVAILABLE" && p.stock === 0).slice(0, 8);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl tracking-tight">Dashboard</h1>
-        <label className="flex items-center gap-2 text-sm text-zinc-600">
-          <input
-            type="checkbox"
-            checked={includeTest}
-            onChange={(e) => setIncludeTest(e.target.checked)}
-            className="h-4 w-4 accent-zinc-900"
-          />
-          Incluir compras de prueba ({pruebas.length})
-        </label>
+        <div className="flex items-center gap-4 text-sm text-zinc-600">
+          <span className="font-medium text-zinc-900">Modo:</span>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={includeTest}
+              onChange={(e) => setIncludeTest(e.target.checked)}
+              className="h-4 w-4 accent-zinc-900"
+            />
+            <span className={includeTest ? "text-zinc-900 font-medium" : "text-zinc-600"}>
+              Desarrollo ({testOrders.length + testProducts.length})
+            </span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!includeTest}
+              onChange={(e) => setIncludeTest(!e.target.checked)}
+              className="h-4 w-4 accent-zinc-900"
+            />
+            <span className={!includeTest ? "text-zinc-900 font-medium" : "text-zinc-600"}>
+              Producción ({realOrders.length + realProducts.length})
+            </span>
+          </label>
+        </div>
       </div>
+
+      {!includeTest && (testOrders.length > 0 || testProducts.length > 0) ? (
+        <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Modo <strong>Producción</strong>: excluye {testOrders.length} compra{testOrders.length === 1 ? "" : "s"} de prueba y {testProducts.length} producto{testProducts.length === 1 ? "" : "s"} de prueba.
+          Activa <strong>Desarrollo</strong> para verlos.
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="Ventas hoy" value={formatCLP(sum(today))} sub={`${today.length} pedidos`} />
@@ -125,11 +162,6 @@ export default function DashboardPage() {
         <Kpi label="Ventas 30 días" value={formatCLP(sum(month))} sub={`${month.length} pedidos`} />
         <Kpi label="Ticket promedio" value={formatCLP(ticket)} sub={`${soldQty} prendas vendidas`} />
       </div>
-      {!includeTest && pruebas.length > 0 ? (
-        <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Estadísticas de negocio: excluyen {pruebas.length} compra{pruebas.length === 1 ? "" : "s"} de prueba (sandbox). Las compras de prueba no generan movimientos reales.
-        </p>
-      ) : null}
 
       <section className="rounded border border-zinc-200 bg-white p-4">
         <h2 className="text-sm font-semibold mb-3">Ventas últimos 7 días</h2>
@@ -146,12 +178,14 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-2 gap-3">
         <section className="rounded border border-zinc-200 bg-white p-4">
           <h2 className="text-sm font-semibold mb-2">Más vistos</h2>
+          {topViewed.length === 0 ? <p className="text-sm text-zinc-500">Sin datos.</p> : null}
           {topViewed.map((p) => (
             <Row key={p.id} left={p.name} right={`${p.view_count} vistas`} />
           ))}
         </section>
         <section className="rounded border border-zinc-200 bg-white p-4">
           <h2 className="text-sm font-semibold mb-2">Más guardados</h2>
+          {topFav.length === 0 ? <p className="text-sm text-zinc-500">Sin datos.</p> : null}
           {topFav.map((p) => (
             <Row key={p.id} left={p.name} right={`${p.favorite_count} favs`} />
           ))}
@@ -161,7 +195,7 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-2 gap-3">
         <section className="rounded border border-zinc-200 bg-white p-4">
           <div className="flex justify-between items-baseline mb-2">
-            <h2 className="text-sm font-semibold">Prendas reservadas</h2>
+            <h2 className="text-sm font-semibold">Bajo reserva (stock 0)</h2>
             <Link href="/productos" className="text-xs text-zinc-500 underline">Ver productos</Link>
           </div>
           {lowStock.length === 0 ? <p className="text-sm text-zinc-500">Nada reservado ahora.</p> : null}
@@ -191,9 +225,7 @@ export default function DashboardPage() {
 
 function Chip({ children, tone }: { children: React.ReactNode; tone: "test" }) {
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-      tone === "test" ? "border-amber-300 bg-amber-100 text-amber-800" : ""
-    }`}>{children}</span>
+    <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tone === "test" ? "border-amber-300 bg-amber-100 text-amber-800" : ""}`}>{children}</span>
   );
 }
 
