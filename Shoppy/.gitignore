@@ -16,3 +16,7 @@ android/
 mobile-dev.log
 .vercel
 .env*
+
+# Plantillas versionables (nunca llevan secretos reales)
+!.env.example
+!.env.production.example
