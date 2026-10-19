@@ -1,24 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ARCHIVE_KEY, parseArchive } from "@shopy/shared/editorial";
 import { supabase } from "../../lib/supabase";
 
-/**
- * Propuestas de línea editorial: el mismo fondo para todas las fotos de
- * producto. La foto de demo sale del archivo real que ya administra la Home,
- * así se ve cómo se comporta el estilo con una prenda verdadera.
- */
-
-const BEIGE_SITIO = "#efede7"; // es el --color-parchment de la web
+const BEIGE_SITIO = "#efede7";
 
 interface Estilo {
   id: string;
   nombre: string;
   descripcion: string;
-  /** Fondo CSS de la muestra. */
   background: string;
-  /** Texto del color, para copiarlo. */
   color: string;
   pasos: string[];
 }
@@ -26,7 +19,7 @@ interface Estilo {
 const ESTILOS: Estilo[] = [
   {
     id: "lino",
-    nombre: "Lino blanco arrugado",
+    nombre: "Lino blanco arrugado (estándar)",
     descripcion:
       "Continuidad total con el archivo actual: la misma tela de lino blanco con sus arrugas naturales le da cuerpo y calidez a la foto.",
     color: "#f7f5f0 base + pliegues",
@@ -72,7 +65,7 @@ const ESTILOS: Estilo[] = [
     id: "piedra",
     nombre: "Gris piedra",
     descripcion:
-      "Neutro moderno: el gris piedra hace resaltar denim, verdes y cremas. Ordinarios y minimalista, hero mejor para marcas de color fuerte.",
+      "Neutro moderno: el gris piedra hace resaltar denim, verdes y cremas. Ordinario y minimalista, hero mejor para marcas de color fuerte.",
     color: "#c6c4bf",
     background:
       "linear-gradient(160deg, #cccac5 0%, #bfbdb8 55%, #b3b1ac 100%)",
@@ -83,6 +76,15 @@ const ESTILOS: Estilo[] = [
     ],
   },
 ];
+
+// ──────────────────────────────────────────────────────────────
+// Prompts maestros anclados al estándar "Lino blanco arrugado".
+// Copiar y pegar en ChatGPT adjuntando la foto cruda de la prenda.
+// ──────────────────────────────────────────────────────────────
+
+const PROMPT_CATALOGO = `Edita esta foto de producto: coloca la MISMA prenda —idéntica: no cambies diseño, color, textura, etiqueta ni desgaste— plana, centrada, vista superior, sobre un fondo de lino blanco arrugado. Luz natural de ventana desde la izquierda, sombra suave. Sin modelo, sin accesorios, sin texto. Encuadre vertical 4:5 con aire alrededor. Fotografía profesional de e-commerce.`;
+
+const PROMPT_EDITORIAL = `Crea una imagen editorial usando la MISMA prenda —idéntica en diseño, color, textura, etiqueta y desgaste, no inventes cambios— puesta por una modelo de cuerpo entero sobre fondo beige claro de lino. A la derecha, 4 tomas superpuestas: frente, espalda, etiqueta de marca y close-up de la tela. Luz cálida natural, sin texto ni logos agregados. Vertical 4:5.`;
 
 async function fetchFotoDemo() {
   const { data, error } = await supabase
@@ -97,6 +99,80 @@ async function fetchFotoDemo() {
   if (!image) throw new Error("ARCHIVE_EMPTY");
   const url = supabase.storage.from("product-images").getPublicUrl(image.storagePath).data.publicUrl;
   return { url, alt: image.alt, title, width: image.width, height: image.height };
+}
+
+function CopyBtn({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition"
+      aria-label={`Copiar prompt ${label}`}
+    >
+      {copied ? "✓ Copiado" : "Copiar"}
+    </button>
+  );
+}
+
+function PromptCard({ title, prompt, hint, label }: { title: string; prompt: string; hint: string; label: string }) {
+  return (
+    <section className="rounded border border-zinc-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-medium text-zinc-900">{title}</h3>
+        <CopyBtn text={prompt} label={label} />
+      </div>
+      <p className="mt-1.5 text-xs text-zinc-600">{hint}</p>
+      <pre className="mt-2 rounded bg-zinc-100 p-3 text-[11px] overflow-x-auto whitespace-pre-wrap text-zinc-800" aria-label={`Prompt ${label}`}>
+{`${prompt}`}
+      </pre>
+    </section>
+  );
+}
+
+function ChecklistHonestidad() {
+  return (
+    <section className="rounded border border-amber-200 bg-amber-50 p-4">
+      <h3 className="font-medium text-amber-900 flex items-center gap-1.5">
+        <span aria-hidden>⚠</span>
+        Honestidad de segunda mano (obligatorio)
+      </h3>
+      <ul className="mt-2 space-y-1.5 text-xs text-amber-800">
+        <li className="flex gap-1.5">
+          <span aria-hidden className="text-amber-600">✓</span>
+          <span>Sube <strong>1–2 fotos reales sin retoque</strong> de la prenda y márcalas <em>“detalle del estado”</em> (campo <code>isDefect</code> en el formulario).</span>
+        </li>
+        <li className="flex gap-1.5">
+          <span aria-hidden className="text-amber-600">✓</span>
+          <span>La foto editorial embellece; la ficha <strong>siempre</strong> muestra la prenda tal cual.</span>
+        </li>
+        <li className="flex gap-1.5">
+          <span aria-hidden className="text-amber-600">✓</span>
+          <span>Si ChatGPT cambia la etiqueta, color o desgaste → <strong>no subas</strong> esa versión; pide “otra vez” o retócalo manualmente.</span>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
+function FlujoManual() {
+  return (
+    <section className="rounded border border-zinc-200 bg-white p-4">
+      <h3 className="font-medium text-zinc-900">Flujo manual por prenda (~3 min)</h3>
+      <ol className="mt-3 space-y-2 text-sm text-zinc-600 list-decimal list-inside">
+        <li className="flex gap-2"><strong>Foto cruda:</strong> celular, prenda plana, cualquier fondo.</li>
+        <li className="flex gap-2"><strong>ChatGPT (app o web):</strong> adjunta la foto + pega prompt <em>/catálogo</em> → descarga.</li>
+        <li className="flex gap-2"><strong>Repite con prompt <em>/editorial</em></strong> (misma foto cruda).</li>
+        <li className="flex gap-2"><strong>Admin → Producto → Fotos:</strong> sube las 2 imágenes generadas + 1–2 fotos reales marcadas “detalle del estado”.</li>
+        <li className="flex gap-2"><strong>Publica.</strong> El sistema recorta a 4:5 y comprime a WebP solo.</li>
+      </ol>
+    </section>
+  );
 }
 
 export default function EditorialPage() {
@@ -116,7 +192,7 @@ export default function EditorialPage() {
           Una sola línea visual para todas las fotos de producto: misma tela de
           fondo, misma luz y encuadre 4:5. Al subir una foto, el sistema la
           recorta centrada a 4:5 automáticamente — si la tomas en 4:5 no pierde
-          casi nada. Elige el estilo que abre la serie.
+          casi nada. El estándar elegido es <strong>Lino blanco arrugado</strong>.
         </p>
       </div>
 
@@ -130,8 +206,8 @@ export default function EditorialPage() {
           </p>
           <p className="mt-1 text-amber-800">
             Configura el archivo en la sección <strong>Home</strong> del admin y
-            este panel la usará como muestra. Mientras tanto, elige el estilo
-            con las muestras de color de abajo.
+            este panel la usará como muestra. Mientras tanto, usa los prompts y
+            la checklist de abajo.
           </p>
           <button
             type="button"
@@ -142,7 +218,37 @@ export default function EditorialPage() {
           </button>
         </div>
       ) : null}
+
       <Propuestas foto={foto ?? null} />
+
+      <div className="border-t border-zinc-200 pt-6">
+        <h2 className="font-serif text-2xl tracking-tight">Proceso con ChatGPT (manual, $0)</h2>
+        <p className="mt-1.5 text-sm text-zinc-600">
+          Los dos prompts listos para copiar y pegar en ChatGPT adjuntando la
+          foto cruda de la prenda. Mantienen la línea visual fija (lino blanco
+          arrugado) entre todas las prendas.
+        </p>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <PromptCard
+            title="1. Prompt /catálogo — foto para tarjeta"
+            prompt={PROMPT_CATALOGO}
+            hint="Resultado: prenda plana sobre lino blanco arrugado, 4:5. Para la portada del catálogo y la ficha principal."
+            label="/catálogo"
+          />
+          <PromptCard
+            title="2. Prompt /editorial — foto con modelo + detalles"
+            prompt={PROMPT_EDITORIAL}
+            hint="Resultado: modelo con la prenda + 4 tomas (frente, espalda, etiqueta, close-up tela). Para la galería de la ficha."
+            label="/editorial"
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <FlujoManual />
+          <ChecklistHonestidad />
+        </div>
+      </div>
     </div>
   );
 }
