@@ -2,7 +2,8 @@
 
 > Documento vivo. Reemplaza/actualiza el checklist anterior: **el backend de
 > operación está implementado**. Lo que falta es, sobre todo, **configuración y
-> cuentas externas** (DNS, KYC MercadoPago, Resend, tarifas reales, SII).
+> cuentas externas** (KYC MercadoPago, Brevo, tarifas reales). El dominio propio
+> queda diferido: se lanza con la URL gratuita de Vercel.
 >
 > Última revisión de código: 19-oct-2026. Revisar `docs/PRODUCTION.md`
 > (deploy Vercel) y `docs/PAYMENTS.md` (pagos) para detalle.
@@ -17,35 +18,37 @@
 | **Envíos (tarifas)** | ✅ `shipping_rates` + buckets 16 regiones + CRUD admin + selector checkout | Cargar **precios reales** por zona |
 | **Envíos (tracking)** | ✅ `shipments` + “Despachar” admin + tracking para **cliente e invitado** | — |
 | **Envío gratis** | ✅ `shipping_rates.free_from_clp` + checkout + admin (smoke E2E OK) | Cargar umbral real por zona |
-| **Emails** | ✅ 7 eventos + Resend + idempotencia (`order_notifications`) | `RESEND_API_KEY` + dominio verificado + `EMAIL_PROVIDER=resend` |
+| **Emails** | ✅ 7 eventos + Brevo/Resend + idempotencia (`order_notifications`) | `BREVO_API_KEY` + remitente verificado + `EMAIL_PROVIDER=brevo` |
 | **Reservas / cron** | ✅ `release_expired_reservations` + `refresh_trending_scores` en `pg_cron` | Verificar `pg_cron` activo en Cloud |
 | **Reembolsos / RMA** | ✅ `return_requests` + aprobación admin → reembolso MP → repone stock `AVAILABLE` + email (smoke OK) | Completar datos legales del texto |
 | **Retiro en tienda** | ❌ | Opción pickup en checkout + notificación |
-| **Facturación SII** | ✅ registro DTE en el pedido (folio/PDF) | Emitir en el **Portal MiPyme** del SII (gratis) y registrar |
-| **Dominio** | ⚙️ Vercel linkeado (`shopy-web`) | Apuntar `vintah.net` + `NEXT_PUBLIC_SITE_URL` |
+| **Dominio** | ⏸️ diferido ($0) | Se lanza con `https://shopy-web-six.vercel.app`; dominio propio cuando haya ventas |
 | **Carrier en vivo** | ⚙️ esqueletos `chilexpress`/`starken` | Homologación API (opcional) |
 
-**Conclusión:** es viable lanzar sin escribir más backend, cargando tarifas
-reales, activando Resend y MP live, y emitiendo boletas en el Portal MiPyme del
-SII (gratis). El retiro en tienda no aplica (negocio virtual) y el RMA ya está
-implementado; solo faltan los datos legales y las cuentas externas.
+**Conclusión:** es viable lanzar **con costo $0**, cargando tarifas reales,
+activando Brevo (sin dominio) y MP live. El retiro en tienda no aplica (negocio
+virtual) y el RMA ya está implementado; solo faltan las cuentas externas.
 
 ---
 
-## 1. Fase 0 — Dominio, DNS y variables (bloqueante)
+## 1. Fase 0 — URL pública y variables (sin dominio propio)
 
-- [ ] **DNS `vintah.net` → Vercel** (`shopy-web`):
-  - `A  @  76.76.21.21`
-  - `CNAME  www  cname.vercel-dns.com`
-  - (Si el registrador es Cloudflare: proxy OFF o “DNS only” hasta validar.)
-- [ ] Añadir `vintah.net` y `www.vintah.net` en Vercel → Project → Domains.
-- [ ] `NEXT_PUBLIC_SITE_URL=https://vintah.net` (Production **y** Preview).
+**Decisión: $0.** No se compra dominio para el drop 1. Se usa la URL gratuita
+de producción de Vercel:
+
+`https://shopy-web-six.vercel.app`
+
+- [ ] `NEXT_PUBLIC_SITE_URL=https://shopy-web-six.vercel.app` (Production y Preview).
 - [ ] Subir variables: `cp .env.production.example .env.production` → rellenar
       → `./scripts/setup-vercel-env.sh .env.production production`.
-- [ ] `vercel --prod` y verificar que `https://vintah.net` carga con candado.
+- [ ] `vercel --prod` y verificar que la URL carga con candado.
 
 > El mismo `NEXT_PUBLIC_*` debe existir en **Preview** o los previews muestran
 > “La tienda no está disponible” (ver `docs/PRODUCTION.md`).
+
+**Dominio propio (diferido):** cuando el drop 1 genere ventas, comprar
+`vintah.net` (~$10–15 USD/año) y apuntarlo a Vercel con
+`A @ 76.76.21.21` + `CNAME www cname.vercel-dns.com`.
 
 ---
 
@@ -60,8 +63,9 @@ Dashboard → Project Settings → Edge Functions → Secrets, o
 | `PAYMENT_MODE` | `live` | Al activar live |
 | `MERCADOPAGO_ACCESS_TOKEN` / `_PUBLIC_KEY` / `_WEBHOOK_SECRET` | live | Tras KYC |
 | `FUNCTIONS_PUBLIC_URL` | `https://evzlqwiipdjgtrqjlwba.supabase.co/functions/v1` | Ya |
-| `EMAIL_PROVIDER` | `resend` | Al activar emails |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Resend | Al activar |
+| `EMAIL_PROVIDER` | `brevo` | Al activar emails |
+| `BREVO_API_KEY`, `EMAIL_FROM` | Brevo (remitente verificado) | Al activar |
+| `EMAIL_FROM_NAME` | `vintah.zhe` | Opcional |
 | `GEMINI_API_KEY` | capa gratis | Ya (rotada) |
 
 ---
@@ -91,13 +95,23 @@ El motor existe. Pasos:
 
 ---
 
-## 5. Fase 3 — Emails transaccionales (activar)
+## 5. Fase 3 — Emails transaccionales ($0 con Brevo)
 
-- [ ] Crear cuenta **Resend** (gratis 3k/mes) y verificar el dominio
-      `vintah.net` (registros SPF + DKIM en DNS).
-- [ ] `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM=pedidos@vintah.net`.
+Brevo permite **verificar un correo remitente sin dominio propio** (plan free:
+300 emails/día). El adaptador `brevo` ya está implementado.
+
+- [ ] Crear cuenta en **brevo.com** (free, sin tarjeta).
+- [ ] **Senders & Domains → Senders** → agregar `leomir2656@icloud.com` →
+      verificar el enlace que llega a ese correo.
+- [ ] **SMTP & API → API Keys** → crear key y guardarla en `supabase/.env`
+      (gitignored) como `BREVO_API_KEY`.
+- [ ] `EMAIL_PROVIDER=brevo`, `EMAIL_FROM=leomir2656@icloud.com`,
+      `EMAIL_FROM_NAME=vintah.zhe`.
 - [ ] En live, `EMAIL_TEST_RECIPIENTS` vacío (el guard solo limita sandbox).
 - [ ] Probar los 7 eventos con un pedido sandbox.
+
+> Cuando compres dominio, se puede migrar a Resend o verificar el dominio en
+> Brevo para mejorar entregabilidad. El adaptador Resend se mantiene.
 
 ---
 
@@ -129,49 +143,10 @@ Solo aplica si más adelante abres un punto de entrega. En ese caso:
 
 ---
 
-## 8. Fase 6 — Facturación electrónica SII ($0 con el Portal MiPyme)
-
-**Contexto verificado (19-oct-2026):** en Chile **todo** DTE (boleta/factura) es
-obligatorio desde la primera venta, sin umbral de volumen. **Facturama es
-mexicano (CFDI)** y **no** emite documentos chilenos. El sistema **gratuito y
-oficial** del SII es el **Portal MiPyme**.
-
-Opciones reales:
-
-| Ruta | Costo | Automatización | Notas |
-|---|---|---|---|
-| **Portal MiPyme (SII)** | **$0 para siempre** | Manual (web) | Oficial, válido, sin certificación propia. **Recomendado para el piloto.** |
-| LibreDTE self-hosted | $0 software + **servidor** (~$5 USD/mes) | Total (API REST) | Único $0 *automático*; rompe el techo $0 por el VPS. |
-| FacBox / BaseAPI / SimpleAPI | Gratis con límites que **excluyen boletas** o vencen a 1 año | Total (API REST) | No sirven como “definitivo $0” para B2C. |
-
-**Certificado digital (aclaración oficial, FAQ SII 22/07/2026):**
-
-- **Boletas electrónicas** (venta a consumidor): el *Sistema de Emisión de
-  Boletas del SII* **NO requiere certificado digital** → costo real **$0**.
-  Se emiten desde el sitio o desde la app móvil **e-Boleta**.
-- **Facturas** (B2B): sí requieren certificado digital (costo anual aparte).
-
-**Plan del piloto ($0, sin servidor):**
-
-- [ ] Tener **inicio de actividades** vigente con giro de comercio al por menor
-      (la firma electrónica **no** se necesita para boletas).
-- [ ] Inscribirse en el **Sistema de Emisión de Boletas** del SII (gratis).
-- [ ] Por cada pedido `PAID`, emitir la **boleta (39)** y dejarla enviada al
-      correo del cliente.
-- [ ] Registrarla en el admin → pedido → **Boleta / DTE** (tipo + folio + URL
-      del PDF). El cliente la ve en su ficha de pedido.
-- [ ] El upstream del pago ya dispara `payment_confirmed` para los emails.
-
-**Automatización futura (opcional):** cuando el volumen lo justifique, levantar
-LibreDTE en un servidor y emitir por API; el modelo ya está preparado
-(`orders.dte_provider`), sin migración adicional.
-
----
-
-## 9. Fase 7 — Verificación post-deploy
+## 8. Fase 7 — Verificación post-deploy
 
 - [ ] `pg_cron` activo en Cloud (`select * from cron.job;`).
-- [ ] Smoke E2E: guest + con cuenta + cupón, en `https://vintah.net`.
+- [ ] Smoke E2E: guest + con cuenta + cupón, en la URL de producción.
 - [ ] Pago real aprobado → pedido `PAID` + email + tracking visible.
 - [ ] Logs de Edge Functions sin `INTERNAL` en 24 h.
 
@@ -179,6 +154,5 @@ LibreDTE en un servidor y emitir por API; el modelo ya está preparado
 
 ## Panel de propiedad (no técnico, entrega del dueño)
 
-Credenciales MP **LIVE**, API key **Resend** + dominio verificado, credenciales
-**carrier** (Chilexpress/Starken) si se activan, y decisión sobre **facturación
-electrónica**.
+Credenciales MP **LIVE**, API key **Brevo** + remitente verificado, y credenciales
+**carrier** (Chilexpress/Starken) si se activan.
