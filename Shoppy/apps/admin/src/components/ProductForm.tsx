@@ -278,7 +278,13 @@ export function ProductForm({
       if (fields.segment) fillEmpty("segment", fields.segment, "segmento");
       if (fields.color) fillEmpty("color", fields.color, "color");
       if (fields.size) fillEmpty("size", fields.size, "talla");
-      if (fields.description) fillEmpty("description", fields.description, "descripción");
+      if (fields.description) {
+        const material = fields.material
+          && !normalizeName(fields.description).includes(normalizeName(fields.material))
+          ? ` Composición: ${fields.material}.`
+          : "";
+        fillEmpty("description", `${fields.description}${material}`.trim(), "descripción");
+      }
       if (fields.tags.length) fillEmpty("tags", fields.tags.join(", "), "tags");
       if (!next.condition) {
         next.condition = fields.condition;
@@ -291,8 +297,9 @@ export function ProductForm({
         ? `Completado: ${filled.join(", ")}.`
         : "No había campos vacíos que completar.";
       const omitidos = skipped.length ? ` No toqué: ${skipped.join(", ")}.` : "";
+      const etiqueta = fields.labelText ? ` Etiqueta leída: “${fields.labelText}”.` : "";
       const nota = fields.notes ? ` Nota de la IA: ${fields.notes}` : "";
-      setAiNote(`${resumen}${omitidos}${nota} Revisa y corrige antes de guardar.`);
+      setAiNote(`${resumen}${omitidos}${etiqueta}${nota} Revisa y corrige antes de guardar.`);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : "No se pudo analizar la foto.");
     } finally {
