@@ -84,7 +84,47 @@ const ESTILOS: Estilo[] = [
 
 const PROMPT_CATALOGO = `Edita esta foto de producto: coloca la MISMA prenda —idéntica: no cambies diseño, color, textura, etiqueta ni desgaste— plana, centrada, vista superior, sobre un fondo de lino blanco arrugado. Luz natural de ventana desde la izquierda, sombra suave. Sin modelo, sin accesorios, sin texto. Encuadre vertical 4:5 con aire alrededor. Fotografía profesional de e-commerce.`;
 
-const PROMPT_EDITORIAL = `Crea una imagen editorial usando la MISMA prenda —idéntica en diseño, color, textura, etiqueta y desgaste, no inventes cambios— puesta y fotografiada desde 3 ángulos distintos (ej. frente, 3/4 y espalda) sin mostrar la modelo completa ni su rostro, solo la prenda. Fondo beige claro de lino, luz cálida natural, sin texto ni logos agregados. Vertical 4:5.`;
+const PROMPT_EDITORIAL = `Edita la fotografía original de esta prenda para crear una composición profesional de e-commerce, hiperrealista y natural, manteniendo la identidad visual del producto.
+
+**REGLA PRINCIPAL: LA PRENDA ES LA PROTAGONISTA.**
+
+### 1. Encuadre de la fotografía principal
+Mostrar la prenda puesta en una modelo adulta, utilizando un encuadre cerrado de producto, no un retrato de moda.
+- La prenda debe ocupar aproximadamente el 80–85% del protagonismo visual.
+- La modelo debe representar como máximo el 15–20% del protagonismo visual.
+- Recortar el cuerpo inmediatamente por encima de la cintura, mostrando únicamente una pequeña franja del top y abdomen.
+- El encuadre inferior debe terminar entre 5 y 10 cm debajo del borde de la falda.
+- No mostrar rostro, cabeza, hombros, pecho, rodillas ni piernas completas.
+- Evitar poses llamativas, movimientos exagerados y accesorios.
+- La modelo debe estar de pie, en posición frontal natural, con los brazos relajados.
+- Cámara a la altura de la prenda, sin perspectiva dramática.
+La imagen debe parecer una fotografía de producto con una persona utilizándolo, NO una sesión fotográfica de una modelo.
+
+### 2. Fidelidad a la prenda original
+Utilizar la fotografía original como referencia obligatoria.
+Mantener la forma, el color, las costuras, el pliegue central, los bolsillos, la textura, la etiqueta, el largo y las marcas de desgaste reales.
+No inventar estampados, modificar proporciones, reemplazar etiquetas ni mejorar artificialmente el estado de la prenda.
+
+### 3. Composición editorial
+Crear una imagen vertical 4:5 con tres fotografías:
+**Fotografía principal:** aproximadamente 70% del espacio total, mostrando la prenda puesta con el encuadre cerrado descrito anteriormente.
+**Detalle 1:** acercamiento al pliegue central y las costuras originales.
+**Detalle 2:** acercamiento a la etiqueta original y textura de la tela.
+Los detalles deben ser secundarios y mantener coherencia visual con la fotografía principal.
+
+### 4. Estética fotográfica
+Fotografía casera profesional, realista y sin retoques excesivos.
+Fondo beige claro de lino, iluminación suave de ventana desde la izquierda, sombras naturales y colores fieles.
+Conservar pequeñas imperfecciones fotográficas, arrugas auténticas, textura real del denim y asimetrías naturales.
+Evitar apariencia CGI, piel plastificada, texturas artificiales, iluminación cinematográfica y retoques de moda.
+
+### 5. Restricciones prioritarias
+No generar fotografías de cuerpo entero.
+No ampliar el encuadre para mostrar más partes de la modelo.
+No convertir la imagen en una campaña publicitaria centrada en la persona.
+No agregar textos, logos, accesorios ni elementos decorativos.
+
+El objetivo es que el comprador observe inmediatamente la prenda, su forma, su caída, su textura y sus detalles, utilizando a la modelo únicamente como soporte visual para mostrar cómo queda puesta.`;
 
 async function fetchFotoDemo() {
   const { data, error } = await supabase
@@ -237,9 +277,9 @@ export default function EditorialPage() {
             label="/catálogo"
           />
           <PromptCard
-            title="2. Prompt /editorial — 3 ángulos de la prenda puesta"
+            title="2. Prompt /editorial — encuadre cerrado + 3 detalles"
             prompt={PROMPT_EDITORIAL}
-            hint="Resultado: 3 tomas de la prenda puesta (frente, 3/4, espalda) sin modelo completa ni rostro. Para la galería de la ficha."
+            hint="Resultado: foto principal (prenda puesta 85% encuadre cerrado, sin rostro) + 2 detalles (pliegue/costuras + etiqueta/textura). Vertical 4:5, fondo lino beige, luz ventana. Para la galería de la ficha."
             label="/editorial"
           />
         </div>
