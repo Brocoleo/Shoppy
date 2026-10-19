@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, isValidElement, useId, useEffect, useState, type ReactElement, type FormEvent } from "react";
+import { cloneElement, isValidElement, useId, useEffect, useRef, useState, type ReactElement, type FormEvent } from "react";
 import type {
   DbBrand,
   DbCategory,
@@ -8,6 +8,7 @@ import type {
   DbProductCondition,
 } from "@shopy/types";
 import { formatCLP, supabase } from "../lib/supabase";
+import { prepareImageParaIA } from "../lib/prepareImage";
 
 const CONDITIONS: { value: DbProductCondition; label: string }[] = [
   { value: "como_nuevo", label: "Como nuevo" },
@@ -107,6 +108,35 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+interface AiFields {
+  name: string | null;
+  brand: string | null;
+  category: string | null;
+  subcategory: string | null;
+  segment: string | null;
+  color: string | null;
+  condition: DbProductCondition;
+  size: string | null;
+  material: string | null;
+  description: string | null;
+  tags: string[];
+  labelText: string | null;
+  notes: string | null;
+}
+
+const normalizeName = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+function base64FromBuffer(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export function ProductForm({
   initial,
   onSave,
@@ -128,6 +158,10 @@ export function ProductForm({
   const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
   const [brands, setBrands] = useState<DbBrand[]>([]);
   const [categories, setCategories] = useState<DbCategory[]>([]);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const aiInputRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof ProductFormValue>(
     k: K,
     val: ProductFormValue[K],
@@ -171,6 +205,100 @@ export function ProductForm({
 
   const parents = categories.filter((c) => !c.parent_id);
   const subs = categories.filter((c) => c.parent_id === v.category_id);
+
+  const analizarFoto = async (file: File) => {
+    setAiError(null);
+    setAiNote(null);
+    setAiBusy(true);
+    try {
+      const optimizada = await prepareImageParaIA(file);
+      const base64 = base64FromBuffer(await optimizada.arrayBuffer());
+      const { data, error } = await supabase.functions.invoke("producto-ia", {
+        body: { image_base64: base64, mime_type: optimizada.type },
+      });
+      if (error) {
+        let message = "No se pudo analizar la foto. Inténtalo de nuevo.";
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          const msg = (body as { error?: { message?: string } } | undefined)?.error?.message;
+          if (msg) message = msg;
+        } catch {
+          /* sin cuerpo legible */
+        }
+        throw new Error(message);
+      }
+      const fields = (data as { fields?: AiFields } | null)?.fields;
+      if (!fields) throw new Error("La IA no devolvió datos. Reintenta.");
+
+      const filled: string[] = [];
+      const skipped: string[] = [];
+      const next: ProductFormValue = { ...v };
+      const fillEmpty = <K extends keyof ProductFormValue>(
+        k: K,
+        valor: ProductFormValue[K],
+        label: string,
+      ) => {
+        const actual = next[k];
+        const vacio = actual === "" || actual === null || actual === 0;
+        if (!vacio) {
+          skipped.push(label);
+          return;
+        }
+        next[k] = valor;
+        filled.push(label);
+      };
+
+      if (fields.name) {
+        fillEmpty("name", fields.name, "nombre");
+        if (!slugEdited && !next.slug) next.slug = slugify(fields.name);
+      }
+      if (fields.brand) {
+        const match = brands.find((b) => normalizeName(b.name) === normalizeName(fields.brand!));
+        if (!match) skipped.push(`marca «${fields.brand}» (no está en el catálogo)`);
+        else fillEmpty("brand_id", match.id, "marca");
+      }
+      if (fields.category) {
+        const match = parents.find((c) => normalizeName(c.name) === normalizeName(fields.category!));
+        if (!match) skipped.push(`categoría «${fields.category}» (no está en el catálogo)`);
+        else if (!next.category_id) {
+          next.category_id = match.id;
+          next.subcategory_id = "";
+          filled.push("categoría");
+        } else skipped.push("categoría");
+      }
+      if (fields.subcategory) {
+        const match = categories.find(
+          (c) => c.parent_id === next.category_id && normalizeName(c.name) === normalizeName(fields.subcategory!),
+        );
+        if (!next.subcategory_id && match) {
+          next.subcategory_id = match.id;
+          filled.push("subcategoría");
+        }
+      }
+      if (fields.segment) fillEmpty("segment", fields.segment, "segmento");
+      if (fields.color) fillEmpty("color", fields.color, "color");
+      if (fields.size) fillEmpty("size", fields.size, "talla");
+      if (fields.description) fillEmpty("description", fields.description, "descripción");
+      if (fields.tags.length) fillEmpty("tags", fields.tags.join(", "), "tags");
+      if (!next.condition) {
+        next.condition = fields.condition;
+        filled.push("estado");
+      }
+
+      setValidationError(null);
+      setV(next);
+      const resumen = filled.length
+        ? `Completado: ${filled.join(", ")}.`
+        : "No había campos vacíos que completar.";
+      const omitidos = skipped.length ? ` No toqué: ${skipped.join(", ")}.` : "";
+      const nota = fields.notes ? ` Nota de la IA: ${fields.notes}` : "";
+      setAiNote(`${resumen}${omitidos}${nota} Revisa y corrige antes de guardar.`);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "No se pudo analizar la foto.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     let message: string | null = null;
@@ -212,6 +340,44 @@ export function ProductForm({
         Paso 1 · Datos. Guarda para continuar con las fotos y revisar la
         publicación.
       </p>
+      <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-4">
+        <h2 className="text-sm font-semibold">Completar con IA (opcional)</h2>
+        <p className="mt-1 text-xs text-zinc-600">
+          Sube la foto cruda de la prenda: la IA lee marca, tipo y estado y
+          rellena los campos que estén vacíos. La foto no se publica ni se
+          guarda; solo se usa para el borrador. Revisa y corrige siempre.
+        </p>
+        <div className="mt-3">
+          <input
+            ref={aiInputRef}
+            type="file"
+            accept="image/*"
+            disabled={aiBusy}
+            aria-label="Foto para completar los campos con IA"
+            className="min-h-11 max-w-full text-sm"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void analizarFoto(file);
+            }}
+          />
+        </div>
+        {aiBusy ? (
+          <p role="status" className="mt-2 text-xs text-zinc-500">
+            Analizando la foto con IA… puede tardar unos segundos.
+          </p>
+        ) : null}
+        {aiError ? (
+          <p role="alert" className="mt-2 text-sm text-red-700">
+            {aiError}
+          </p>
+        ) : null}
+        {aiNote ? (
+          <p role="status" className="mt-2 text-xs text-green-800">
+            {aiNote}
+          </p>
+        ) : null}
+      </div>
       {taxonomyError ? (
         <p role="alert" className="text-sm text-red-700">
           {taxonomyError}

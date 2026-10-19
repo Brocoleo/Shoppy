@@ -381,6 +381,11 @@ enabled = true
 # Solo admins con JWT válido; la función además exige role='admin'.
 verify_jwt = true
 
+[functions.producto-ia]
+enabled = true
+# Análisis de foto con Gemini. Exige JWT y role='admin' dentro de la función.
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

@@ -80,8 +80,57 @@ export async function prepareImage(file: File): Promise<File> {
   }
 }
 
-/** Prueba del recorte centrado sin navegador (misma matemática en Node). */
-export function corteCentrado4x5(width: number, height: number): {
+/**
+ * Variante para el análisis con IA: reduce la foto a un lado máximo sin
+ * recortar (conserva toda la etiqueta y el encuadre) y la deja en WebP para
+ * enviarla al edge function. No sube nada al almacenamiento.
+ */
+export async function prepareImageParaIA(
+  file: File,
+  maxLado = 1400,
+): Promise<File> {
+  if (file.size === 0 || file.size > 30 * 1024 * 1024)
+    throw new Error(`${file.name}: elige una foto de hasta 30 MB.`);
+  if (!file.type.startsWith("image/"))
+    throw new Error(`${file.name}: elige una fotografía.`);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    throw new Error(
+      `${file.name}: este navegador no puede abrir ese formato. Exporta la foto como JPG, PNG o WebP.`,
+    );
+  }
+  try {
+    const scale = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("No se pudo preparar la fotografía.");
+    context.drawImage(bitmap, 0, 0, w, h);
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (b) =>
+          b
+            ? resolve(b)
+            : reject(new Error("No se pudo optimizar la fotografía.")),
+        "image/webp",
+        0.85,
+      ),
+    );
+    return new File([blob], "analisis.webp", {
+      type: blob.type || "image/webp",
+      lastModified: file.lastModified,
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
+/** Prueba del recorte centrado sin navegador (misma matemática en Node). */export function corteCentrado4x5(width: number, height: number): {
   width: number;
   height: number;
   offsetX: number;
