@@ -134,11 +134,20 @@ Opciones reales:
 | LibreDTE self-hosted | $0 software + **servidor** (~$5 USD/mes) | Total (API REST) | Único $0 *automático*; rompe el techo $0 por el VPS. |
 | FacBox / BaseAPI / SimpleAPI | Gratis con límites que **excluyen boletas** o vencen a 1 año | Total (API REST) | No sirven como “definitivo $0” para B2C. |
 
+**Certificado digital (aclaración oficial, FAQ SII 22/07/2026):**
+
+- **Boletas electrónicas** (venta a consumidor): el *Sistema de Emisión de
+  Boletas del SII* **NO requiere certificado digital** → costo real **$0**.
+  Se emiten desde el sitio o desde la app móvil **e-Boleta**.
+- **Facturas** (B2B): sí requieren certificado digital (costo anual aparte).
+
 **Plan del piloto ($0, sin servidor):**
 
-- [ ] Obtener inicio de actividades + firma electrónica en el SII (una vez).
-- [ ] Por cada pedido `PAID`, emitir la **boleta (39)** en el Portal MiPyme y
-      dejarla enviada al correo del cliente.
+- [ ] Tener **inicio de actividades** vigente con giro de comercio al por menor
+      (la firma electrónica **no** se necesita para boletas).
+- [ ] Inscribirse en el **Sistema de Emisión de Boletas** del SII (gratis).
+- [ ] Por cada pedido `PAID`, emitir la **boleta (39)** y dejarla enviada al
+      correo del cliente.
 - [ ] Registrarla en el admin → pedido → **Boleta / DTE** (tipo + folio + URL
       del PDF). El cliente la ve en su ficha de pedido.
 - [ ] El upstream del pago ya dispara `payment_confirmed` para los emails.
