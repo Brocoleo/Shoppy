@@ -18,7 +18,7 @@
 | **Envíos (tarifas)** | ✅ `shipping_rates` + buckets 16 regiones + CRUD admin + selector checkout | Cargar **precios reales** por zona |
 | **Envíos (tracking)** | ✅ `shipments` + “Despachar” admin + tracking para **cliente e invitado** | — |
 | **Envío gratis** | ✅ `shipping_rates.free_from_clp` + checkout + admin (smoke E2E OK) | Cargar umbral real por zona |
-| **Emails** | ✅ 7 eventos + Brevo/Resend + idempotencia (`order_notifications`) | `BREVO_API_KEY` + remitente verificado + `EMAIL_PROVIDER=brevo` |
+| **Emails** | ✅ 7 eventos + Brevo/Resend + idempotencia; **E2E real verificado** (Brevo, 19-oct) | — |
 | **Reservas / cron** | ✅ `release_expired_reservations` + `refresh_trending_scores` en `pg_cron` | Verificar `pg_cron` activo en Cloud |
 | **Reembolsos / RMA** | ✅ `return_requests` + aprobación admin → reembolso MP → repone stock `AVAILABLE` + email (smoke OK) | Completar datos legales del texto |
 | **Retiro en tienda** | ❌ | Opción pickup en checkout + notificación |
@@ -105,13 +105,18 @@ Hay **dos adaptadores** listos. Usa el que te deje crear cuenta gratis:
 | **SMTP2GO** (`EMAIL_PROVIDER=smtp2go`) | 1.000/mes | verificar correo | Sin tarjeta; sin dominio aplica 25/hora. |
 
 Pasos (idénticos en ambos):
-1. Crear cuenta gratis (sin tarjeta).
-2. Verificar el remitente `leomir2656@icloud.com` (llega un enlace a ese correo).
-3. Crear una **API key** y guardarla en `supabase/.env` (gitignored).
-4. Secrets: `EMAIL_PROVIDER=brevo|smtp2go`, `EMAIL_FROM=leomir2656@icloud.com`,
+1. [x] Crear cuenta gratis (sin tarjeta).
+2. [x] Verificar el remitente `leomir2656@icloud.com` (llega un enlace a ese correo).
+3. [x] Crear una **API key** y guardarla en `supabase/.env` (gitignored).
+4. [x] Secrets: `EMAIL_PROVIDER=brevo|smtp2go`, `EMAIL_FROM=leomir2656@icloud.com`,
    `EMAIL_FROM_NAME=vintah.zhe` + la key correspondiente
    (`BREVO_API_KEY` o `SMTP2GO_API_KEY`).
-5. En live, `EMAIL_TEST_RECIPIENTS` vacío (el guard solo limita sandbox).
+5. [ ] En live, `EMAIL_TEST_RECIPIENTS` vacío (el guard solo limita sandbox).
+
+> **Estado 19-oct-2026:** Brevo activo (`EMAIL_PROVIDER=brevo`, remitente
+> verificado). Envío directo HTTP 201 y prueba E2E por la edge function
+> (`order_created` de un pedido sandbox) con `provider_message_id` real.
+> Límite free: 300 emails/día.
 
 > Cuando compres dominio, se puede verificar en Brevo/SMTP2GO (mejor
 > entregabilidad) o migrar a Resend. Los tres adaptadores se mantienen.
