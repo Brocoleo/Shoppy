@@ -4,8 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -36,26 +35,43 @@ export function isTestOrder(row: { mode?: string | null }): boolean {
   return row.mode === "test";
 }
 
-export function ModoProvider({ children }: { children: ReactNode }) {
-  const [modo, setModoState] = useState<AdminMode>("produccion");
+function readStored(): AdminMode {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "desarrollo" || stored === "produccion") return stored;
+  } catch {
+    // localStorage no disponible (modo privado estricto): se queda en producción.
+  }
+  return "produccion";
+}
 
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored === "desarrollo" || stored === "produccion")
-        setModoState(stored);
-    } catch {
-      // localStorage no disponible (modo privado estricto): se queda en producción.
-    }
-  }, []);
+// localStorage es un store externo: useSyncExternalStore sincroniza sin
+// provocar renders en cascada ni desajustes de hidratación (SSR = producción).
+const listeners = new Set<() => void>();
+
+function subscribe(callback: () => void): () => void {
+  listeners.add(callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    listeners.delete(callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getServerSnapshot(): AdminMode {
+  return "produccion";
+}
+
+export function ModoProvider({ children }: { children: ReactNode }) {
+  const modo = useSyncExternalStore(subscribe, readStored, getServerSnapshot);
 
   const setModo = useCallback((m: AdminMode) => {
-    setModoState(m);
     try {
       window.localStorage.setItem(STORAGE_KEY, m);
     } catch {
       // Ignorar: el modo vive en memoria mientras dure la sesión.
     }
+    listeners.forEach((notify) => notify());
   }, []);
 
   return (

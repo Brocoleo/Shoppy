@@ -38,6 +38,7 @@ export interface QuoteResult {
   subtotal_clp: number;
   discount_clp: number;
   shipping_clp: number;
+  free_shipping?: boolean;
   total_clp: number;
 }
 
@@ -168,6 +169,7 @@ export interface ShippingRate {
   comuna: string | null;
   carrier: string;
   price_clp: number;
+  free_from_clp: number | null;
   eta_days_min: number | null;
   eta_days_max: number | null;
 }
@@ -176,7 +178,7 @@ export async function listShippingRates(region: string): Promise<ShippingRate[]>
   const supabase = await db();
   const { data, error } = await supabase
     .from("shipping_rates")
-    .select("id,region,comuna,carrier,price_clp,eta_days_min,eta_days_max")
+    .select("id,region,comuna,carrier,price_clp,free_from_clp,eta_days_min,eta_days_max")
     .eq("is_active", true)
     .order("price_clp");
   if (error) throw error;
@@ -216,6 +218,7 @@ export interface OrderDetail {
   dte_kind: string | null;
   dte_folio: string | null;
   dte_pdf_url: string | null;
+  return_request: { status: string; reason: string; created_at: string } | null;
   items: {
     product_id: string | null;
     product_slug: string;
@@ -237,26 +240,36 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
   if (error) throw error;
   if (!order) return null;
   const o = order as unknown as OrderDetail;
-  const [itemsResult, historyResult, shipmentResult] = await Promise.all([
+  const [itemsResult, historyResult, shipmentResult, returnResult] = await Promise.all([
     supabase.from("order_items").select("product_id,product_slug,product_name,image_url,unit_price_clp,qty").eq("order_id", orderId),
     supabase.from("order_status_history").select("from_status,to_status,created_at").eq("order_id", orderId).order("created_at"),
     supabase.from("shipments").select("carrier,tracking_number,tracking_url").eq("order_id", orderId).maybeSingle(),
+    supabase.from("return_requests").select("status,reason,created_at").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  for (const result of [itemsResult, historyResult, shipmentResult]) {
+  for (const result of [itemsResult, historyResult, shipmentResult, returnResult]) {
     if (result.error) throw result.error;
   }
   const { data: items } = itemsResult;
   const { data: history } = historyResult;
   const { data: shipment } = shipmentResult;
+  const { data: returnRequest } = returnResult;
   const ship = shipment as unknown as { carrier: string; tracking_number: string; tracking_url: string } | null;
   return {
     ...o,
     carrier: ship?.carrier ?? null,
     tracking_number: ship?.tracking_number ?? null,
     tracking_url: ship?.tracking_url ?? null,
+    return_request: (returnRequest as unknown as OrderDetail["return_request"]) ?? null,
     items: (items ?? []) as OrderDetail["items"],
     history: (history ?? []) as OrderDetail["history"],
   };
+}
+
+/** El cliente solicita el retracto/devolución de un pedido entregado (Ley 19.496). */
+export async function requestReturn(orderId: string, reason: string, detail: string): Promise<void> {
+  const supabase = await db();
+  const { error } = await supabase.rpc("request_return", { p_order: orderId, p_reason: reason, p_detail: detail || null });
+  if (error) throw error;
 }
 
 export interface GuestOrderResult {
@@ -265,6 +278,11 @@ export interface GuestOrderResult {
   status: string;
   total_clp: number;
   carrier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  dte_kind?: string | null;
+  dte_folio?: string | null;
+  dte_pdf_url?: string | null;
   items: {
     product_id: string | null;
     product_slug: string;
@@ -290,11 +308,18 @@ export async function trackGuestOrder(orderId: string, token: string): Promise<G
   }
   if (rpc.error) throw new CheckoutApiError(404, "ORDER_NOT_FOUND", "Pedido no encontrado. Verifica los datos.");
   const raw = rpc.data as Record<string, unknown>;
+  const ship = (raw["shipment"] ?? null) as { carrier?: string | null; tracking_number?: string | null; tracking_url?: string | null } | null;
   return {
     id: String(raw["id"] ?? orderId),
     order_number: String(raw["order_number"] ?? ""),
     status: String(raw["status"] ?? ""),
     total_clp: Number(raw["total_clp"] ?? 0),
+    carrier: ship?.carrier ?? null,
+    tracking_number: ship?.tracking_number ?? null,
+    tracking_url: ship?.tracking_url ?? null,
+    dte_kind: (raw["dte_kind"] as string | null) ?? null,
+    dte_folio: (raw["dte_folio"] as string | null) ?? null,
+    dte_pdf_url: (raw["dte_pdf_url"] as string | null) ?? null,
     items: (Array.isArray(raw["items"]) ? raw["items"] : []) as GuestOrderResult["items"],
   };
 }

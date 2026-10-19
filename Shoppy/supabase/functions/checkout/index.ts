@@ -193,11 +193,11 @@ async function computeQuote(
 
   const { data: rate, error: rErr } = await db
     .from("shipping_rates")
-    .select("id,region,price_clp,is_active")
+    .select("id,region,price_clp,is_active,free_from_clp")
     .eq("id", input.shipping_rate_id)
     .maybeSingle();
   if (rErr || !rate) throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inválida.");
-  const typedRate = rate as unknown as { region: string; price_clp: number; is_active: boolean };
+  const typedRate = rate as unknown as { region: string; price_clp: number; is_active: boolean; free_from_clp: number | null };
   if (!typedRate.is_active) throw new CheckoutError(400, "INVALID_RATE", "Tarifa de despacho inactiva.");
   if (!matchesShippingRegion(typedRate.region, input.region)) {
     throw new CheckoutError(400, "INVALID_RATE", "La tarifa no corresponde a tu región.");
@@ -237,7 +237,12 @@ async function computeQuote(
     discount_clp = row.amount_clp;
   }
 
-  if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(subtotal - discount_clp + typedRate.price_clp)) {
+  const netSubtotal = subtotal - discount_clp;
+  const freeThreshold = typeof typedRate.free_from_clp === "number" && typedRate.free_from_clp >= 0 ? typedRate.free_from_clp : null;
+  const shipping_clp = freeThreshold !== null && netSubtotal >= freeThreshold ? 0 : typedRate.price_clp;
+  const free_shipping = shipping_clp === 0 && typedRate.price_clp > 0;
+
+  if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(netSubtotal + shipping_clp)) {
     throw new CheckoutError(409, "INVALID_TOTAL", "No se pudo calcular el total del pedido.");
   }
   return {
@@ -245,8 +250,9 @@ async function computeQuote(
     subtotal_clp: subtotal,
     discount_clp,
     discount_id,
-    shipping_clp: typedRate.price_clp,
-    total_clp: subtotal - discount_clp + typedRate.price_clp,
+    shipping_clp,
+    free_shipping,
+    total_clp: netSubtotal + shipping_clp,
   };
 }
 

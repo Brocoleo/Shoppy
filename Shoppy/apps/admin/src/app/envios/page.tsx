@@ -11,6 +11,7 @@ interface Row {
   comuna: string | null;
   carrier: string;
   price_clp: number;
+  free_from_clp: number | null;
   eta_days_min: number | null;
   eta_days_max: number | null;
   is_active: boolean;
@@ -23,7 +24,7 @@ async function fetchRates(): Promise<Row[]> {
 }
 
 export default function ShippingPage() {
-  const [form, setForm] = useState({ region: "", comuna: "", carrier: "Chilexpress", price_clp: 3990, eta_min: "", eta_max: "" });
+  const [form, setForm] = useState({ region: "", comuna: "", carrier: "Chilexpress", price_clp: 3990, free_from: "", eta_min: "", eta_max: "" });
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-rates"], queryFn: fetchRates });
@@ -37,15 +38,25 @@ export default function ShippingPage() {
         comuna: form.comuna.trim() || null,
         carrier: form.carrier.trim(),
         price_clp: Math.max(0, Math.round(form.price_clp)),
+        free_from_clp: form.free_from === "" ? null : Math.max(0, Math.round(Number(form.free_from))),
         eta_days_min: form.eta_min === "" ? null : Number(form.eta_min),
         eta_days_max: form.eta_max === "" ? null : Number(form.eta_max),
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      setForm({ region: "", comuna: "", carrier: "Chilexpress", price_clp: 3990, eta_min: "", eta_max: "" });
+      setForm({ region: "", comuna: "", carrier: "Chilexpress", price_clp: 3990, free_from: "", eta_min: "", eta_max: "" });
       refresh();
     },
+    onError: (e) => setError(e instanceof Error ? e.message : "Error"),
+  });
+
+  const setFree = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: number | null }) => {
+      const { error } = await supabase.from("shipping_rates").update({ free_from_clp: value }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: refresh,
     onError: (e) => setError(e instanceof Error ? e.message : "Error"),
   });
 
@@ -77,6 +88,7 @@ export default function ShippingPage() {
         <input aria-label="Comuna" placeholder="Comuna (vacío = toda)" className="rounded border border-zinc-300 px-3 h-11" value={form.comuna} onChange={(e) => setForm({ ...form, comuna: e.target.value })} />
         <input aria-label="Transportista" placeholder="Transportista" className="rounded border border-zinc-300 px-3 h-11" value={form.carrier} onChange={(e) => setForm({ ...form, carrier: e.target.value })} />
         <input aria-label="Precio" type="number" min={0} className="rounded border border-zinc-300 px-3 h-11" value={form.price_clp} onChange={(e) => setForm({ ...form, price_clp: Number(e.target.value) })} />
+        <input aria-label="Envío gratis desde" type="number" min={0} placeholder="Envío gratis desde (opcional)" className="rounded border border-zinc-300 px-3 h-11" value={form.free_from} onChange={(e) => setForm({ ...form, free_from: e.target.value })} />
         <input aria-label="ETA mín" placeholder="ETA mín" className="rounded border border-zinc-300 px-3 h-11" value={form.eta_min} onChange={(e) => setForm({ ...form, eta_min: e.target.value })} />
         <input aria-label="ETA máx" placeholder="ETA máx" className="rounded border border-zinc-300 px-3 h-11" value={form.eta_max} onChange={(e) => setForm({ ...form, eta_max: e.target.value })} />
         <button onClick={() => create.mutate()} className="rounded-full bg-zinc-900 text-white px-5 h-11 text-sm font-semibold">Crear</button>
@@ -87,13 +99,35 @@ export default function ShippingPage() {
             <span className="flex-1">
               <strong>{r.region}</strong>{r.comuna ? ` / ${r.comuna}` : ""} · {r.carrier} · {formatCLP(r.price_clp)}
               <span className="text-zinc-500"> · {r.eta_days_min ?? "?"}–{r.eta_days_max ?? "?"} días</span>
+              {r.free_from_clp !== null ? <span className="text-green-700"> · gratis desde {formatCLP(r.free_from_clp)}</span> : null}
               {!r.is_active ? <span className="text-zinc-400"> · inactiva</span> : null}
             </span>
+            <FreeThreshold row={r} onSave={(value) => setFree.mutate({ id: r.id, value })} />
             <button className="text-xs underline" onClick={() => toggle.mutate(r)}>{r.is_active ? "Desactivar" : "Activar"}</button>
             <button className="text-xs underline text-red-700" onClick={() => confirm("Eliminar tarifa?") && remove.mutate(r)}>Eliminar</button>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function FreeThreshold({ row, onSave }: { row: Row; onSave: (value: number | null) => void }) {
+  const [value, setValue] = useState(row.free_from_clp === null ? "" : String(row.free_from_clp));
+  return (
+    <input
+      aria-label={`Envío gratis desde (${row.carrier})`}
+      type="number"
+      min={0}
+      placeholder="Sin umbral"
+      title="Envío gratis desde este subtotal"
+      className="w-28 rounded border border-zinc-300 px-2 h-8 text-xs"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        const next = value.trim() === "" ? null : Math.max(0, Math.round(Number(value)));
+        if (next !== row.free_from_clp) onSave(next);
+      }}
+    />
   );
 }

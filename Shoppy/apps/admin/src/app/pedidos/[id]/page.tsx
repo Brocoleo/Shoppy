@@ -41,6 +41,15 @@ interface Shipment {
   tracking_url: string;
 }
 
+interface ReturnRequest {
+  id: string;
+  status: string;
+  reason: string;
+  detail: string | null;
+  resolution_note: string | null;
+  created_at: string;
+}
+
 async function fetchDetail(id: string) {
   const results = await Promise.all([
     supabase.from("orders").select("*").eq("id", id).maybeSingle(),
@@ -50,9 +59,10 @@ async function fetchDetail(id: string) {
     supabase.from("payments").select("id,provider,status,incident,refund_state").eq("order_id", id),
     supabase.from("order_notifications").select("id,event,status,last_error,attempted_at").eq("order_id", id),
     supabase.from("checkout_attempts").select("id,state,error_code").eq("order_id", id),
+    supabase.from("return_requests").select("id,status,reason,detail,resolution_note,created_at").eq("order_id", id).order("created_at", { ascending: false }),
   ]);
   for (const result of results) if (result.error) throw result.error;
-  const [orderResult, itemResult, historyResult, shipmentResult, paymentResult, notificationResult, attemptResult] = results;
+  const [orderResult, itemResult, historyResult, shipmentResult, paymentResult, notificationResult, attemptResult, returnResult] = results;
   const o = orderResult.data;
   const it = itemResult.data;
   const h = historyResult.data;
@@ -60,6 +70,7 @@ async function fetchDetail(id: string) {
   const ship = (s ?? null) as unknown as Shipment | null;
   return {
     payments: (paymentResult.data ?? []) as { id: string; provider: string; status: string; incident: string | null; refund_state: string | null }[],
+    returns: (returnResult.data ?? []) as ReturnRequest[],
     notifications: (notificationResult.data ?? []) as { id: string; event: string; status: string; last_error: string | null; attempted_at: string | null }[],
     attempts: (attemptResult.data ?? []) as { id: string; state: string; error_code: string | null }[],
     order: (o ?? null) as Record<string, unknown> | null,
@@ -216,6 +227,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }}
       />
 
+      <ReturnsCard orderId={id} requests={data.returns} payments={data.payments} />
+
       <section className="rounded border border-zinc-200 bg-white p-4 text-sm">
         <h2 className="text-sm font-semibold mb-1">Historial</h2>
         {history.map((h, idx) => (
@@ -300,6 +313,83 @@ function DteCard({
         {initial.pdfUrl ? <a className="underline" href={initial.pdfUrl} target="_blank" rel="noreferrer">Ver PDF</a> : null}
         {note ? <span className="text-xs text-zinc-500">{note}</span> : null}
       </div>
+    </section>
+  );
+}
+
+function ReturnsCard({
+  orderId,
+  requests,
+  payments,
+}: {
+  orderId: string;
+  requests: ReturnRequest[];
+  payments: { id: string; status: string; refund_state: string | null }[];
+}) {
+  const queryClient = useQueryClient();
+  const [note, setNote] = useState<string | null>(null);
+  const refundable = payments.find((p) => p.status === "approved" && !p.refund_state);
+
+  const resolve = useMutation({
+    mutationFn: async ({ id, approve }: { id: string; approve: boolean }) => {
+      if (approve) {
+        if (!refundable) throw new Error("No hay un pago aprobado para reembolsar. Reembolsa por fuera y luego resuélvelo manualmente.");
+        const { data, error } = await supabase.functions.invoke("checkout", { body: { action: "refund", payment_id: refundable.id } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error.message);
+      }
+      const resolution_note = approve ? null : (window.prompt("Motivo del rechazo (opcional)") ?? null);
+      const { error: updErr } = await supabase
+        .from("return_requests")
+        .update({ status: approve ? "completed" : "rejected", resolution_note, resolved_at: new Date().toISOString() })
+        .eq("id", id);
+      if (updErr) throw updErr;
+    },
+    onSuccess: (_d, vars) => {
+      setNote(vars.approve ? "Devolución aprobada y reembolsada. La prenda volvió al catálogo." : "Solicitud rechazada.");
+      void queryClient.invalidateQueries({ queryKey: ["admin-order", orderId] });
+    },
+    onError: (e) => setNote(e instanceof Error ? e.message : "No se pudo resolver."),
+  });
+
+  return (
+    <section className="rounded border border-zinc-200 bg-white p-4 text-sm">
+      <h2 className="text-sm font-semibold mb-1">Devoluciones</h2>
+      {requests.length === 0 ? <p className="text-zinc-500">Sin solicitudes de devolución.</p> : null}
+      {requests.map((r) => (
+        <div key={r.id} className="py-2 border-b border-zinc-100 last:border-0">
+          <p>
+            <strong>{r.status}</strong> · {r.reason}
+            {r.detail ? ` · ${r.detail}` : ""}
+          </p>
+          <p className="text-xs text-zinc-500">
+            {new Date(r.created_at).toLocaleString("es-CL")}
+            {r.resolution_note ? ` · ${r.resolution_note}` : ""}
+          </p>
+          {r.status === "requested" || r.status === "approved" ? (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={resolve.isPending}
+                className="rounded-full bg-zinc-900 text-white px-4 h-9 text-sm font-semibold disabled:opacity-50"
+                onClick={() => { if (confirm("¿Aprobar la devolución y reembolsar al cliente vía su proveedor de pago?")) resolve.mutate({ id: r.id, approve: true }); }}
+              >
+                Aprobar y reembolsar
+              </button>
+              <button
+                type="button"
+                disabled={resolve.isPending}
+                className="underline"
+                onClick={() => { if (confirm("¿Rechazar esta solicitud de devolución?")) resolve.mutate({ id: r.id, approve: false }); }}
+              >
+                Rechazar
+              </button>
+              {!refundable ? <span className="text-xs text-amber-800">Sin pago aprobado: reembolsa por fuera antes de aprobar.</span> : null}
+            </div>
+          ) : null}
+        </div>
+      ))}
+      {note ? <p className="mt-2 text-xs text-zinc-500">{note}</p> : null}
     </section>
   );
 }

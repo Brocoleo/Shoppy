@@ -1,8 +1,8 @@
 # GO-LIVE — Estado real y pasos para producción
 
-> Documento vivo. Reemplaza/actualiza el checklist anterior: **gran parte del
-> backend de operación ya está implementado**. Lo que falta es, sobre todo,
-> **configuración y cuentas externas**, más 3 features acotadas.
+> Documento vivo. Reemplaza/actualiza el checklist anterior: **el backend de
+> operación está implementado**. Lo que falta es, sobre todo, **configuración y
+> cuentas externas** (DNS, KYC MercadoPago, Resend, tarifas reales, SII).
 >
 > Última revisión de código: 19-oct-2026. Revisar `docs/PRODUCTION.md`
 > (deploy Vercel) y `docs/PAYMENTS.md` (pagos) para detalle.
@@ -15,10 +15,11 @@
 |---|---|---|
 | **Pagos (MP)** | ✅ completo (sandbox E2E probado) | Credenciales **live** + webhook prod + KYC |
 | **Envíos (tarifas)** | ✅ `shipping_rates` + buckets 16 regiones + CRUD admin + selector checkout | Cargar **precios reales** por zona |
-| **Envíos (tracking)** | ✅ tabla `shipments` + botón “Despachar” admin + cliente ve tracking | — |
+| **Envíos (tracking)** | ✅ `shipments` + “Despachar” admin + tracking para **cliente e invitado** | — |
+| **Envío gratis** | ✅ `shipping_rates.free_from_clp` + checkout + admin (smoke E2E OK) | Cargar umbral real por zona |
 | **Emails** | ✅ 7 eventos + Resend + idempotencia (`order_notifications`) | `RESEND_API_KEY` + dominio verificado + `EMAIL_PROVIDER=resend` |
 | **Reservas / cron** | ✅ `release_expired_reservations` + `refresh_trending_scores` en `pg_cron` | Verificar `pg_cron` activo en Cloud |
-| **Reembolsos** | ⚙️ RPC `finish_checkout_refund` existe | Flujo RMA cliente (solicitud) + política real |
+| **Reembolsos / RMA** | ✅ `return_requests` + aprobación admin → reembolso MP → repone stock `AVAILABLE` + email (smoke OK) | Completar datos legales del texto |
 | **Retiro en tienda** | ❌ | Opción pickup en checkout + notificación |
 | **Facturación SII** | ✅ registro DTE en el pedido (folio/PDF) | Emitir en el **Portal MiPyme** del SII (gratis) y registrar |
 | **Dominio** | ⚙️ Vercel linkeado (`shopy-web`) | Apuntar `vintah.net` + `NEXT_PUBLIC_SITE_URL` |
@@ -26,7 +27,8 @@
 
 **Conclusión:** es viable lanzar sin escribir más backend, cargando tarifas
 reales, activando Resend y MP live, y emitiendo boletas en el Portal MiPyme del
-SII (gratis). Pickup y RMA son incrementos.
+SII (gratis). El retiro en tienda no aplica (negocio virtual) y el RMA ya está
+implementado; solo faltan los datos legales y las cuentas externas.
 
 ---
 
@@ -82,8 +84,8 @@ El motor existe. Pasos:
 - [ ] Definir **precios por zona** (costo real courier + margen) y cargarlos en
       `/admin/envios`. Zonas ya soportadas (`_shared/chile.ts`):
       `Metropolitana · Valparaíso · Biobío · Araucanía · Los Lagos · OTRAS`.
-- [ ] Definir si habrá **envío gratis** por umbral (hoy no está modelado;
-      requiere columna `free_from_clp` + uso en checkout). → feature nueva.
+- [ ] Definir **envío gratis por umbral** y cargarlo en `/admin/envios`
+      (columna `shipping_rates.free_from_clp`; el checkout ya la aplica).
 - [ ] Operar: en cada pedido pagado, botón **Despachar** en `/admin/pedidos/[id]`
       (carrier + nº seguimiento + URL https) → el cliente lo ve y se dispara email.
 
@@ -99,13 +101,21 @@ El motor existe. Pasos:
 
 ---
 
-## 6. Fase 4 — Devoluciones / RMA (feature nueva)
+## 6. Fase 4 — Devoluciones / RMA (implementada ✅)
 
-- [ ] Redactar la **política real** (hoy `/devoluciones` es borrador) con la
-      Ley 19.496 (retracto 10 días).
-- [ ] UI cliente “Solicitar devolución” sobre pedidos `PAID`/`SHIPPED`.
-- [ ] Admin: aprobar/rechazar → `finish_checkout_refund` (MP) + reponer stock a
-      `AVAILABLE` + email `order_refunded`.
+- [x] Tabla `return_requests` + RPC `request_return` (cliente, pedidos
+      `DELIVERED`, ventana de 10 días, una solicitud abierta por pedido).
+- [x] UI cliente “Solicitar devolución” en `/pedido/[id]` (estado de la solicitud).
+- [x] Admin: aprobar/rechazar en `/pedidos/[id]` → `finish_checkout_refund`
+      (reembolso MP) → `restore_order_products` repone la prenda única a
+      `AVAILABLE` → email `order_refunded`. Idempotente (smoke verificado).
+- [x] Política redactada en `/devoluciones` (Ley 19.496, retracto 10 días).
+- [ ] Completar los datos legales `[pendiente]`, `[correo de contacto]` y
+      `[plazo]` antes de publicar la política como definitiva.
+
+> Nota: el reembolso de pedidos `PAID`/`DELIVERED` devuelve la prenda al
+> catálogo. Los pedidos `SHIPPED`/`PREPARING` no admiten transición directa a
+> `REFUNDED`; para esos casos, primero se marca `DELIVERED`.
 
 ---
 

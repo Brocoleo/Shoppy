@@ -2,10 +2,10 @@
 
 import { Suspense, use, useState } from "react";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatCLP } from "../../../lib/format";
-import { getMyOrderDetail, trackGuestOrder } from "../../../lib/checkout";
+import { getMyOrderDetail, requestReturn, trackGuestOrder } from "../../../lib/checkout";
 import { useSession } from "../../../lib/session";
 import { ErrorState, LoadingState, backendErrorMessage } from "../../../components/States";
 import { isSupabaseConfigured } from "../../../lib/supabase";
@@ -84,6 +84,30 @@ function PedidoInner({ id }: { id: string }) {
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <h1 className="font-display text-3xl tracking-tight text-carbon">Pedido {g.order_number}</h1>
         <p className="text-sm text-carbon">Estado: <strong>{g.status}</strong> · Total: <strong>{formatCLP(g.total_clp)}</strong></p>
+        {g.carrier || g.tracking_number ? (
+          <dl className="border border-line bg-ivory p-4 text-sm">
+            {g.carrier ? <div className="flex justify-between"><dt className="text-muted">Carrier</dt><dd>{g.carrier}</dd></div> : null}
+            {g.tracking_number ? <div className="flex justify-between"><dt className="text-muted">Seguimiento</dt><dd>{g.tracking_number}</dd></div> : null}
+          </dl>
+        ) : null}
+        {g.tracking_url ? (
+          <a href={g.tracking_url} target="_blank" rel="noreferrer" className="text-sm text-carbon underline underline-offset-4">
+            Rastrear despacho
+          </a>
+        ) : null}
+        {g.dte_folio ? (
+          <div className="border border-line bg-ivory p-4 text-sm">
+            <p className="mb-1 font-semibold">Documento tributario</p>
+            <p className="text-muted">
+              {g.dte_kind === "factura" ? "Factura" : g.dte_kind === "exenta" ? "Boleta exenta" : "Boleta"} N° {g.dte_folio}
+            </p>
+            {g.dte_pdf_url ? (
+              <a href={g.dte_pdf_url} target="_blank" rel="noreferrer" className="text-carbon underline underline-offset-4">
+                Descargar PDF
+              </a>
+            ) : null}
+          </div>
+        ) : null}
         <Items items={g.items} />
       </div>
     );
@@ -124,6 +148,7 @@ function PedidoInner({ id }: { id: string }) {
           ) : null}
         </div>
       ) : null}
+      <ReturnSection orderId={id} status={o.status} request={o.return_request} />
       <Items items={o.items} />
       {o.history.length > 0 ? (
         <div className="border border-line bg-ivory p-4 text-sm">
@@ -164,5 +189,82 @@ function Items({ items }: { items: { product_slug: string; product_name: string;
         </div>
       ))}
     </div>
+  );
+}
+
+const RETURN_REASONS = [
+  "No me quedó / no era lo que esperaba",
+  "Llegó con un defecto",
+  "No era la talla o el color",
+  "Otro",
+];
+
+const RETURN_STATUS: Record<string, string> = {
+  requested: "Solicitud enviada. Revisaremos tu caso y te escribiremos por correo.",
+  approved: "Devolución aprobada. Coordinamos el envío de vuelta.",
+  completed: "Devolución completada y reembolso realizado.",
+  rejected: "La solicitud fue rechazada. Te contactamos con el detalle.",
+  cancelled: "Solicitud cancelada.",
+};
+
+function ReturnSection({
+  orderId,
+  status,
+  request,
+}: {
+  orderId: string;
+  status: string;
+  request: { status: string; reason: string; created_at: string } | null;
+}) {
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState(RETURN_REASONS[0]);
+  const [detail, setDetail] = useState("");
+  const [sent, setSent] = useState(false);
+  const submit = useMutation({
+    mutationFn: () => requestReturn(orderId, reason, detail),
+    onSuccess: () => {
+      setSent(true);
+      void queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+    },
+  });
+
+  const current = request?.status ?? (sent ? "requested" : null);
+  if (current) {
+    return (
+      <div className="border border-line bg-ivory p-4 text-sm">
+        <p className="mb-1 font-semibold">Devolución</p>
+        <p className="text-muted">{RETURN_STATUS[current] ?? "Solicitud registrada."}</p>
+      </div>
+    );
+  }
+  if (status !== "DELIVERED") return null;
+
+  return (
+    <form
+      className="flex flex-col gap-3 border border-line bg-ivory p-4 text-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit.mutate();
+      }}
+    >
+      <div>
+        <p className="font-semibold">¿Quieres devolver?</p>
+        <p className="text-muted">Tienes 10 días desde la entrega (derecho a retracto, Ley 19.496).</p>
+      </div>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Motivo</span>
+        <select value={reason} onChange={(e) => setReason(e.target.value)} className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon focus:border-carbon">
+          {RETURN_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Detalle (opcional)</span>
+        <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={3} className="border border-carbon/30 bg-ivory px-3 py-2 text-sm text-carbon focus:border-carbon" />
+      </label>
+      {submit.isError ? <p className="text-red-700">No se pudo enviar la solicitud. Inténtalo de nuevo.</p> : null}
+      <button type="submit" disabled={submit.isPending} className="h-11 self-start bg-carbon px-6 text-sm uppercase tracking-[0.12em] text-ivory transition-colors hover:bg-carbon-soft disabled:opacity-50">
+        Solicitar devolución
+      </button>
+    </form>
   );
 }

@@ -417,6 +417,9 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               <span className="flex-1">
                 <span className="block font-semibold">{r.carrier}</span>
                 <span className="block text-xs text-muted">{r.eta_days_min ?? "?"}–{r.eta_days_max ?? "?"} días hábiles</span>
+                {r.free_from_clp !== null && r.price_clp > 0 ? (
+                  <span className="block text-xs text-green-700">Envío gratis desde {formatCLP(r.free_from_clp)}</span>
+                ) : null}
               </span>
               <span className="font-bold">{formatCLP(r.price_clp)}</span>
             </label>
@@ -449,6 +452,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
               subtotal={quote.data.subtotal_clp}
               discount={quote.data.discount_clp}
               shipping={quote.data.shipping_clp}
+              freeShipping={quote.data.free_shipping}
               total={quote.data.total_clp}
               code={appliedCode}
             />
@@ -491,6 +495,7 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
                 subtotal={quote.data?.subtotal_clp ?? 0}
                 discount={quote.data?.discount_clp ?? 0}
                 shipping={quote.data?.shipping_clp ?? 0}
+                freeShipping={quote.data?.free_shipping}
                 total={quote.data?.total_clp ?? 0}
                 code={appliedCode}
               />
@@ -598,14 +603,14 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
   );
 }
 
-function Totals({ subtotal, discount, shipping, total, code }: { subtotal: number; discount: number; shipping: number; total: number; code?: string }) {
+function Totals({ subtotal, discount, shipping, freeShipping, total, code }: { subtotal: number; discount: number; shipping: number; freeShipping?: boolean; total: number; code?: string }) {
   return (
     <dl className="flex flex-col gap-1 border border-line bg-ivory p-4 text-sm">
       <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatCLP(subtotal)}</dd></div>
       {discount > 0 ? (
         <div className="flex justify-between"><dt className="text-muted">Descuento{code ? ` (${code})` : ""}</dt><dd>−{formatCLP(discount)}</dd></div>
       ) : null}
-      <div className="flex justify-between"><dt className="text-muted">Despacho</dt><dd>{formatCLP(shipping)}</dd></div>
+      <div className="flex justify-between"><dt className="text-muted">Despacho</dt><dd>{shipping === 0 && freeShipping ? "Gratis" : formatCLP(shipping)}</dd></div>
       <div className="flex justify-between text-base font-bold"><dt>Total</dt><dd>{formatCLP(total)}</dd></div>
     </dl>
   );
