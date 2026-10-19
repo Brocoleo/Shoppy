@@ -24,31 +24,61 @@ const DEFAULT_MODELS = [
 
 const CONDITIONS = ["como_nuevo", "excelente", "bueno", "con_detalles"];
 
-const PROMPT = `Eres un asistente experto en ropa de segunda mano (Chile).
-Analiza la fotografía de esta prenda y devuelve SOLO un JSON válido, sin texto
-adicional, con exactamente estas claves:
+interface CatalogLists {
+  brands: string[];
+  categories: string[];
+  subcategories: string[];
+}
+
+/** Listas permitidas saneadas (evita que el cliente mande prompts arbitrarios). */
+function sanitizeList(v: unknown, max: number, maxLen: number): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(
+    v
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.replace(/[\n\r"`]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLen))
+      .filter(Boolean),
+  )].slice(0, max);
+}
+
+function buildPrompt(lists: CatalogLists): string {
+  const opcional = (label: string, items: string[]) =>
+    items.length
+      ? `- ${label} permitidas (elige EXACTAMENTE una de aquí, o null): ${items.join(" | ")}`
+      : `- ${label}: null`;
+  return `Eres un asistente experto en ropa de segunda mano (Chile).
+Analiza la fotografía y devuelve UN SOLO objeto JSON (nunca un arreglo, nunca
+texto fuera del JSON) con exactamente estas claves:
 
 {
-  "name": string,               // nombre comercial breve, ej. "Falda denim tiro alto"
-  "brand": string|null,         // marca si se lee en etiqueta o logo; si no, null
-  "category": string|null,      // categoría amplia, ej. "Mujer", "Hombre", "Niños", "Accesorios"
-  "subcategory": string|null,   // ej. "Faldas", "Poleras", "Pantalones", "Vestidos", "Chaquetas"
+  "name": string,               // nombre comercial breve, sin la marca, ej. "Falda denim tiro alto"
+  "brand": string|null,         // marca; solo si se lee en etiqueta o logo
+  "category": string|null,      // categoría amplia
+  "subcategory": string|null,   // subcategoría
   "segment": string|null,       // "mujer" | "hombre" | "unisex" | "niños"
   "color": string|null,         // color dominante, ej. "Azul denim medio"
   "condition": string,          // uno de: "como_nuevo" | "excelente" | "bueno" | "con_detalles"
-  "size": string|null,          // talla SOLO si es legible en la etiqueta; si no, null
-  "material": string|null,      // composición si es legible; si no, null
-  "description": string,        // 1-3 frases reales sobre la prenda (tipo, corte, estado visible)
-  "tags": string[],             // 3-6 etiquetas en minúsculas, ej. ["denim","falda","vintage"]
-  "label_text": string|null,    // texto literal de la etiqueta si se lee; si no, null
-  "notes": string|null          // dudas o lo que no se pudo determinar con la foto
+  "size": string|null,          // talla SOLO si es legible en la etiqueta
+  "material": string|null,      // composición si es legible
+  "description": string,        // 1-3 frases reales: tipo, corte y estado visible
+  "tags": string[],             // 3-6 etiquetas en minúsculas
+  "label_text": string|null,    // texto literal de la etiqueta si se lee
+  "notes": string|null          // dudas o lo que no se pudo determinar
 }
 
+Catálogo de la tienda:
+${opcional("Marcas", lists.brands)}
+${opcional("Categorías", lists.categories)}
+${opcional("Subcategorías", lists.subcategories)}
+
 Reglas:
-- No inventes marca, talla ni composición: si no se ve, usa null.
-- El "name" NO debe incluir la marca si ya la devuelves aparte.
+- Si aparecen varias prendas, describe SOLO la principal (la más grande o la del centro).
+- Si la marca/categoría/subcategoría no está en las listas de arriba, devuelve null.
+- No inventes marca, talla ni composición: si no se ve con claridad, null.
+- El "name" NO debe repetir la marca.
 - "condition" evalúa desgaste real visible (roturas, manchas, pelusas).
-- Responde en español de Chile. Nada de texto fuera del JSON.`;
+- Responde en español de Chile.`;
+}
 
 interface Extracted {
   name?: unknown;
@@ -100,17 +130,26 @@ function parseImage(raw: unknown, hintedMime: unknown): { data: string; mime: st
   return { data, mime };
 }
 
-/** JSON tolerante: recorta fences ```json y toma el primer objeto. */
+/** JSON tolerante: recorta fences ```json, acepta objeto o primer objeto de un arreglo. */
 function parseJson(text: string): Extracted | null {
   const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
-  try {
-    return JSON.parse(cleaned.slice(start, end + 1)) as Extracted;
-  } catch {
-    return null;
+  const tryParse = (s: string): unknown => {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return undefined;
+    }
+  };
+  let value = tryParse(cleaned);
+  if (value === undefined) {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start === -1 || end <= start) return null;
+    value = tryParse(cleaned.slice(start, end + 1));
   }
+  if (Array.isArray(value)) value = value[0];
+  if (value === null || typeof value !== "object") return null;
+  return value as Extracted;
 }
 
 function cleanStr(v: unknown, max: number): string | null {
@@ -146,6 +185,7 @@ function sanitize(raw: Extracted) {
 async function callGemini(
   model: string,
   apiKey: string,
+  prompt: string,
   image: { data: string; mime: string },
 ): Promise<{ ok: true; text: string } | { ok: false; status: number; detail: string }> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
@@ -158,7 +198,7 @@ async function callGemini(
         contents: [{
           role: "user",
           parts: [
-            { text: PROMPT },
+            { text: prompt },
             { inline_data: { mime_type: image.mime, data: image.data } },
           ],
         }],
@@ -195,7 +235,13 @@ serve(async (req) => {
   const limited = rateLimit(req, { bucket: "producto-ia", max: 20 });
   if (limited) return limited;
 
-  let body: { image_base64?: unknown; mime_type?: unknown };
+  let body: {
+    image_base64?: unknown;
+    mime_type?: unknown;
+    brands?: unknown;
+    categories?: unknown;
+    subcategories?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -233,17 +279,25 @@ serve(async (req) => {
     const envModel = (Deno.env.get("GEMINI_MODEL") ?? "").trim();
     const models = envModel ? [envModel] : DEFAULT_MODELS;
 
+    const lists: CatalogLists = {
+      brands: sanitizeList(body.brands, 120, 60),
+      categories: sanitizeList(body.categories, 60, 60),
+      subcategories: sanitizeList(body.subcategories, 200, 60),
+    };
+    const prompt = buildPrompt(lists);
+
     let last: { status: number; detail: string } | null = null;
     for (const model of models) {
-      const out = await callGemini(model, apiKey, image);
+      const out = await callGemini(model, apiKey, prompt, image);
       if (out.ok) {
         const parsed = parseJson(out.text);
         if (!parsed) return json(502, { error: { code: "BAD_AI_OUTPUT", message: "La IA devolvió un formato inesperado. Reintenta." } });
         return json(200, { model, fields: sanitize(parsed) });
       }
       last = { status: out.status, detail: out.detail };
-      // 404 = modelo no disponible; probamos el siguiente. Otros errores cortan.
-      if (out.status !== 404) break;
+      // 404 modelo inexistente, 429/500/503 sobrecarga o red: probamos el siguiente.
+      const recuperable = out.status === 404 || out.status === 429 || out.status >= 500 || out.status === 0;
+      if (!recuperable) break;
     }
 
     console.error("producto-ia gemini error:", last);

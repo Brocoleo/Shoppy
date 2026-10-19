@@ -214,7 +214,13 @@ export function ProductForm({
       const optimizada = await prepareImageParaIA(file);
       const base64 = base64FromBuffer(await optimizada.arrayBuffer());
       const { data, error } = await supabase.functions.invoke("producto-ia", {
-        body: { image_base64: base64, mime_type: optimizada.type },
+        body: {
+          image_base64: base64,
+          mime_type: optimizada.type,
+          brands: brands.map((b) => b.name),
+          categories: parents.map((c) => c.name),
+          subcategories: categories.filter((c) => c.parent_id).map((c) => c.name),
+        },
       });
       if (error) {
         let message = "No se pudo analizar la foto. Inténtalo de nuevo.";

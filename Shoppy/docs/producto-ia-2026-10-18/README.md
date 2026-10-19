@@ -1,7 +1,7 @@
 # Autocompletar producto con IA (visión)
 
-Fecha: 2026-10-18
-Estado: desplegado (`producto-ia`). Falta la llave de Gemini (gratis) para activarlo.
+Fecha: 2026-10-18 (activado el 2026-10-19)
+Estado: **activo**. Llave de Gemini configurada en los secretos del proyecto.
 
 ## Qué hace
 
@@ -12,14 +12,20 @@ En **Administración → Productos → Nuevo producto** (o al editar uno) hay un
    sube nada al almacenamiento: solo se usa para el análisis.
 2. La envía al edge function `producto-ia`, que exige sesión de **admin**.
 3. Gemini (visión) devuelve un JSON con marca, tipo, categoría, color, estado,
-   talla (si es legible), descripción y tags.
+   talla (si es legible), descripción y tags. El navegador le envía además tus
+   **marcas, categorías y subcategorías reales**, así que elige de esa lista (y
+   devuelve `null` si la prenda no encaja en ninguna).
 4. El formulario **rellena solo los campos vacíos**; avisa qué completó y qué no
    tocó. Tú revisas y corriges antes de guardar.
 
 La IA **nunca** inventa lo que no ve: si no lee la marca o la talla, devuelve
-`null`. Todo queda marcad como borrador editable.
+`null`. Todo queda marcado como borrador editable.
 
-## Activarlo (una sola vez, gratis)
+> Si la prenda trae una marca que aún no está en tu catálogo (p. ej. *Dolce &
+> Gabbana*), la IA lo avisa en la nota y **no** la asigna: créala en **Marcas** y
+> vuelve a analizar, o selecciónala a mano.
+
+## Activarlo (ya hecho; una sola vez, gratis)
 
 1. Entra a <https://aistudio.google.com/apikey> con tu cuenta Google.
 2. **Create API key**. Copia la llave.
@@ -53,4 +59,8 @@ terceros, etc.). Son fotos de prendas; con eso basta.
 - Sesión sin rol admin → `403`.
 - Admin sin llave Gemini → `503 NOT_CONFIGURED` (comprobado con un admin
   temporal, eliminado tras la prueba).
-- Admin con llave → `{ model, fields }` (pendiente: requiere la llave).
+- Admin con llave → `{ model, fields }` (comprobado E2E el 2026-10-19 con una
+  foto real: eligió `Mujer/Jeans` del catálogo, describió el desgaste visible y
+  leyó la placa "DOLCE & GABBANA").
+- Flujo de navegador completo: subir foto → inputs rellenados → nota con lo
+  completado, lo omitido y la etiqueta leída. Sin errores de consola.
