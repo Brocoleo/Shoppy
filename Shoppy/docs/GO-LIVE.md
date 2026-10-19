@@ -63,8 +63,8 @@ Dashboard → Project Settings → Edge Functions → Secrets, o
 | `PAYMENT_MODE` | `live` | Al activar live |
 | `MERCADOPAGO_ACCESS_TOKEN` / `_PUBLIC_KEY` / `_WEBHOOK_SECRET` | live | Tras KYC |
 | `FUNCTIONS_PUBLIC_URL` | `https://evzlqwiipdjgtrqjlwba.supabase.co/functions/v1` | Ya |
-| `EMAIL_PROVIDER` | `brevo` | Al activar emails |
-| `BREVO_API_KEY`, `EMAIL_FROM` | Brevo (remitente verificado) | Al activar |
+| `EMAIL_PROVIDER` | `brevo` o `smtp2go` | Al activar emails |
+| `BREVO_API_KEY` o `SMTP2GO_API_KEY`, `EMAIL_FROM` | proveedor elegido | Al activar |
 | `EMAIL_FROM_NAME` | `vintah.zhe` | Opcional |
 | `GEMINI_API_KEY` | capa gratis | Ya (rotada) |
 
@@ -95,23 +95,26 @@ El motor existe. Pasos:
 
 ---
 
-## 5. Fase 3 — Emails transaccionales ($0 con Brevo)
+## 5. Fase 3 — Emails transaccionales ($0, sin dominio)
 
-Brevo permite **verificar un correo remitente sin dominio propio** (plan free:
-300 emails/día). El adaptador `brevo` ya está implementado.
+Hay **dos adaptadores** listos. Usa el que te deje crear cuenta gratis:
 
-- [ ] Crear cuenta en **brevo.com** (free, sin tarjeta).
-- [ ] **Senders & Domains → Senders** → agregar `leomir2656@icloud.com` →
-      verificar el enlace que llega a ese correo.
-- [ ] **SMTP & API → API Keys** → crear key y guardarla en `supabase/.env`
-      (gitignored) como `BREVO_API_KEY`.
-- [ ] `EMAIL_PROVIDER=brevo`, `EMAIL_FROM=leomir2656@icloud.com`,
-      `EMAIL_FROM_NAME=vintah.zhe`.
-- [ ] En live, `EMAIL_TEST_RECIPIENTS` vacío (el guard solo limita sandbox).
-- [ ] Probar los 7 eventos con un pedido sandbox.
+| Proveedor | Free | Remitente | Notas |
+|---|---|---|---|
+| **Brevo** (`EMAIL_PROVIDER=brevo`) | 300/día | verificar correo | La página de *pricing* es solo upsell: no pagues, el plan free ya está activo. |
+| **SMTP2GO** (`EMAIL_PROVIDER=smtp2go`) | 1.000/mes | verificar correo | Sin tarjeta; sin dominio aplica 25/hora. |
 
-> Cuando compres dominio, se puede migrar a Resend o verificar el dominio en
-> Brevo para mejorar entregabilidad. El adaptador Resend se mantiene.
+Pasos (idénticos en ambos):
+1. Crear cuenta gratis (sin tarjeta).
+2. Verificar el remitente `leomir2656@icloud.com` (llega un enlace a ese correo).
+3. Crear una **API key** y guardarla en `supabase/.env` (gitignored).
+4. Secrets: `EMAIL_PROVIDER=brevo|smtp2go`, `EMAIL_FROM=leomir2656@icloud.com`,
+   `EMAIL_FROM_NAME=vintah.zhe` + la key correspondiente
+   (`BREVO_API_KEY` o `SMTP2GO_API_KEY`).
+5. En live, `EMAIL_TEST_RECIPIENTS` vacío (el guard solo limita sandbox).
+
+> Cuando compres dominio, se puede verificar en Brevo/SMTP2GO (mejor
+> entregabilidad) o migrar a Resend. Los tres adaptadores se mantienen.
 
 ---
 

@@ -3,6 +3,8 @@
  * - mock: default, log a consola (dev). Retorna id mock.
  * - brevo: HTTP API (BREVO_API_KEY + EMAIL_FROM). $0 sin dominio propio
  *   (verificas un correo remitente). Recomendado mientras no haya dominio.
+ * - smtp2go: HTTP API (SMTP2GO_API_KEY + EMAIL_FROM). $0 sin dominio propio
+ *   (1.000 emails/mes, sin tarjeta).
  * - resend: HTTP API (RESEND_API_KEY + EMAIL_FROM). Requiere dominio verificado.
  * Templates en español, branding mínimo. Password recovery lo maneja
  * Supabase Auth nativo (ver docs); aquí solo emails de pedido.
@@ -37,7 +39,7 @@ export interface SendEmailInput {
 }
 
 export interface EmailProvider {
-  readonly name: "mock" | "brevo" | "resend";
+  readonly name: "mock" | "brevo" | "smtp2go" | "resend";
   send(input: SendEmailInput): Promise<{ id: string }>;
 }
 
@@ -182,10 +184,49 @@ export class BrevoEmailProvider implements EmailProvider {
   }
 }
 
+export class Smtp2goEmailProvider implements EmailProvider {
+  readonly name = "smtp2go" as const;
+  private apiKey: string;
+  private from: string;
+  private fromName: string;
+
+  constructor(apiKey?: string, from?: string, fromName?: string) {
+    this.apiKey = apiKey ?? Deno.env.get("SMTP2GO_API_KEY") ?? "";
+    this.from = from ?? Deno.env.get("EMAIL_FROM") ?? "";
+    this.fromName = fromName ?? Deno.env.get("EMAIL_FROM_NAME") ?? "vintah.zhe";
+    if (!this.apiKey || !this.from) throw new Error("faltan SMTP2GO_API_KEY / EMAIL_FROM");
+  }
+
+  async send(input: SendEmailInput): Promise<{ id: string }> {
+    const allowed = (Deno.env.get("EMAIL_TEST_RECIPIENTS") ?? "").split(",").map((v) => v.trim().toLowerCase()).filter(Boolean);
+    if ((Deno.env.get("PAYMENT_MODE") ?? "sandbox") !== "live" && !allowed.includes(input.to.toLowerCase())) throw new Error("Destinatario no habilitado para beta");
+    const res = await fetch("https://api.smtp2go.com/v3/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json", "X-Smtp2go-Api-Key": this.apiKey },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        sender: `${this.fromName} <${this.from}>`,
+        to: [input.to],
+        subject: input.subject,
+        html_body: input.html,
+      }),
+    });
+    const json = (await res.json().catch(() => null)) as {
+      data?: { email_id?: string; failed?: number; failures?: unknown[] };
+      message?: string;
+    } | null;
+    if (!res.ok || (json?.data?.failed ?? 0) > 0) {
+      throw new Error(`smtp2go -> ${res.status}: ${json?.message ?? "error"}`);
+    }
+    return { id: String(json?.data?.email_id ?? "") };
+  }
+}
+
 export function getEmailProvider(): EmailProvider {
   const name = (Deno.env.get("EMAIL_PROVIDER") ?? "mock").toLowerCase();
   if (name === "brevo") return new BrevoEmailProvider();
+  if (name === "smtp2go") return new Smtp2goEmailProvider();
   if (name === "resend") return new ResendEmailProvider();
-  if (name !== "mock") throw new Error(`email provider ${name} desconocido (mock|brevo|resend)`);
+  if (name !== "mock") throw new Error(`email provider ${name} desconocido (mock|brevo|smtp2go|resend)`);
   return new MockEmailProvider();
 }
