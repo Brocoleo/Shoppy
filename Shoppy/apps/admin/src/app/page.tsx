@@ -32,7 +32,7 @@ async function fetchDashboard() {
   const [oRes, pRes, iRes] = await Promise.all([
     supabase.from("orders").select("id,order_number,status,total_clp,created_at,mode").order("created_at", { ascending: false }).limit(400),
     supabase.from("products").select("id,name,price_clp,stock,availability,view_count,favorite_count").order("trending_score", { ascending: false }).limit(200),
-    supabase.from("order_items").select("qty"),
+    supabase.from("order_items").select("qty,order_id"),
   ]);
   const firstError = oRes.error ?? pRes.error ?? iRes.error;
   if (firstError) throw firstError;
@@ -49,12 +49,15 @@ async function fetchDashboard() {
       .reduce((n, oo) => n + oo.total_clp, 0);
     return { key: key.slice(5), total };
   });
+  // Mapa order_id -> mode/status para filtrar items
+  const orderMode = new Map(orders.map((od) => [od.id, { mode: od.mode ?? "live", status: od.status }]));
   return {
     now,
     orders,
     last7,
     products: (p ?? []) as Product[],
-    soldQty: ((items ?? []) as { qty: number }[]).reduce((n, i) => n + i.qty, 0),
+    items: ((items ?? []) as { qty: number; order_id: string }[]),
+    orderMode,
   };
 }
 
@@ -76,12 +79,17 @@ export default function DashboardPage() {
     return <p className="text-sm text-zinc-500">Cargando dashboard…</p>;
   }
 
-  const { orders, products, soldQty, last7, now } = data;
+  const { orders, products, items, orderMode, last7, now } = data;
   // Separación por origen: las compras marcadas como prueba (sandbox) no
   // cuentan en las estadísticas de negocio salvo que se pidan explícitamente.
   const real = orders.filter((o) => o.mode !== "test" && PAIDISH.has(o.status));
   const pruebas = orders.filter((o) => o.mode === "test" && PAIDISH.has(o.status));
   const base = includeTest ? [...real, ...pruebas] : real;
+  const baseOrderIds = new Set(base.map((o) => o.id));
+  // soldQty solo de órdenes PAID (y según includeTest)
+  const soldQty = items
+    .filter((it) => baseOrderIds.has(it.order_id))
+    .reduce((n, it) => n + it.qty, 0);
   const day = 86_400_000;
   const inRange = (ms: number) => base.filter((o) => now - o.ts <= ms);
   const sum = (list: { total_clp: number }[]) => list.reduce((n, o) => n + o.total_clp, 0);

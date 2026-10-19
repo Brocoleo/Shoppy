@@ -18,12 +18,7 @@ import {
   ErrorState,
   backendErrorMessage,
 } from "../../components/States";
-import { ArchiveCard } from "../../components/ArchiveCard";
-import {
-  loadEditorial,
-  editorialQueryKey,
-  filterArchive,
-} from "../../lib/editorial";
+
 import { isSupabaseConfigured } from "../../lib/supabase-config";
 
 const SORTS: { value: ProductSort; label: string }[] = [
@@ -34,24 +29,15 @@ const SORTS: { value: ProductSort; label: string }[] = [
 ];
 
 export default function CatalogContent({
-  initialEditorial,
   initialProducts,
 }: {
-  initialEditorial?: Awaited<ReturnType<typeof loadEditorial>>;
   initialProducts?: import("../../lib/catalog").CatalogProduct[];
 }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const query = params.get("q") ?? "";
-  const tipo = ["disponibles", "archivo"].includes(params.get("tipo") ?? "")
-    ? params.get("tipo")!
-    : "todo";
-  const editorial = useQuery({
-    queryKey: editorialQueryKey,
-    queryFn: loadEditorial,
-    initialData: initialEditorial,
-  });
+  const tipo = params.get("tipo") === "disponibles" ? "disponibles" : "todo";
   const categoria = params.get("categoria") ?? "";
   const marca = params.get("marca") ?? "";
   const orden =
@@ -83,7 +69,7 @@ export default function CatalogContent({
       !query && !categoria && !marca && orden === "novedades"
         ? initialProducts
         : undefined,
-    enabled: isSupabaseConfigured && tipo !== "archivo",
+    enabled: isSupabaseConfigured,
   });
   const categories = useQuery({
     queryKey: ["web", "categories"],
@@ -135,34 +121,19 @@ export default function CatalogContent({
   const commercialFilter = Boolean(
     categoria || marca || orden.startsWith("precio"),
   );
-  const archived =
-    tipo === "disponibles" || commercialFilter
-      ? []
-      : filterArchive(editorial.data?.archive ?? [], query);
   const commercial =
-    tipo === "archivo"
-      ? []
-      : (results.data ?? []).filter(
-          (p) => tipo !== "disponibles" || (p.stock > 0 && (p.availability ?? "AVAILABLE") === "AVAILABLE"),
-        );
-  const entries = [
-    ...commercial.map((product) => ({
-      kind: "product" as const,
-      product,
-      date: product.publishedAt,
-    })),
-    ...archived.map((entry) => ({
-      kind: "archive" as const,
-      entry,
-      date: entry.publishedAt ?? "",
-    })),
-  ];
+    (results.data ?? []).filter(
+      (p) => tipo !== "disponibles" || (p.stock > 0 && (p.availability ?? "AVAILABLE") === "AVAILABLE"),
+    );
+  const entries = commercial.map((product) => ({
+    kind: "product" as const,
+    product,
+    date: product.publishedAt,
+  }));
   if (orden === "novedades")
     entries.sort((a, b) => b.date.localeCompare(a.date));
-  const needsProducts = tipo !== "archivo";
-  const needsArchive = tipo !== "disponibles" && !commercialFilter;
-  const pending = (needsProducts && results.isPending) || (needsArchive && editorial.isPending);
-  const failed = (needsProducts && results.isError) || (needsArchive && editorial.isError);
+  const pending = results.isPending;
+  const failed = results.isError;
   const activeCount = (categoria ? 1 : 0) + (marca ? 1 : 0);
   const hasFilters = query !== "" || categoria !== "" || marca !== "";
   const clearFilters = () => {
@@ -411,7 +382,6 @@ export default function CatalogContent({
         {[
           ["todo", "Todo"],
           ["disponibles", "Disponibles"],
-          ["archivo", "Archivo"],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -429,57 +399,38 @@ export default function CatalogContent({
           </button>
         ))}
       </nav>
-      {commercialFilter && tipo !== "disponibles" ? (
-        <p className="text-sm text-muted">
-          El archivo no se incluye en filtros comerciales ni en la ordenación
-          por precio: no tiene datos de venta confirmados.
-        </p>
-      ) : null}
       <div
         className="min-h-[60vh]"
-        aria-busy={(needsProducts && results.isFetching) || (needsArchive && editorial.isFetching)}
+        aria-busy={results.isFetching}
       >
-        {failed ? <ErrorState message={backendErrorMessage()} onRetry={()=>{
-          if(needsProducts && results.isError)void results.refetch();
-          if(needsArchive && editorial.isError)void editorial.refetch();
-        }}/> : null}
+        {failed ? <ErrorState message={backendErrorMessage()} onRetry={() => void results.refetch()} /> : null}
         {pending && entries.length === 0 ? <ProductGridSkeleton/> : entries.length === 0 && !failed ? (
           <EmptyState
             message={
               hasFilters
                 ? "Sin resultados con esos filtros."
-                : tipo === "disponibles"
-                  ? "Todavía no hay prendas disponibles para compra. Puedes explorar el archivo."
-                  : "No hay prendas aquí por ahora."
+                : "Todavía no hay prendas disponibles para compra."
             }
             action={
               hasFilters ? (
                 <button onClick={clearFilters} className="min-h-11 underline">
                   Limpiar filtros
                 </button>
-              ) : tipo === "disponibles" ? <Link href="/catalogo?tipo=archivo" className="inline-flex min-h-11 items-center underline">Explorar archivo</Link> : undefined
+              ) : undefined
             }
           />
         ) : entries.length > 0 ? (
           <ul
-            aria-label="Prendas y archivo"
+            aria-label="Prendas"
             className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4"
           >
-            {entries.map((item, index) =>
-              item.kind === "archive" ? (
-                <ArchiveCard
-                  key={item.entry.id}
-                  entry={item.entry}
-                  eager={index < 4}
-                />
-              ) : (
-                <ProductCard
-                  key={item.product.id}
-                  product={item.product}
-                  eager={index < 4}
-                />
-              ),
-            )}
+            {entries.map((item, index) => (
+              <ProductCard
+                key={item.product.id}
+                product={item.product}
+                eager={index < 4}
+              />
+            ))}
           </ul>
         ) : null}
       </div>

@@ -84,7 +84,7 @@ const ESTILOS: Estilo[] = [
 
 const PROMPT_CATALOGO = `Edita esta foto de producto: coloca la MISMA prenda —idéntica: no cambies diseño, color, textura, etiqueta ni desgaste— plana, centrada, vista superior, sobre un fondo de lino blanco arrugado. Luz natural de ventana desde la izquierda, sombra suave. Sin modelo, sin accesorios, sin texto. Encuadre vertical 4:5 con aire alrededor. Fotografía profesional de e-commerce.`;
 
-const PROMPT_EDITORIAL = `Crea una imagen editorial usando la MISMA prenda —idéntica en diseño, color, textura, etiqueta y desgaste, no inventes cambios— puesta por una modelo de cuerpo entero sobre fondo beige claro de lino. A la derecha, 4 tomas superpuestas: frente, espalda, etiqueta de marca y close-up de la tela. Luz cálida natural, sin texto ni logos agregados. Vertical 4:5.`;
+const PROMPT_EDITORIAL = `Crea una imagen editorial usando la MISMA prenda —idéntica en diseño, color, textura, etiqueta y desgaste, no inventes cambios— puesta y fotografiada desde 3 ángulos distintos (ej. frente, 3/4 y espalda) sin mostrar la modelo completa ni su rostro, solo la prenda. Fondo beige claro de lino, luz cálida natural, sin texto ni logos agregados. Vertical 4:5.`;
 
 async function fetchFotoDemo() {
   const { data, error } = await supabase
@@ -237,9 +237,9 @@ export default function EditorialPage() {
             label="/catálogo"
           />
           <PromptCard
-            title="2. Prompt /editorial — foto con modelo + detalles"
+            title="2. Prompt /editorial — 3 ángulos de la prenda puesta"
             prompt={PROMPT_EDITORIAL}
-            hint="Resultado: modelo con la prenda + 4 tomas (frente, espalda, etiqueta, close-up tela). Para la galería de la ficha."
+            hint="Resultado: 3 tomas de la prenda puesta (frente, 3/4, espalda) sin modelo completa ni rostro. Para la galería de la ficha."
             label="/editorial"
           />
         </div>

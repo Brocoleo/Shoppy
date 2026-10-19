@@ -10,7 +10,7 @@ export function EditorialHero({
   return (
     <section aria-labelledby="hero-titulo" className="editorial-hero">
       <div className="editorial-copy">
-        <p className="mb-5 text-sm text-muted">El archivo de vinta.zhe</p>
+        <p className="mb-5 text-sm text-muted">vinta.zhe</p>
         <h1 id="hero-titulo" className="editorial-title">
           <span>{config.title}</span>
           <em>{config.secondLine}</em>
@@ -20,8 +20,7 @@ export function EditorialHero({
           <span aria-hidden="true">⟶</span>
         </Link>
         <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
-          Fotografías de nuestra historia. Explora el archivo y las prendas
-          disponibles.
+          Prendas de segunda mano seleccionadas en Chile. Explora el catálogo.
         </p>
       </div>
       {config.primary ? (

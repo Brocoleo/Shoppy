@@ -10,7 +10,7 @@ import { CookieConsent, CookiePreferencesButton } from "../components/CookieCons
 import { SITE_URL } from "../lib/site";
 
 const DESCRIPTION =
-  "Prendas de segunda mano seleccionadas en Chile y archivo fotográfico real de vinta.zhe.";
+  "Prendas de segunda mano seleccionadas en Chile.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -143,10 +143,6 @@ export default function RootLayout({
                   </nav>
                   <div className="flex flex-col gap-1">
                     <p className="text-xs text-ivory/70">
-                      Archivo fotográfico real de Instagram. Las prendas de
-                      archivo no están disponibles para compra.
-                    </p>
-                    <p className="text-ivory/70">
                       Prendas de segunda mano · Santiago y Rancagua
                     </p>
                   </div>

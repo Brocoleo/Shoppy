@@ -23,8 +23,6 @@ export default function ColeccionDetail({
       </EditorialListingHeader>
       {products.length > 0 ? <ProductGrid products={products} eager /> : <section className="border-y border-line py-10 text-center">
         <h2 className="font-display text-2xl">{collection.slug === "ofertas" ? "Todavía no hay ofertas disponibles" : "Esta colección todavía no tiene prendas disponibles"}</h2>
-        <p className="mt-3 text-sm text-muted">Puedes explorar las fotografías reales del archivo de Instagram. No están disponibles para compra.</p>
-        <Link href="/catalogo?tipo=archivo" className="mt-5 inline-flex min-h-11 items-center underline">Explorar archivo</Link>
       </section>}
     </div>
   );

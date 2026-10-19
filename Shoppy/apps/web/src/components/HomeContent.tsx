@@ -10,7 +10,6 @@ import {
   listProducts,
 } from "../lib/catalog";
 import { loadEditorial, editorialQueryKey } from "../lib/editorial";
-import { ArchiveGrid } from "./ArchiveCard";
 import { EditorialHero } from "./EditorialHero";
 import { Reveal } from "./Reveal";
 import { ProductGrid, ProductGridSkeleton } from "./ProductCard";
@@ -75,34 +74,6 @@ export default function HomeContent({
   return (
     <div className="flex flex-col gap-12 sm:gap-16 md:gap-20">
       <EditorialHero config={editorial.data?.hero} />
-      <section aria-labelledby="archivo-titulo">
-        <SectionTitle
-          id="archivo-titulo"
-          title="Del archivo"
-          action={
-            <Link
-              href="/catalogo?tipo=archivo"
-              className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
-            >
-              Ver archivo
-            </Link>
-          }
-        />
-        <p className="mb-5 text-sm text-muted">
-          Fotografías de Instagram. Estas prendas no están disponibles para
-          compra.
-        </p>
-        {editorial.isPending ? (
-          <ProductGridSkeleton />
-        ) : editorial.isError ? (
-          <ErrorState
-            message="No pudimos cargar las fotografías."
-            onRetry={() => editorial.refetch()}
-          />
-        ) : (
-          <ArchiveGrid items={editorial.data.archive.slice(0, 8)} />
-        )}
-      </section>
 
       {newcomers.isPending ||
       newcomers.isError ||
