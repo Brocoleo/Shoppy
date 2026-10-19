@@ -86,6 +86,16 @@ const PROMPT_CATALOGO = `Edita esta foto de producto: coloca la MISMA prenda —
 
 const PROMPT_EDITORIAL = `Edita la fotografía original de esta prenda para crear una composición profesional de e-commerce, hiperrealista y natural, manteniendo la identidad visual del producto.
 
+═══════════════════════════════════════════
+DISTRIBUCIÓN VISUAL OBJETIVO — NO NEGOCIABLE
+┌──────────────────────────────────────────┐
+│  ████████████████████████  85 % PRENDA   │
+│  ██████  15 % MODELO (soporte visual)    │
+└──────────────────────────────────────────┘
+La prenda llena 80–85 % del encuadre. La modelo es solo el 15–20 % restante
+(cintura y francha mínima de top/abdomen). Si la modelo ocupa más, el prompt falló.
+═══════════════════════════════════════════
+
 **REGLA PRINCIPAL: LA PRENDA ES LA PROTAGONISTA.**
 
 ### 1. Encuadre de la fotografía principal
