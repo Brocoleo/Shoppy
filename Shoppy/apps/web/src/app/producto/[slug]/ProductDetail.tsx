@@ -3,6 +3,11 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  MEASUREMENT_KEYS,
+  MEASUREMENT_LABELS,
+  hasMeasurements,
+} from "@shopy/shared/measurements";
 import type { CatalogProduct } from "../../../lib/catalogProduct";
 import { observeProduct } from "../../../lib/catalog";
 import { formatCLP } from "../../../lib/format";
@@ -49,7 +54,7 @@ export default function ProductDetail({ product: p }: { product: CatalogProduct 
       <div className="min-w-0 md:col-start-2 md:row-start-1">
         <p className="text-sm text-muted">{p.isDemo ? "Producto de demostración · Imagen generada" : p.brand}</p>
         <h1 className="mt-1 font-display text-3xl leading-tight tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
-        <p className="mt-2 text-sm text-muted">Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}{p.color ? ` · ${p.color}` : ""}</p>
+        <p className="mt-2 text-sm text-muted">Talla {p.size} · {CONDITION_LABEL[p.condition] ?? p.condition}{p.color ? ` · ${p.color}` : ""}{p.material ? ` · ${p.material}` : ""}</p>
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="tnum text-2xl font-semibold text-carbon sm:text-3xl">{formatCLP(p.priceClp)}</span>
           {onSale ? <span className="tnum text-base text-muted line-through">{formatCLP(p.compareAtPriceClp!)}</span> : null}
@@ -90,6 +95,25 @@ export default function ProductDetail({ product: p }: { product: CatalogProduct 
           <h2 id="descripcion-prenda" className="mb-2 text-sm font-semibold">Sobre esta prenda</h2>
           <p className="break-words text-sm leading-relaxed text-carbon/80">{p.description}</p>
         </section> : null}
+        {p.material || hasMeasurements(p.measurementsCm) ? (
+          <section aria-labelledby="detalles-prenda" className="border-t border-line pt-5">
+            <h2 id="detalles-prenda" className="mb-2 text-sm font-semibold">Detalles y medidas</h2>
+            {p.material ? (
+              <p className="text-sm text-carbon/80"><span className="text-muted">Composición: </span>{p.material}</p>
+            ) : null}
+            {hasMeasurements(p.measurementsCm) ? (
+              <dl className="mt-2 grid grid-cols-2 gap-x-6">
+                {MEASUREMENT_KEYS.filter((key) => p.measurementsCm[key] != null).map((key) => (
+                  <div key={key} className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-sm">
+                    <dt className="text-muted">{MEASUREMENT_LABELS[key]}</dt>
+                    <dd className="tnum text-carbon">{p.measurementsCm[key]} cm</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            <p className="mt-3 text-xs text-muted">Medidas tomadas en plano, sin estirar. Pueden variar ±1 cm.</p>
+          </section>
+        ) : null}
         {p.tags.length > 0 ? <ul aria-label="Etiquetas" className="flex flex-wrap gap-2">{p.tags.map((tag) => <li key={tag} className="bg-parchment px-3 py-1.5 text-xs text-muted">#{tag}</li>)}</ul> : null}
       </div>
     </div>

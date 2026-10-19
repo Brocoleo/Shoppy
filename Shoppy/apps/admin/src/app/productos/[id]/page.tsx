@@ -125,7 +125,11 @@ export default function EditProductPage({
         throw new Error(
           "Una prenda publicada necesita precio positivo. Retírala de la web antes de dejar el precio pendiente.",
         );
-      const values = toRow(v);
+      const values = toRow(
+        v,
+        null,
+        (row.metadata as Record<string, unknown> | null) ?? null,
+      );
       delete values.published_at;
       const result = await supabase
         .from("products")

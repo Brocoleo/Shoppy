@@ -7,6 +7,15 @@ import type {
   DbProduct,
   DbProductCondition,
 } from "@shopy/types";
+import {
+  MEASUREMENT_KEYS,
+  MEASUREMENT_LABELS,
+  mergeProductMetadata,
+  measurementsToInput,
+  parseMaterial,
+  parseMeasurements,
+  type MeasurementKey,
+} from "@shopy/shared/measurements";
 import { formatCLP, supabase } from "../lib/supabase";
 import { prepareImageParaIA } from "../lib/prepareImage";
 
@@ -30,6 +39,8 @@ export interface ProductFormValue {
   condition: DbProductCondition | "";
   size: string;
   color: string;
+  material: string;
+  measurements: Record<MeasurementKey, string>;
   sku: string;
   stock: number;
   availability: string;
@@ -55,6 +66,10 @@ export function toFormValue(
     condition: (p.condition as DbProductCondition | undefined) ?? "",
     size: p.size ?? "",
     color: p.color ?? "",
+    material: parseMaterial(p.metadata?.material) ?? "",
+    measurements: measurementsToInput(
+      parseMeasurements(p.metadata?.measurements_cm),
+    ),
     sku: (p as { sku?: string | null }).sku ?? "",
     stock: p.stock ?? 0,
     availability: p.availability ?? "AVAILABLE",
@@ -69,7 +84,13 @@ export function toFormValue(
 export function toRow(
   v: ProductFormValue,
   existingPublishedAt: string | null = null,
+  existingMetadata: Record<string, unknown> | null = null,
 ): Record<string, unknown> {
+  const metadata = mergeProductMetadata(
+    existingMetadata,
+    v.material,
+    v.measurements,
+  );
   return {
     slug: v.slug.trim(),
     name: v.name.trim(),
@@ -95,6 +116,7 @@ export function toRow(
       .map((t) => t.trim())
       .filter(Boolean),
     is_featured: v.is_featured,
+    metadata,
   };
 }
 
@@ -284,13 +306,9 @@ export function ProductForm({
       if (fields.segment) fillEmpty("segment", fields.segment, "segmento");
       if (fields.color) fillEmpty("color", fields.color, "color");
       if (fields.size) fillEmpty("size", fields.size, "talla");
-      if (fields.description) {
-        const material = fields.material
-          && !normalizeName(fields.description).includes(normalizeName(fields.material))
-          ? ` Composición: ${fields.material}.`
-          : "";
-        fillEmpty("description", `${fields.description}${material}`.trim(), "descripción");
-      }
+      if (fields.material) fillEmpty("material", fields.material, "composición");
+      if (fields.description)
+        fillEmpty("description", fields.description, "descripción");
       if (fields.tags.length) fillEmpty("tags", fields.tags.join(", "), "tags");
       if (!next.condition) {
         next.condition = fields.condition;
@@ -338,6 +356,16 @@ export function ProductForm({
         "Espera a que carguen las categorías y selecciona una categoría válida.";
     else if (v.subcategory_id && !subs.some((c) => c.id === v.subcategory_id))
       message = "La subcategoría debe pertenecer a la categoría seleccionada.";
+    else {
+      const badMeasure = MEASUREMENT_KEYS.find((key) => {
+        const raw = v.measurements[key]?.trim();
+        if (!raw) return false;
+        const n = Number(raw.replace(",", "."));
+        return !Number.isFinite(n) || n <= 0 || n > 500;
+      });
+      if (badMeasure)
+        message = `La medida de ${MEASUREMENT_LABELS[badMeasure].toLowerCase()} debe ser un número entre 1 y 500 cm.`;
+    }
     setValidationError(message);
     if (!message && !saving) onSave(v);
   };
@@ -559,7 +587,48 @@ export function ProductForm({
             onChange={(e) => set("color", e.target.value)}
           />
         </Field>
+        <Field label="Composición">
+          <input
+            className={inputCls}
+            value={v.material}
+            onChange={(e) => set("material", e.target.value)}
+            placeholder="100% seda, algodón…"
+            maxLength={160}
+          />
+        </Field>
       </div>
+      <fieldset className="rounded-lg border border-zinc-200 bg-white p-4">
+        <legend className="px-1 text-sm font-semibold">
+          Medidas de la prenda (cm)
+        </legend>
+        <p className="text-xs text-zinc-600">
+          Tómales en plano, sin estirar. Son las que usa la clienta para
+          decidir; la talla de etiqueta no basta. Opcional, pero muy
+          recomendado en vintage.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {MEASUREMENT_KEYS.map((key) => (
+            <Field key={key} label={MEASUREMENT_LABELS[key]}>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={1}
+                max={500}
+                step={0.5}
+                className={inputCls}
+                value={v.measurements[key]}
+                onChange={(e) =>
+                  set("measurements", {
+                    ...v.measurements,
+                    [key]: e.target.value,
+                  })
+                }
+                placeholder="—"
+              />
+            </Field>
+          ))}
+        </div>
+      </fieldset>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="SKU">
           <input

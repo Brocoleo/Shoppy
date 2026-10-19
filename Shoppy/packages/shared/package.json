@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./editorial": "./src/editorial.ts"
+    "./editorial": "./src/editorial.ts",
+    "./measurements": "./src/measurements.ts"
   },
   "dependencies": {
     "@shopy/types": "*"

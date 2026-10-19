@@ -1,4 +1,9 @@
 import type { ProductCondition } from "@shopy/types";
+import {
+  parseMaterial,
+  parseMeasurements,
+  type MeasurementsCm,
+} from "@shopy/shared/measurements";
 
 export interface RemoteImage {
   url: string;
@@ -20,6 +25,8 @@ export interface CatalogProduct {
   condition: ProductCondition;
   size: string;
   color: string;
+  material: string | null;
+  measurementsCm: MeasurementsCm;
   stock: number;
   availability?: string;
   publishedAt: string;
@@ -115,6 +122,8 @@ export function mapProduct(row: DbProductRow, categoriesById: ReadonlyMap<string
     condition: row.condition,
     size: row.size ?? "Única",
     color: row.color ?? "",
+    material: parseMaterial(row.metadata?.material),
+    measurementsCm: parseMeasurements(row.metadata?.measurements_cm),
     stock: row.stock,
     availability: row.availability,
     publishedAt: row.published_at ?? new Date(0).toISOString(),
