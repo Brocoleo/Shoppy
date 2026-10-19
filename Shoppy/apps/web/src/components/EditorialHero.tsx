@@ -32,7 +32,7 @@ export function EditorialHero({
             preload
             sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1439px) 48vw, 627px"
             style={{
-              objectFit: config.primary.fit ?? "contain",
+              objectFit: "cover",
               objectPosition: config.primary.position ?? "center",
             }}
           />
@@ -50,7 +50,7 @@ export function EditorialHero({
             fill
             sizes="(max-width: 767px) 1px, 24vw"
             style={{
-              objectFit: config.secondary.fit ?? "contain",
+              objectFit: "cover",
               objectPosition: config.secondary.position ?? "center",
             }}
           />

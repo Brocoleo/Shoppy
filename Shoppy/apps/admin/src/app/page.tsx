@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { isExampleProduct } from "@shopy/shared/editorial";
 import { formatCLP, supabase } from "../lib/supabase";
+import { isTestOrder, useModo } from "../lib/modo";
 
 interface Order {
   id: string;
@@ -24,17 +25,7 @@ interface Product {
   availability: string;
   view_count: number;
   favorite_count: number;
-  metadata?: Record<string, unknown>;
-}
-
-/** Clasifica producto como test/demo vs real (producción). */
-function isTestProduct(p: Product): boolean {
-  const meta = p.metadata ?? {};
-  return (
-    meta.example === true ||
-    meta.demo === true ||
-    /^d0000000-0000-4000-8000-0000000000/.test(p.id)
-  );
+  metadata?: Record<string, unknown> | null;
 }
 
 const PAIDISH = new Set(["PAID", "PREPARING", "SHIPPED", "DELIVERED"]);
@@ -60,19 +51,17 @@ async function fetchDashboard() {
       .reduce((n, oo) => n + oo.total_clp, 0);
     return { key: key.slice(5), total };
   });
-  const orderMode = new Map(orders.map((od) => [od.id, { mode: od.mode ?? "live", status: od.status }]));
   return {
     now,
     orders,
     last7,
     products: (p ?? []) as Product[],
     items: ((items ?? []) as { qty: number; order_id: string }[]),
-    orderMode,
   };
 }
 
 export default function DashboardPage() {
-  const [includeTest, setIncludeTest] = useState(false);
+  const { includeTest } = useModo();
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["dashboard"], queryFn: fetchDashboard });
   if (isLoading || !data) {
     if (isError) {
@@ -89,18 +78,18 @@ export default function DashboardPage() {
     return <p className="text-sm text-zinc-500">Cargando dashboard…</p>;
   }
 
-  const { orders, products, items, orderMode, last7, now } = data;
+  const { orders, products, items, last7, now } = data;
 
   // Separación por origen: compras
-  const realOrders = orders.filter((o) => o.mode !== "test" && PAIDISH.has(o.status));
-  const testOrders = orders.filter((o) => o.mode === "test" && PAIDISH.has(o.status));
+  const realOrders = orders.filter((o) => !isTestOrder(o) && PAIDISH.has(o.status));
+  const testOrders = orders.filter((o) => isTestOrder(o) && PAIDISH.has(o.status));
   const baseOrders = includeTest ? [...realOrders, ...testOrders] : realOrders;
   const baseOrderIds = new Set(baseOrders.map((o) => o.id));
   const soldQty = items.filter((it) => baseOrderIds.has(it.order_id)).reduce((n, it) => n + it.qty, 0);
 
-  // Separación por origen: productos
-  const realProducts = products.filter((p) => !isTestProduct(p));
-  const testProducts = products.filter((p) => isTestProduct(p));
+  // Separación por origen: productos (ejemplos/demos = prueba)
+  const realProducts = products.filter((p) => !isExampleProduct(p));
+  const testProducts = products.filter((p) => isExampleProduct(p));
   const baseProducts = includeTest ? [...realProducts, ...testProducts] : realProducts;
 
   const day = 86_400_000;
@@ -122,37 +111,25 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl tracking-tight">Dashboard</h1>
-        <div className="flex items-center gap-4 text-sm text-zinc-600">
-          <span className="font-medium text-zinc-900">Modo:</span>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={includeTest}
-              onChange={(e) => setIncludeTest(e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-            />
-            <span className={includeTest ? "text-zinc-900 font-medium" : "text-zinc-600"}>
-              Desarrollo ({testOrders.length + testProducts.length})
+        <p className="text-sm text-zinc-600">
+          {includeTest ? (
+            <span className="inline-flex items-center gap-2">
+              <Chip tone="test">Desarrollo</Chip>
+              {realOrders.length + testOrders.length} compras · {baseProducts.length} productos
             </span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={!includeTest}
-              onChange={(e) => setIncludeTest(!e.target.checked)}
-              className="h-4 w-4 accent-zinc-900"
-            />
-            <span className={!includeTest ? "text-zinc-900 font-medium" : "text-zinc-600"}>
-              Producción ({realOrders.length + realProducts.length})
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              <Chip tone="live">Producción</Chip>
+              {realOrders.length} compras · {realProducts.length} productos
             </span>
-          </label>
-        </div>
+          )}
+        </p>
       </div>
 
       {!includeTest && (testOrders.length > 0 || testProducts.length > 0) ? (
         <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           Modo <strong>Producción</strong>: excluye {testOrders.length} compra{testOrders.length === 1 ? "" : "s"} de prueba y {testProducts.length} producto{testProducts.length === 1 ? "" : "s"} de prueba.
-          Activa <strong>Desarrollo</strong> para verlos.
+          Cambia a <strong>Desarrollo</strong> (arriba, en el panel) para verlos.
         </p>
       ) : null}
 
@@ -208,11 +185,11 @@ export default function DashboardPage() {
             <h2 className="text-sm font-semibold">Últimos pedidos</h2>
             <Link href="/pedidos" className="text-xs text-zinc-500 underline">Ver todos</Link>
           </div>
-          {orders.slice(0, 6).map((o) => (
+          {(includeTest ? orders : orders.filter((o) => !isTestOrder(o))).slice(0, 6).map((o) => (
             <div key={o.id} className="flex justify-between items-center gap-2 py-1.5 border-b border-zinc-100 last:border-0 text-sm">
               <span className="truncate flex items-center gap-2">
                 {o.order_number}
-                {o.mode === "test" ? <Chip tone="test">PRUEBA</Chip> : null}
+                {isTestOrder(o) ? <Chip tone="test">PRUEBA</Chip> : null}
               </span>
               <span className="shrink-0 text-zinc-500"><StatusDot status={o.status} /> {o.status} · {formatCLP(o.total_clp)}</span>
             </div>
@@ -223,9 +200,9 @@ export default function DashboardPage() {
   );
 }
 
-function Chip({ children, tone }: { children: React.ReactNode; tone: "test" }) {
+function Chip({ children, tone }: { children: React.ReactNode; tone: "test" | "live" }) {
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tone === "test" ? "border-amber-300 bg-amber-100 text-amber-800" : ""}`}>{children}</span>
+    <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tone === "test" ? "border-amber-300 bg-amber-100 text-amber-800" : "border-green-300 bg-green-50 text-green-800"}`}>{children}</span>
   );
 }
 

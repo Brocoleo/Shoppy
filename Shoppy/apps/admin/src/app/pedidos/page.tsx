@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatCLP, supabase } from "../../lib/supabase";
+import { isTestOrder, useModo } from "../../lib/modo";
 
 interface Row {
   id: string;
@@ -28,25 +29,38 @@ async function fetchOrders(): Promise<Row[]> {
 
 export default function OrdersPage() {
   const [filter, setFilter] = useState("all");
-  const [mode, setMode] = useState<"all" | "real" | "test">("all");
+  const { includeTest } = useModo();
   const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-orders"], queryFn: fetchOrders });
 
-  const statusFiltered = filter === "all" ? rows : rows.filter((r) => r.status === filter);
-  const filtered = mode === "all"
-    ? statusFiltered
-    : statusFiltered.filter((r) => (mode === "test" ? r.mode === "test" : r.mode !== "test"));
-  const reales = rows.filter((r) => r.mode !== "test").length;
+  const modeFiltered = includeTest ? rows : rows.filter((r) => !isTestOrder(r));
+  const statusFiltered = filter === "all" ? modeFiltered : modeFiltered.filter((r) => r.status === filter);
+  const filtered = statusFiltered;
+  const reales = rows.filter((r) => !isTestOrder(r)).length;
   const tests = rows.length - reales;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="font-serif text-3xl tracking-tight">Pedidos</h1>
 
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Origen del pedido">
-        <ChipButton active={mode === "all"} onClick={() => setMode("all")}>Todas ({rows.length})</ChipButton>
-        <ChipButton active={mode === "real"} onClick={() => setMode("real")}>Reales ({reales})</ChipButton>
-        <ChipButton active={mode === "test"} onClick={() => setMode("test")}>De prueba ({tests})</ChipButton>
-      </div>
+      <p className="text-sm text-zinc-600">
+        {includeTest ? (
+          <>
+            <Chip tone="test">Desarrollo</Chip> · reales + de prueba (
+            {rows.length})
+          </>
+        ) : (
+          <>
+            <Chip tone="live">Producción</Chip> · solo reales ({reales})
+            {tests > 0 ? (
+              <span className="text-zinc-500">
+                {" "}
+                · {tests} de prueba oculto{tests === 1 ? "" : "s"} (cambia a
+                Desarrollo arriba)
+              </span>
+            ) : null}
+          </>
+        )}
+      </p>
 
       <div className="flex flex-wrap items-center gap-3">
         <select aria-label="Filtro estado" className="rounded border border-zinc-300 px-3 h-10 text-sm" value={filter} onChange={(e) => setFilter(e.target.value)}>
@@ -80,7 +94,7 @@ export default function OrdersPage() {
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 font-medium">
                     {r.order_number}
-                    {r.mode === "test" ? (
+                    {isTestOrder(r) ? (
                       <span className="inline-flex shrink-0 items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Prueba</span>
                     ) : null}
                   </p>
@@ -99,18 +113,17 @@ export default function OrdersPage() {
   );
 }
 
-function ChipButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ tone, children }: { tone: "test" | "live"; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+        tone === "test"
+          ? "border-amber-300 bg-amber-100 text-amber-800"
+          : "border-green-300 bg-green-50 text-green-800"
       }`}
     >
       {children}
-    </button>
+    </span>
   );
 }
 

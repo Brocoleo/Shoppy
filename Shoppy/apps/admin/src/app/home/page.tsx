@@ -206,7 +206,7 @@ function Editors({
                       if (chosen)
                         setImage(slot, {
                           ...chosen.image,
-                          fit: "contain",
+                          fit: "cover",
                           position: "center",
                         });
                       else setImage(slot, undefined);
@@ -255,7 +255,7 @@ function Editors({
                             width,
                             height,
                             alt: "Fotografía editorial de vinta.zhe",
-                            fit: "contain",
+                            fit: "cover",
                             position: "center",
                           });
                         }, "Foto preparada. Guarda la portada para usarla.");
@@ -274,25 +274,9 @@ function Editors({
                         }
                       />
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       <label className="text-sm">
-                        Presentación
-                        <select
-                          className="mt-1 min-h-11 w-full rounded border px-2"
-                          value={image.fit ?? "contain"}
-                          onChange={(e) =>
-                            setImage(slot, {
-                              ...image,
-                              fit: e.target.value as "contain" | "cover",
-                            })
-                          }
-                        >
-                          <option value="contain">Foto completa</option>
-                          <option value="cover">Llenar encuadre</option>
-                        </select>
-                      </label>
-                      <label className="text-sm">
-                        Posición
+                        Punto de recorte
                         <select
                           className="mt-1 min-h-11 w-full rounded border px-2"
                           value={image.position ?? "center"}
@@ -310,6 +294,10 @@ function Editors({
                           <option value="top">Arriba</option>
                           <option value="bottom">Abajo</option>
                         </select>
+                        <span className="mt-1 block text-xs text-zinc-500">
+                          La portada siempre llena el encuadre (sin bordes).
+                          Ajusta aquí qué zona de la foto se ve.
+                        </span>
                       </label>
                     </div>
                   </>

@@ -50,7 +50,7 @@ export function EditorialListingHeader({
             fill
             sizes="(max-width: 767px) 100px, 260px"
             style={{
-              objectFit: "contain",
+              objectFit: "cover",
               objectPosition: photo.position ?? "center",
             }}
           />

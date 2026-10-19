@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AdminSessionProvider, useAdminSession } from "../lib/supabase";
+import { ModoProvider } from "../lib/modo";
+import { ModoSwitch } from "./ModoSwitch";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -46,6 +48,7 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-full flex flex-col md:flex-row">
       <aside className="w-full shrink-0 border-b border-zinc-200 bg-white p-4 md:w-52 md:border-r md:border-b-0">
         <p className="px-2 pb-3 font-serif text-3xl">vinta.zhe</p>
+        <ModoSwitch />
         <nav
           aria-label="Administración"
           className="flex gap-2 overflow-x-auto pb-2 md:flex-col md:overflow-visible"
@@ -83,7 +86,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AdminSessionProvider>
-        <Shell>{children}</Shell>
+        <ModoProvider>
+          <Shell>{children}</Shell>
+        </ModoProvider>
       </AdminSessionProvider>
     </QueryClientProvider>
   );

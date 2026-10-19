@@ -5,6 +5,7 @@ import { isExampleProduct } from "@shopy/shared/editorial";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatCLP, supabase } from "../../lib/supabase";
+import { useModo } from "../../lib/modo";
 
 interface Row {
   metadata?: Record<string, unknown> | null;
@@ -33,6 +34,7 @@ export default function ProductsPage() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState<string | null>(null);
+  const { includeTest } = useModo();
   const queryClient = useQueryClient();
   const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-products"], queryFn: fetchProducts });
 
@@ -57,12 +59,14 @@ export default function ProductsPage() {
     onError: (e) => setError(e instanceof Error ? e.message : "Error"),
   });
 
+  const activeTab = includeTest ? tab : "products";
   const filtered = rows.filter((r) => {
-    if (isExampleProduct(r) !== (tab === "examples")) return false;
+    if (isExampleProduct(r) !== (activeTab === "examples")) return false;
     if (filter !== "all" && r.availability !== filter) return false;
     if (q && !`${r.name} ${r.slug}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
+  const examplesCount = rows.filter((r) => isExampleProduct(r)).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -72,12 +76,38 @@ export default function ProductsPage() {
           Nuevo producto
         </Link>
       </div>
+      <p className="text-sm text-zinc-600">
+        {includeTest ? (
+          <>
+            <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Desarrollo</span>{" "}
+            · reales + ejemplos de prueba
+          </>
+        ) : (
+          <>
+            <span className="inline-flex items-center rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-800">Producción</span>{" "}
+            · solo prendas reales
+            {examplesCount > 0
+              ? ` · ${examplesCount} ejemplo${examplesCount === 1 ? "" : "s"} oculto${examplesCount === 1 ? "" : "s"} (cambia a Desarrollo arriba)`
+              : ""}
+          </>
+        )}
+      </p>
       <nav aria-label="Tipo de registro" className="flex gap-2">
-        {[["products", "Productos"], ["examples", "Ejemplos"]].map(([value, label]) => (
-          <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)} className={`min-h-11 px-4 ${tab === value ? "bg-zinc-900 text-white" : "border border-zinc-300"}`}>{label}</button>
+        {[["products", "Productos"], ["examples", `Ejemplos${includeTest ? "" : ` (${examplesCount})`}`]].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={activeTab === value}
+            disabled={value === "examples" && !includeTest}
+            onClick={() => setTab(value)}
+            className={`min-h-11 px-4 ${activeTab === value ? "bg-zinc-900 text-white" : "border border-zinc-300"} disabled:cursor-not-allowed disabled:opacity-40`}
+            title={value === "examples" && !includeTest ? "Cambia a modo Desarrollo para ver los ejemplos" : undefined}
+          >
+            {label}
+          </button>
         ))}
       </nav>
-      {tab === "examples" ? <p className="text-sm text-zinc-600">Registros de prueba. No están a la venta. Usa un ejemplo como base para preparar una prenda nueva.</p> : null}
+      {activeTab === "examples" ? <p className="text-sm text-zinc-600">Registros de prueba. No están a la venta. Usa un ejemplo como base para preparar una prenda nueva.</p> : null}
       <div className="flex gap-2">
         <input
           aria-label="Buscar productos"
