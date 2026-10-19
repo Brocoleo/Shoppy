@@ -32,8 +32,12 @@ export function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: 0
 
   useEffect(() => {
     const el = ref.current;
+    if (!el) return;
+    // Movimiento reducido: el elemento ya es visible por defecto, así que
+    // no se observa ni se anima (no se "congela" nada en opacidad 0).
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const observer = getObserver();
-    if (!el || !observer) return;
+    if (!observer) return;
     // Solo se observa bajo el pliegue: sobre el pliegue entra con el hero (CSS).
     if (el.getBoundingClientRect().top > window.innerHeight) {
       observer.observe(el);

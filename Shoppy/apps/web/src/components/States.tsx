@@ -48,7 +48,7 @@ export function EmptyState({ message, action }: { message: string; action?: Reac
 
 export function SectionTitle({ title, action, id }: { title: string; action?: ReactNode; id?: string }) {
   return (
-    <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+    <div className="mb-8 flex flex-wrap items-baseline justify-between gap-3">
       <h2 id={id} className="font-display text-3xl tracking-tight text-carbon sm:text-4xl">{title}</h2>
       {action}
     </div>

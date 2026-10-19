@@ -45,7 +45,7 @@ export default function ProductDetail({ product: p }: { product: CatalogProduct 
   const onSale = (p.compareAtPriceClp ?? 0) > p.priceClp;
 
   return (
-    <div className="grid min-w-0 gap-5 md:grid-cols-2 md:items-start md:gap-x-12 md:gap-y-6">
+    <div className="grid min-w-0 gap-6 md:grid-cols-2 md:items-start md:gap-x-16 md:gap-y-7">
       <div className="min-w-0 md:col-start-2 md:row-start-1">
         <p className="text-sm text-muted">{p.isDemo ? "Producto de demostración · Imagen generada" : p.brand}</p>
         <h1 className="mt-1 font-display text-3xl leading-tight tracking-tight text-carbon sm:text-4xl">{p.name}</h1>
@@ -81,7 +81,7 @@ export default function ProductDetail({ product: p }: { product: CatalogProduct 
 
       <div className="flex min-w-0 flex-col gap-5 md:col-start-2 md:row-start-2">
         <button type="button" disabled={agotada || !ready} onClick={() => {
-          add(p.id, 1); setAdded(true); setTimeout(() => setAdded(false), 2500);
+          add(p.id, 1); setAdded(true); navigator.vibrate?.(10); setTimeout(() => setAdded(false), 2500);
         }} className="btn-press h-12 bg-carbon text-sm font-medium text-ivory hover:bg-carbon-soft disabled:opacity-40">
           {p.isDemo ? "Producto de demostración" : agotada ? textoBotonAgotada : !ready ? "Cargando carrito…" : added ? "¡Agregada al carrito!" : "Agregar al carrito"}
         </button>

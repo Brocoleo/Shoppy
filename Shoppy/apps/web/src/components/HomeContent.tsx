@@ -72,7 +72,7 @@ export default function HomeContent({
   const topBrands = (brands.data ?? []).slice(0, 8);
 
   return (
-    <div className="flex flex-col gap-12 sm:gap-16 md:gap-20">
+    <div className="flex flex-col gap-14 sm:gap-20 md:gap-24">
       <EditorialHero config={editorial.data?.hero} />
 
       {newcomers.isPending ||
@@ -109,7 +109,7 @@ export default function HomeContent({
       {(newcomers.data?.length ?? 0) > 0 ? (
         <nav
           aria-label="Categorías"
-          className="flex flex-wrap items-center gap-x-7 gap-y-2 border-y border-line py-5"
+          className="flex flex-wrap items-center gap-x-7 gap-y-2 border-y border-line py-6"
         >
           {categories.isPending
             ? Array.from({ length: 5 }, (_, index) => (

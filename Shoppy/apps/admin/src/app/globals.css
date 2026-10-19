@@ -1,9 +1,84 @@
 @import "tailwindcss";
-:root { --background:#f8f7f4; --foreground:#191919; }
-@theme inline { --color-background:var(--background); --color-foreground:var(--foreground); --font-sans:Arial,Helvetica,sans-serif; }
-body { background:var(--background); color:var(--foreground); font-family:Arial,Helvetica,sans-serif; }
-:where(a,button,input,select,textarea):focus-visible {outline:2px solid #6f6455;outline-offset:3px;}
-button,a,input,select,textarea {touch-action:manipulation;}
-input,textarea,select {font-size:16px;}
-button:not(:disabled),a {cursor:pointer;}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
+
+/* ——— vinta.zhe Admin: misma base editorial que la tienda ——— */
+:root {
+  --background: #f8f7f4;
+  --foreground: #191919;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Paleta warm-neutral compartida con la tienda */
+  --color-ivory: #f8f7f4;
+  --color-parchment: #efede7;
+  --color-carbon: #191919;
+  --color-carbon-soft: #2a2a2a;
+  --color-taupe: #b5a89a;
+  --color-taupe-deep: #6f6455;
+  --color-muted: #5f5a52;
+  --color-line: #e3dfd6;
+
+  --font-sans: var(--font-inter, Inter), Arial, Helvetica, sans-serif;
+  --font-display: "Didot", "Bodoni MT", "Playfair Display", Georgia, "Times New Roman", serif;
+
+  /* Easings compartidos (emil-design-eng) */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #6f6455;
+  outline-offset: 3px;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+button:not(:disabled),
+a {
+  cursor: pointer;
+}
+
+/* Feedback de press consistente con los CTA de la tienda. */
+.btn-press {
+  transition:
+    transform 160ms var(--ease-out-strong),
+    background-color 200ms var(--ease-standard),
+    border-color 200ms var(--ease-standard);
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Cifras de tablas/reportes que no bailan al cambiar. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

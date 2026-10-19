@@ -1,7 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { Inter } from "next/font/google";
 import { INSTAGRAM_URL } from "@shopy/shared/editorial";
 import "./globals.css";
+
+/**
+ * Inter variable (autoalojada por Next: sin request a Google en runtime).
+ * Se expone como `--font-inter` para que `--font-sans` (globals.css) la use
+ * como fallback del display editorial (Didot/Bodoni/Playfair).
+ */
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 import { WebQueryProvider } from "../lib/query";
 import { SessionProvider } from "../lib/session";
 import { CartProvider } from "../lib/cart";
@@ -75,7 +87,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className={inter.variable}>
       <head>
         <link
           rel="preconnect"

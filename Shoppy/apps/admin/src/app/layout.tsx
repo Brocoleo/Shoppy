@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AdminShell } from "../components/AdminShell";
+
+/** Inter variable autoalojada (expuesta como `--font-inter` para globals.css). */
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "vinta.zhe Admin",
@@ -15,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+    <html lang="es" className={`h-full antialiased ${inter.variable}`}>
+      <body className="min-h-full flex flex-col bg-ivory text-carbon">
         <AdminShell>{children}</AdminShell>
       </body>
     </html>

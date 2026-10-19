@@ -13,7 +13,13 @@ const CONDITION_LABEL: Record<string, string> = {
   con_detalles: "Con detalles",
 };
 
-export function ProductCard({ product, eager = false }: { product: CatalogProduct; eager?: boolean }) {
+export function ProductCard({
+  product,
+  loading = "lazy",
+}: {
+  product: CatalogProduct;
+  loading?: "eager" | "lazy";
+}) {
   const cover = productCover(product);
   const onSale = (product.compareAtPriceClp ?? 0) > product.priceClp;
   const soldOut = product.stock <= 0 || product.isDemo;
@@ -33,7 +39,7 @@ export function ProductCard({ product, eager = false }: { product: CatalogProduc
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="card-zoom object-cover"
-              loading={eager ? "eager" : "lazy"}
+              loading={loading}
             />
           ) : null}
           {onSale && !soldOut ? (
@@ -68,23 +74,27 @@ export function ProductCard({ product, eager = false }: { product: CatalogProduc
   );
 }
 
-export function ProductGrid({ products, eager = false }: { products: CatalogProduct[]; eager?: boolean }) {
+/** Retícula única de catálogo: la comparten el grid real, el esqueleto y los listados filtrados. */
+export const PRODUCT_GRID_CLASS =
+  "grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-12 lg:grid-cols-4";
+
+export function ProductGrid({ products, priority = false }: { products: CatalogProduct[]; priority?: boolean }) {
   if (products.length === 0) {
     return <EmptyState message="No hay prendas aquí por ahora." />;
   }
   return (
-    <ul aria-label="Productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+    <ul aria-label="Productos" className={PRODUCT_GRID_CLASS}>
       {products.map((p, index) => (
-        <ProductCard key={p.id} product={p} eager={eager && index < 4} />
+        <ProductCard key={p.id} product={p} loading={priority && index < 4 ? "eager" : "lazy"} />
       ))}
     </ul>
   );
 }
 
-/** Esqueleto 3:4 con la misma retícula que el grid real (evita saltos de layout). */
+/** Esqueleto 4:5 con la misma retícula que el grid real (evita saltos de layout). */
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div role="status" aria-busy="true" aria-label="Cargando productos" className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+    <div role="status" aria-busy="true" aria-label="Cargando productos" className={PRODUCT_GRID_CLASS}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="flex flex-col">
           <div className="shimmer aspect-[4/5] w-full animate-shimmer" />

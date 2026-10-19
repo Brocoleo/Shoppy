@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { EditorialListingHeader } from "../../../components/EditorialListingHeader";
 import { ProductGrid } from "../../../components/ProductCard";
 import type { CatalogCollection, CatalogProduct } from "../../../lib/catalogProduct";
@@ -17,11 +16,11 @@ export default function ColeccionDetail({
   products: CatalogProduct[];
 }) {
   return (
-    <div className="flex flex-col gap-8 sm:gap-10">
+    <div className="flex flex-col gap-10 sm:gap-14">
       <EditorialListingHeader title={collection.name} image="principal">
         <p className="text-sm text-muted">{products.length} prendas en esta colección</p>
       </EditorialListingHeader>
-      {products.length > 0 ? <ProductGrid products={products} eager /> : <section className="border-y border-line py-10 text-center">
+      {products.length > 0 ? <ProductGrid products={products} priority /> : <section className="border-y border-line py-10 text-center">
         <h2 className="font-display text-2xl">{collection.slug === "ofertas" ? "Todavía no hay ofertas disponibles" : "Esta colección todavía no tiene prendas disponibles"}</h2>
       </section>}
     </div>

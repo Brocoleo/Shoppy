@@ -40,14 +40,14 @@ function Shell({ children }: { children: ReactNode }) {
 
   if (publicPage) return <>{children}</>;
   if (loading)
-    return <p className="p-8 text-sm text-zinc-500">Cargando sesión…</p>;
+    return <p className="p-8 text-sm text-muted">Cargando sesión…</p>;
   if (!session || role !== "admin")
-    return <p className="p-8 text-sm text-zinc-500">Redirigiendo…</p>;
+    return <p className="p-8 text-sm text-muted">Redirigiendo…</p>;
 
   return (
     <div className="min-h-full flex flex-col md:flex-row">
-      <aside className="w-full shrink-0 border-b border-zinc-200 bg-white p-4 md:w-52 md:border-r md:border-b-0">
-        <p className="px-2 pb-3 font-serif text-3xl">vinta.zhe</p>
+      <aside className="w-full shrink-0 border-b border-line bg-white p-4 md:w-52 md:border-r md:border-b-0">
+        <p className="px-2 pb-3 font-display text-3xl">vinta.zhe</p>
         <ModoSwitch />
         <nav
           aria-label="Administración"
@@ -57,21 +57,22 @@ function Shell({ children }: { children: ReactNode }) {
             <Link
               key={n.href}
               href={n.href}
-              className={`flex min-h-11 shrink-0 items-center rounded px-3 py-2 text-sm ${
+              aria-current={pathname === n.href ? "page" : undefined}
+              className={`flex min-h-11 shrink-0 items-center rounded px-3 py-2 text-sm transition-colors ${
                 pathname === n.href
-                  ? "bg-zinc-900 font-semibold text-white"
-                  : "text-zinc-700 hover:bg-zinc-100"
+                  ? "bg-carbon font-semibold text-ivory"
+                  : "text-muted hover:bg-parchment hover:text-carbon"
               }`}
             >
               {n.label}
             </Link>
           ))}
         </nav>
-        <div className="mt-auto pt-4 border-t border-zinc-200">
-          <p className="px-2 text-xs text-zinc-500 truncate">{email}</p>
+        <div className="mt-auto pt-4 border-t border-line">
+          <p className="px-2 text-xs text-muted truncate">{email}</p>
           <button
             onClick={() => signOut().then(() => router.replace("/login"))}
-            className="mt-1 w-full rounded px-2 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+            className="btn-press mt-1 w-full rounded px-2 py-2 text-left text-sm text-muted hover:bg-parchment hover:text-carbon"
           >
             Cerrar sesión
           </button>

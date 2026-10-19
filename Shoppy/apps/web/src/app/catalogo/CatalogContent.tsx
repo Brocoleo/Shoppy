@@ -1,10 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   listBrands,
   listCategories,
@@ -12,7 +9,7 @@ import {
   type ProductSort,
 } from "../../lib/catalog";
 import { EditorialListingHeader } from "../../components/EditorialListingHeader";
-import { ProductCard, ProductGridSkeleton } from "../../components/ProductCard";
+import { ProductCard, ProductGridSkeleton, PRODUCT_GRID_CLASS } from "../../components/ProductCard";
 import {
   EmptyState,
   ErrorState,
@@ -20,47 +17,34 @@ import {
 } from "../../components/States";
 
 import { isSupabaseConfigured } from "../../lib/supabase-config";
-
-const SORTS: { value: ProductSort; label: string }[] = [
-  { value: "tendencia", label: "Tendencia" },
-  { value: "novedades", label: "Novedades" },
-  { value: "precio-asc", label: "Menor precio" },
-  { value: "precio-desc", label: "Mayor precio" },
-];
+import { SORTS, useCatalogFilters, type Tipo } from "./useCatalogFilters";
 
 export default function CatalogContent({
   initialProducts,
 }: {
   initialProducts?: import("../../lib/catalog").CatalogProduct[];
 }) {
-  const params = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-  const query = params.get("q") ?? "";
-  const tipo = params.get("tipo") === "disponibles" ? "disponibles" : "todo";
-  const categoria = params.get("categoria") ?? "";
-  const marca = params.get("marca") ?? "";
-  const orden =
-    SORTS.find((sort) => sort.value === params.get("orden"))?.value ??
-    "novedades";
+  const {
+    query,
+    tipo,
+    categoria,
+    marca,
+    orden,
+    filters,
+    activeCount,
+    hasFilters,
+    setSearch,
+    setCategoria,
+    setMarca,
+    setOrden,
+    setTipo,
+    clear,
+    restoreSearchFocusRef,
+  } = useCatalogFilters();
+
   const filterButton = useRef<HTMLButtonElement>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const restoreSearchFocus = useRef(false);
-  useEffect(() => {
-    if (restoreSearchFocus.current) {
-      document.getElementById("buscar-prenda")?.focus();
-      restoreSearchFocus.current = false;
-    }
-  }, [query, categoria, marca]);
 
-  const filters = useMemo(
-    () => ({
-      ...(query ? { query } : {}),
-      ...(categoria ? { categorySlug: categoria } : {}),
-      ...(marca ? { brandSlug: marca } : {}),
-    }),
-    [query, categoria, marca],
-  );
   const key = JSON.stringify({ filters, orden });
   const results = useQuery({
     queryKey: ["web", "search", key],
@@ -87,40 +71,6 @@ export default function CatalogContent({
       <ErrorState message="La tienda no está disponible en este momento. Vuelve a intentarlo más tarde." />
     );
 
-  /** Refleja el estado de filtros en la URL (reemplazo, sin recargar). */
-  const syncUrl = (next: {
-    query: string;
-    categoria: string;
-    marca: string;
-    orden: ProductSort;
-  }) => {
-    const sp = new URLSearchParams();
-    if (tipo !== "todo") sp.set("tipo", tipo);
-    if (next.query) sp.set("q", next.query);
-    if (next.categoria) sp.set("categoria", next.categoria);
-    if (next.marca) sp.set("marca", next.marca);
-    if (next.orden !== "novedades") sp.set("orden", next.orden);
-    const qs = sp.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
-
-  const applySearch = (value: string) => {
-    const next = value.trim();
-    syncUrl({ query: next, categoria, marca, orden });
-  };
-  const applyCategoria = (value: string) => {
-    syncUrl({ query, categoria: value, marca, orden });
-  };
-  const applyMarca = (value: string) => {
-    syncUrl({ query, categoria, marca: value, orden });
-  };
-  const applyOrden = (value: ProductSort) => {
-    syncUrl({ query, categoria, marca, orden: value });
-  };
-
-  const commercialFilter = Boolean(
-    categoria || marca || orden.startsWith("precio"),
-  );
   const commercial =
     (results.data ?? []).filter(
       (p) => tipo !== "disponibles" || (p.stock > 0 && (p.availability ?? "AVAILABLE") === "AVAILABLE"),
@@ -134,12 +84,6 @@ export default function CatalogContent({
     entries.sort((a, b) => b.date.localeCompare(a.date));
   const pending = results.isPending;
   const failed = results.isError;
-  const activeCount = (categoria ? 1 : 0) + (marca ? 1 : 0);
-  const hasFilters = query !== "" || categoria !== "" || marca !== "";
-  const clearFilters = () => {
-    restoreSearchFocus.current = true;
-    syncUrl({ query: "", categoria: "", marca: "", orden });
-  };
 
   const selects = (prefix: string) => (
     <>
@@ -150,7 +94,7 @@ export default function CatalogContent({
         <select
           id={`${prefix}-categoria`}
           value={categoria}
-          onChange={(e) => applyCategoria(e.target.value)}
+          onChange={(e) => setCategoria(e.target.value)}
           className="h-11 w-full border-b border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
         >
           <option value="">Todas</option>
@@ -168,7 +112,7 @@ export default function CatalogContent({
         <select
           id={`${prefix}-marca`}
           value={marca}
-          onChange={(e) => applyMarca(e.target.value)}
+          onChange={(e) => setMarca(e.target.value)}
           className="h-11 w-full border-b border-carbon/40 bg-ivory px-2 text-sm text-carbon sm:w-auto"
         >
           <option value="">Todas</option>
@@ -188,7 +132,7 @@ export default function CatalogContent({
           {
             key: "query",
             label: `Búsqueda: ${query}`,
-            remove: () => applySearch(""),
+            remove: () => setSearch(""),
           },
         ]
       : []),
@@ -197,7 +141,7 @@ export default function CatalogContent({
           {
             key: "categoria",
             label: `Categoría: ${categories.data?.find((item) => item.slug === categoria)?.name ?? categoria}`,
-            remove: () => applyCategoria(""),
+            remove: () => setCategoria(""),
           },
         ]
       : []),
@@ -206,7 +150,7 @@ export default function CatalogContent({
           {
             key: "marca",
             label: `Marca: ${brands.data?.find((item) => item.slug === marca)?.name ?? marca}`,
-            remove: () => applyMarca(""),
+            remove: () => setMarca(""),
           },
         ]
       : []),
@@ -234,8 +178,8 @@ export default function CatalogContent({
           className="flex gap-2"
           onSubmit={(event) => {
             event.preventDefault();
-            restoreSearchFocus.current = true;
-            applySearch(
+            restoreSearchFocusRef.current = true;
+            setSearch(
               String(new FormData(event.currentTarget).get("q") ?? ""),
             );
           }}
@@ -280,7 +224,7 @@ export default function CatalogContent({
               id="orden-compacto"
               value={orden}
               onChange={(event) =>
-                applyOrden(event.target.value as ProductSort)
+                setOrden(event.target.value as ProductSort)
               }
               className="h-full min-w-0 flex-1 bg-ivory text-sm text-carbon"
             >
@@ -325,7 +269,7 @@ export default function CatalogContent({
               id="filtro-orden"
               value={orden}
               onChange={(event) =>
-                applyOrden(event.target.value as ProductSort)
+                setOrden(event.target.value as ProductSort)
               }
               className="h-11 border-b border-carbon/40 bg-ivory px-3 text-sm text-carbon"
             >
@@ -350,7 +294,7 @@ export default function CatalogContent({
                 type="button"
                 aria-label={`Quitar ${filter.label}`}
                 onClick={() => {
-                  restoreSearchFocus.current = true;
+                  restoreSearchFocusRef.current = true;
                   filter.remove();
                 }}
                 className="inline-flex min-h-11 max-w-full items-center gap-3 border border-line bg-parchment px-3 py-2 text-left text-sm text-carbon hover:border-carbon"
@@ -366,7 +310,7 @@ export default function CatalogContent({
             ))}
             <button
               type="button"
-              onClick={clearFilters}
+              onClick={clear}
               className="min-h-11 px-2 text-sm text-muted underline underline-offset-4 hover:text-carbon"
             >
               Limpiar filtros
@@ -388,12 +332,7 @@ export default function CatalogContent({
             type="button"
             aria-pressed={tipo === value}
             className={`min-h-11 px-4 text-sm ${tipo === value ? "bg-carbon text-ivory" : "border border-line"}`}
-            onClick={() => {
-              const sp = new URLSearchParams(params);
-              if (value === "todo") sp.delete("tipo");
-              else sp.set("tipo", value);
-              router.push(`${pathname}?${sp}`, { scroll: false });
-            }}
+            onClick={() => setTipo(value as Tipo)}
           >
             {label}
           </button>
@@ -413,7 +352,7 @@ export default function CatalogContent({
             }
             action={
               hasFilters ? (
-                <button onClick={clearFilters} className="min-h-11 underline">
+                <button onClick={clear} className="min-h-11 underline">
                   Limpiar filtros
                 </button>
               ) : undefined
@@ -422,13 +361,13 @@ export default function CatalogContent({
         ) : entries.length > 0 ? (
           <ul
             aria-label="Prendas"
-            className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4"
+            className={PRODUCT_GRID_CLASS}
           >
             {entries.map((item, index) => (
               <ProductCard
                 key={item.product.id}
                 product={item.product}
-                eager={index < 4}
+                loading={index < 4 ? "eager" : "lazy"}
               />
             ))}
           </ul>

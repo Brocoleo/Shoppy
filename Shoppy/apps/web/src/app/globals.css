@@ -2,6 +2,7 @@
 
 /* ——— vinta.zhe editorial tokens (Tailwind v4 semánticos) ——— */
 @theme {
+  /* Color: warm-neutral editorial (ivory/parchment/carbon/taupe) */
   --color-ivory: #f8f7f4;
   --color-parchment: #efede7;
   --color-carbon: #191919;
@@ -11,21 +12,27 @@
   --color-muted: #5f5a52;
   --color-line: #e3dfd6;
 
+  /* Tipografía: Inter variable (sans UI) + Didot/Bodoni/Playfair (display) */
   --font-display: "Didot", "Bodoni MT", "Playfair Display", Georgia, "Times New Roman", serif;
-  --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-sans: var(--font-inter, "Helvetica Neue"), "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
 
-  /* ——— Motion System v2.1: solo transform/opacity, todo interrumpible ——— */
+  /* ——— Motion System v3: solo transform/opacity, todo interrumpible ——— */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
-  --animate-fade-up: fade-up 0.48s var(--ease-entrance) both;
+  /* Curvas fuertes (emil-design-eng) */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1); /* press / hover: respuesta inmediata */
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1); /* desplazamiento en pantalla */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); /* drawer tipo iOS (menú/filtros) */
+
+  --animate-fade-up: fade-up 0.35s var(--ease-out-strong) both;
   --animate-shimmer: shimmer 1.6s linear infinite;
 
   @keyframes fade-up {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -69,21 +76,22 @@ body {
 /* Feedback press en CTAs: solo transform + background (nunca `transition: all`). */
 .btn-press {
   transition:
-    transform 160ms var(--ease-standard),
+    transform 160ms var(--ease-out-strong),
     background-color 200ms var(--ease-standard),
     border-color 200ms var(--ease-standard);
 }
 .btn-press:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 /* Zoom de tarjeta solo con puntero fino (en táctil el hover de tap da falsos positivos). */
 .card-zoom {
-  transition: transform 240ms var(--ease-standard);
+  transition: transform 200ms var(--ease-out-strong);
+  will-change: transform;
 }
 @media (hover: hover) and (pointer: fine) {
   .group:hover .card-zoom {
-    transform: scale(1.04);
+    transform: scale(1.02);
   }
 }
 
@@ -94,8 +102,8 @@ body {
   grid-template-rows: 0fr;
   opacity: 0;
   transition:
-    grid-template-rows 360ms var(--ease-entrance),
-    opacity 240ms var(--ease-standard);
+    grid-template-rows 260ms var(--ease-drawer),
+    opacity 200ms var(--ease-standard);
 }
 .disclosure-open {
   grid-template-rows: 1fr;

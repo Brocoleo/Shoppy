@@ -9,43 +9,50 @@ import { useModo, type AdminMode } from "../lib/modo";
  */
 export function ModoSwitch() {
   const { modo, setModo } = useModo();
-  const options: { value: AdminMode; label: string }[] = [
-    { value: "produccion", label: "Producción" },
-    { value: "desarrollo", label: "Desarrollo" },
+  const options: { value: AdminMode; label: string; hint: string }[] = [
+    { value: "produccion", label: "Producción", hint: "Solo datos reales del negocio" },
+    { value: "desarrollo", label: "Desarrollo", hint: "Incluye productos y pedidos de prueba" },
   ];
+  const desarrollando = modo === "desarrollo";
   return (
-    <div className="px-2 pb-3" role="group" aria-label="Modo de datos del panel">
-      <p className="pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+    <div
+      role="group"
+      aria-label="Modo de datos del panel"
+      aria-describedby="modo-datos-ayuda"
+      className="px-2 pb-3"
+    >
+      <p className="pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
         Modo de datos
       </p>
-      <div className="flex rounded-full border border-zinc-300 bg-zinc-100 p-0.5">
+      <div className="flex rounded-full border border-line bg-parchment p-0.5">
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             aria-pressed={modo === o.value}
+            title={o.hint}
             onClick={() => setModo(o.value)}
-            className={`flex-1 rounded-full px-2 py-1.5 text-xs font-medium transition-colors ${
+            className={`btn-press flex-1 rounded-full px-2 py-1.5 text-xs font-medium transition-colors ${
               modo === o.value
                 ? o.value === "desarrollo"
                   ? "bg-amber-500 text-white"
-                  : "bg-zinc-900 text-white"
-                : "text-zinc-600 hover:text-zinc-900"
+                  : "bg-carbon text-ivory"
+                : "text-muted hover:text-carbon"
             }`}
           >
             {o.label}
           </button>
         ))}
       </div>
-      {modo === "desarrollo" ? (
-        <p className="pt-1.5 text-[11px] text-amber-700">
-          Incluye pruebas en todo el panel.
-        </p>
-      ) : (
-        <p className="pt-1.5 text-[11px] text-zinc-500">
-          Solo datos reales de negocio.
-        </p>
-      )}
+      <p
+        id="modo-datos-ayuda"
+        role="status"
+        className={`pt-1.5 text-[11px] ${desarrollando ? "text-amber-700" : "text-muted"}`}
+      >
+        {desarrollando
+          ? "Incluye pruebas en todo el panel."
+          : "Solo datos reales de negocio."}
+      </p>
     </div>
   );
 }
