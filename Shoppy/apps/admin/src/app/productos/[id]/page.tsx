@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { prepareImage } from "../../../lib/prepareImage";
 import Link from "next/link";
 import { isExampleProduct, isPublicProduct } from "@shopy/shared/editorial";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
 import {
@@ -533,10 +533,52 @@ function ImagesManager({
   void slug;
   const previewUrls = useRef<string[]>([]);
   const [previews, setPreviews] = useState<{ src: string; name: string }[]>([]);
+  const [uploading, setUploading] = useState<string[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
   useEffect(
     () => () => previewUrls.current.forEach((url) => URL.revokeObjectURL(url)),
     [],
   );
+
+  const startUpload = (files: File[]) => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    setPreviews(
+      files.map((f) => ({ src: URL.createObjectURL(f), name: f.name })),
+    );
+    previewUrls.current = files.map((f) => URL.createObjectURL(f));
+    setUploading(files.map((f) => f.name));
+    mutate(async () => {
+      try {
+        await onUpload(files);
+      } finally {
+        setUploading([]);
+      }
+    });
+  };
+
+  // Reordenar arrastrando: cada tarjeta es arrastrable en escritorio y
+  // el botón de flecha cubre el caso táctil sin arrastre.
+  const handleDragStart = (event: DragEvent, id: string) => {
+    setDragId(id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  };
+  const handleDragOver = (event: DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+  const handleDrop = (event: DragEvent, targetId: string) => {
+    event.preventDefault();
+    const sourceId = dragId ?? event.dataTransfer.getData("text/plain");
+    setDragId(null);
+    if (!sourceId || sourceId === targetId) return;
+    const ordered = [...images].sort((a, b) => a.sort_order - b.sort_order);
+    const from = ordered.findIndex((i) => i.id === sourceId);
+    const to = ordered.findIndex((i) => i.id === targetId);
+    if (from < 0 || to < 0) return;
+    mutate(() => onMove(ordered[from], to > from ? 1 : -1));
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">Fotografías · {images.length}</h2>
@@ -546,6 +588,7 @@ function ImagesManager({
       {retryFiles.length > 0 ? (
         <button
           disabled={busy}
+          className="min-h-[44px] rounded-full border border-zinc-300 px-4 text-sm"
           onClick={() => mutate(() => onUpload(retryFiles))}
         >
           Reintentar {retryFiles.length} fotos pendientes
@@ -553,68 +596,83 @@ function ImagesManager({
       ) : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <label className="text-sm">
-        <span className="rounded-full border border-zinc-300 px-4 py-2 cursor-pointer inline-block">
+        <span className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-zinc-300 px-4 py-2">
           {busy ? "Procesando…" : "Subir fotos"}
         </span>
         <input
           type="file"
           accept="image/*"
+          capture="environment"
           multiple
+          aria-label="Subir fotos de la prenda"
           className="mt-3 block min-h-11 max-w-full"
           disabled={busy}
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
             e.target.value = "";
-            if (files.length) {
-              previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
-              const next = files.map((f) => ({
-                src: URL.createObjectURL(f),
-                name: f.name,
-              }));
-              previewUrls.current = next.map((p) => p.src);
-              setPreviews(next);
-              mutate(() => onUpload(files));
-            }
+            if (files.length) startUpload(files);
           }}
         />
       </label>
+      <p className="text-xs text-zinc-600">
+        Desde el celular: “Subir fotos” abre la cámara trasera. Desde la
+        computadora: elige varias imágenes a la vez.
+      </p>
       {previews.length ? (
         <div
           aria-label="Fotos seleccionadas"
-          className="flex gap-2 overflow-x-auto"
+          className="flex gap-2 overflow-x-auto pb-1"
         >
-          {previews.map((p) => (
-            <img
-              key={p.src}
-              src={p.src}
-              alt={`Seleccionada: ${p.name}`}
-              className="h-24 w-20 shrink-0 object-contain"
-            />
-          ))}
+          {previews.map((p) => {
+            const pending = uploading.includes(p.name);
+            return (
+              <div
+                key={p.src}
+                className="relative h-24 w-20 shrink-0 overflow-hidden rounded border border-zinc-200"
+              >
+                <img
+                  src={p.src}
+                  alt={`Seleccionada: ${p.name}`}
+                  className="h-full w-full object-contain"
+                />
+                {pending ? (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs font-medium text-white">
+                    Subiendo…
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       ) : null}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {images.map((img) => (
           <div
             key={img.id}
-            className="rounded border border-zinc-200 bg-white p-2 flex flex-col gap-1 text-xs"
+            draggable
+            onDragStart={(event) => handleDragStart(event, img.id)}
+            onDragOver={handleDragOver}
+            onDrop={(event) => handleDrop(event, img.id)}
+            onDragEnd={() => setDragId(null)}
+            className={`flex flex-col gap-1 rounded border border-zinc-200 bg-white p-2 text-xs transition ${
+              dragId === img.id ? "opacity-50 ring-2 ring-zinc-900" : ""
+            }`}
           >
-            {/* remote storage URL: next/image requeriría remotePatterns; img simple es suficiente aquí */}
             <img
               src={publicUrl(img.storage_path)}
               alt=""
-              className="w-full aspect-[3/4] object-contain rounded"
+              className="aspect-[3/4] w-full rounded object-contain"
             />
             <p className="text-zinc-500">
               #{img.sort_order}
               {img.is_cover ? " · portada" : ""}
               {img.is_defect_detail ? " · defecto" : ""}
             </p>
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
+            <div className="flex flex-wrap gap-1">
               {!img.is_cover ? (
                 <button
                   disabled={busy}
-                  className="underline"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center px-2 underline"
                   onClick={() => mutate(() => onCover(img))}
                 >
                   Portada
@@ -622,14 +680,14 @@ function ImagesManager({
               ) : null}
               <button
                 disabled={busy}
-                className="underline"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center px-2 underline"
                 onClick={() => mutate(() => onDefect(img))}
               >
                 {img.is_defect_detail ? "Quitar defecto" : "Marcar defecto"}
               </button>
               <button
                 disabled={busy}
-                className="underline"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center px-2 underline"
                 aria-label="Mover foto antes"
                 onClick={() => mutate(() => onMove(img, -1))}
               >
@@ -637,7 +695,7 @@ function ImagesManager({
               </button>
               <button
                 disabled={busy}
-                className="underline"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center px-2 underline"
                 aria-label="Mover foto después"
                 onClick={() => mutate(() => onMove(img, 1))}
               >
@@ -645,7 +703,7 @@ function ImagesManager({
               </button>
               <button
                 disabled={busy}
-                className="underline text-red-700"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center px-2 underline text-red-700"
                 onClick={() =>
                   confirm("Eliminar esta foto?") && mutate(() => onRemove(img))
                 }
