@@ -28,7 +28,8 @@ function PedidoInner({ id }: { id: string }) {
   const guest = id === "guest" || !user;
 
   const authed = useQuery({
-    queryKey: ["order-detail", id],
+    // La clave incluye al usuario: la caché de una cuenta nunca se sirve a otra.
+    queryKey: ["order-detail", id, user?.id ?? "guest"],
     queryFn: () => getMyOrderDetail(id),
     enabled: isSupabaseConfigured && Boolean(user) && id !== "guest",
   });

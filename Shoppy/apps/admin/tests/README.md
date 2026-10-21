@@ -2,6 +2,7 @@
 
 Auditoría end-to-end del flujo de publicación de prendas: login → datos →
 fotos → portada/defecto/orden → publicación → verificación en la web pública.
+Incluye además la regresión de **aislamiento entre cuentas** en el sitio web.
 
 ## Qué cubre
 
@@ -20,6 +21,17 @@ fotos → portada/defecto/orden → publicación → verificación en la web pú
 | 9 | Eliminar | Borra la foto y repone portada (trigger `ensure_product_cover`) |
 | 10 | Publicar | Habilita publicación y la prenda aparece en el sitio |
 | 11 | Borrador | `published_at` quedó seteado |
+
+`tests/web-account-isolation.spec.ts` (1 caso):
+
+| # | Caso | Qué prueba |
+|---|---|---|
+| 1 | Aislamiento entre cuentas | Dos cuentas reales en el **mismo navegador**: la cuenta B **no** puede ver los pedidos de la cuenta A, y la cuenta A los sigue viendo al volver a entrar |
+
+> **Importante para escribir E2E de caché:** el test de aislamiento navega
+> **con clics en enlaces de Next.js**, no con `page.goto()`. Un `goto()` recarga
+> el documento y borra la caché en memoria de React Query, con lo que una fuga
+> entre cuentas no sería observable y el test daría verde siempre.
 
 ## Requisitos
 
@@ -57,13 +69,17 @@ E2E_WEB_URL=https://shopy-web-six.vercel.app npm run test:e2e
 ## Limpieza
 
 Cada corrida crea un usuario admin temporal (`e2e-admin-…@vintah-test.local`)
-y una prenda de prueba, y los borra al terminar (`afterAll`). Si la corrida se
+y una prenda de prueba, y los borra al terminar (`afterAll`). El test de
+aislamiento crea además **dos usuarios cliente** (`e2e-aislamiento-…`) y **un
+pedido** de prueba (`mode = 'test'`), y también los borra. Si la corrida se
 corta a la mitad, se limpian a mano:
 
 ```bash
 # desde la raíz del repo
 set -a && . ./supabase/.env && . ./apps/web/.env.local && set +a
 curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/products?slug=like.prenda-e2e-*" \
+  -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY"
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/profiles?email=like.e2e-aislamiento-*" \
   -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY"
 ```
 

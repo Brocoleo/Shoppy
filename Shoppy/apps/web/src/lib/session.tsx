@@ -2,7 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SupabaseClient, Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { createSessionConnection } from "./sessionConnection";
+import { purgeUserQueries } from "./privateData";
 
 interface SessionState {
   session: Session | null;
@@ -42,8 +44,26 @@ function sup(): Promise<SupabaseClient> {
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(sbConfigured);
+  const queryClient = useQueryClient();
 
   const connection = useRef<ReturnType<typeof createSessionConnection> | null>(null);
+  const lastUserId = useRef<string | null>(null);
+
+  // Aislamiento entre cuentas: en cuanto cambia el usuario (login, logout,
+  // cambio de cuenta, expiración de sesión en otra pestaña) se cancelan las
+  // consultas privadas en vuelo de la cuenta ANTERIOR y se borra su caché.
+  //
+  // Solo se purga la cuenta anterior, nunca la actual: purgar en la primera
+  // carga cancelaba la consulta que la página activa acababa de lanzar y la
+  // dejaba colgada en "Cargando…". Además, la clave de cada consulta privada
+  // incluye al usuario, así que la caché de una cuenta nunca se sirve a otra.
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    const previous = lastUserId.current;
+    lastUserId.current = userId;
+    if (!previous || previous === userId) return;
+    purgeUserQueries(queryClient, previous);
+  }, [userId, queryClient]);
 
   useEffect(() => {
     if (!sbConfigured) return;

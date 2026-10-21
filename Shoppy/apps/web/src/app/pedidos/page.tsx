@@ -11,7 +11,8 @@ import { isSupabaseConfigured } from "../../lib/supabase-config";
 export default function PedidosPage() {
   const { user, loading } = useSession();
   const orders = useQuery({
-    queryKey: ["my-orders"],
+    // La clave incluye al usuario: la caché de una cuenta nunca se sirve a otra.
+    queryKey: ["my-orders", user?.id ?? "guest"],
     queryFn: listMyOrders,
     enabled: isSupabaseConfigured && Boolean(user),
   });

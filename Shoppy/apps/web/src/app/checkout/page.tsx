@@ -164,7 +164,9 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
 
   const quoteSig = JSON.stringify({ items, rateId, appliedCode, region: address?.region });
   const quote = useQuery({
-    queryKey: ["quote", quoteSig],
+    // La clave incluye la cuenta propietaria: la cotización de una sesión
+    // nunca se sirve a otra.
+    queryKey: ["quote", owner, quoteSig],
     queryFn: () =>
       quoteCheckout({
         items,

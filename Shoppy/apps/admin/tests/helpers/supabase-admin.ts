@@ -101,3 +101,65 @@ export async function deleteProduct(id: string) {
   await client.from("image_cleanup").delete().eq("product_id", id);
   await client.from("products").delete().eq("id", id);
 }
+
+/**
+ * Crea un usuario CLIENTE temporal (el trigger le deja role='customer').
+ * A diferencia de createTempAdmin, no se promueve a admin: sirve para probar
+ * el aislamiento entre cuentas en el sitio público.
+ */
+export async function createTempUser(email: string, password: string) {
+  const client = adminClient();
+  const { data, error } = await client.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (error) throw new Error(`[e2e] No se pudo crear el usuario: ${error.message}`);
+  return { id: data.user.id, email, password };
+}
+
+export async function deleteTempUser(userId: string) {
+  const client = adminClient();
+  const { error } = await client.auth.admin.deleteUser(userId);
+  if (error) console.warn(`[e2e] No se pudo borrar el usuario: ${error.message}`);
+  const { error: profileError } = await client
+    .from("profiles")
+    .delete()
+    .eq("id", userId);
+  if (profileError)
+    console.warn(`[e2e] No se pudo borrar el perfil: ${profileError.message}`);
+}
+
+export interface TestOrder {
+  id: string;
+  order_number: string;
+}
+
+/**
+ * Inserta un pedido de prueba para el usuario indicado (mode='test' para que
+ * no aparezca en la vista live del panel). No reserva stock ni pasa por el
+ * checkout: solo sirve para tener algo en "Mis pedidos" de una cuenta.
+ */
+export async function createTestOrder(userId: string): Promise<TestOrder> {
+  const client = adminClient();
+  const { data, error } = await client
+    .from("orders")
+    .insert({
+      user_id: userId,
+      status: "PENDING_PAYMENT",
+      subtotal_clp: 10000,
+      total_clp: 10000,
+      shipping_address: { fullName: "E2E aislamiento", region: "Ñuble", comuna: "Chillán", street: "5 de Abril 1234" },
+      mode: "test",
+    })
+    .select("id,order_number")
+    .single();
+  if (error) throw new Error(`[e2e] No se pudo crear el pedido: ${error.message}`);
+  return data as TestOrder;
+}
+
+export async function deleteTestOrder(orderId: string) {
+  const client = adminClient();
+  const { error } = await client.from("orders").delete().eq("id", orderId);
+  if (error) console.warn(`[e2e] No se pudo borrar el pedido: ${error.message}`);
+}
