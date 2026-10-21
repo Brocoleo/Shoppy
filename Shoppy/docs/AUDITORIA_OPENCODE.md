@@ -66,6 +66,16 @@ tienda) y ajustó dos hallazgos. Este informe ya refleja esa evaluación:
 **se reembolsa solo y avisa al cliente**, la cancelación con pago vivo queda bloqueada, el precio ya no
 puede cambiar entre la cotización y el cobro, y el reembolso funciona en `PREPARING`/`SHIPPED`.
 
+**Etapa 4 aplicada el 21-oct-2026** (2 migraciones + Edge Function redesplegada): el invitado **vuelve a su
+pedido** (lista local en el dispositivo, rastreo por número visible `SHO-…` y el identificador en el correo),
+la devolución **sí manda los correos que la ficha promete** (`return_requested` / `return_rejected`) y el
+panel **avisa de los reembolsos en revisión**.
+
+**Etapa 5 (parcial, 21-oct-2026):** además, un cron horario purga las imágenes huérfanas del bucket, la web
+respeta las áreas seguras del iPhone (`viewport-fit=cover` + `env(safe-area-inset-*)`), los chips del móvil
+miden 44 px y el login de la web deja de navegar durante el render. **Pendiente:** los datos legales
+(`[pendiente]`) y el E2E de compra, que dependen de datos del dueño y de una matriz con el proveedor.
+
 Detalle de los cambios aplicados y de su evidencia en **§5.2** y **§8**.
 
 ---
@@ -363,7 +373,7 @@ El trigger `release_cancelled_order` (SECURITY DEFINER) devuelve el stock a `AVA
 ---
 
 ### A-04 · El invitado no puede recuperar ni seguir su pedido tras cerrar la app
-**Severidad:** 🔴 alta (bloqueo de compra y de derechos del consumidor) · **Estado:** confirmado
+**Severidad:** 🔴 alta (bloqueo de compra y de derechos del consumidor) · **Estado:** ✅ **RESUELTO** (Etapa 4, 21-oct-2026)
 
 **Archivos:** `apps/web/src/lib/pendingCheckout.ts:41,53-59` · `apps/web/src/app/checkout/page.tsx:184-197,582-588` · `apps/mobile/src/lib/pendingCheckout.ts:42-46` · `supabase/functions/_shared/email.ts:83-86,110` · `supabase/migrations/20261019150000_guest_order_tracking.sql:9-37`
 
@@ -376,7 +386,19 @@ El trigger `release_cancelled_order` (SECURITY DEFINER) devuelve el stock a `AVA
 
 **Impacto.** El invitado **no puede ver su pedido, ni el tracking, ni solicitar la devolución** (la UI de devolución vive en `/pedido/[id]`, que es inaccesible sin el UUID). Esto afecta directamente el derecho de retracto de la Ley 19.496.
 
-**Corrección mínima (no implementada).** Persistir una lista local `shopy-guest-orders` (`{order_id, order_number, guest_token, created_at}`) que **no** se borre al completar, **y/o** incluir el `order_id` en la pantalla de éxito y en el correo.
+**Corrección mínima — APLICADA (Etapa 4).** Tres piezas, todas juntas:
+1. **Lista local** `shopy-guest-orders` (`{order_id, order_number, guest_token, created_at}`) en el
+   dispositivo, que **no** se borra al completar el pago: `apps/web/src/lib/guestOrders.ts` y
+   `apps/mobile/src/lib/guestOrders.ts`. Se escribe al crear el pedido y al pagarlo, y se lista en
+   "Mis pedidos" (web y móvil) con un enlace directo al tracking.
+2. **Rastreo por número visible**: el RPC `get_guest_order_by_number` (migración `20261021030000`)
+   permite buscar con el `SHO-XXXX` que el invitado sí conoce, no solo con el UUID interno.
+3. **El correo lleva el identificador**: `order_created` y `payment_confirmed` incluyen ahora el
+   `order_id` junto al número y al código, para que el invitado pueda volver desde su bandeja.
+
+**Pruebas:** `apps/web/src/lib/guestOrders.test.ts` (4 casos: recuerda, no duplica, almacenamiento
+corrupto, olvidar) y `rls_tests.sql` **T20** (rastreo por número, pedido inexistente y código
+equivocado).
 
 **Prueba que lo demostraría.** E2E Playwright: comprar como invitado → cerrar el contexto → volver a `/pedidos` → el pedido debe ser recuperable sin copiar nada a mano.
 
@@ -584,18 +606,23 @@ if (finishError) throw finishError;
 ---
 
 ### A-13 · La UI promete correo en la devolución pero no existe el evento
-**Severidad:** 🟠 media (incumplimiento de lo prometido al cliente) · **Estado:** confirmado
+**Severidad:** 🟠 media (incumplimiento de lo prometido al cliente) · **Estado:** ✅ **RESUELTO** (Etapa 4, 21-oct-2026)
 
 **Archivos:** `apps/web/src/app/pedido/[id]/page.tsx:202-205` · `supabase/migrations/20260929000003_notifications_log.sql:9-12` · `supabase/functions/_shared/email.ts:13-20,46-81`
 
 **Evidencia.** El texto dice *"Solicitud enviada. Revisaremos tu caso y te escribiremos por correo."*, pero el enum de `order_notifications` solo admite 7 eventos del ciclo de vida del pedido (`order_created`, `payment_confirmed`, `order_preparing`, `order_shipped`, `order_delivered`, `order_cancelled`, `order_refunded`). **No existe** `return_requested` ni `return_rejected`, ni sus plantillas.
 
-**Corrección mínima.** Añadir los 2 eventos al enum, a `OrderEmailEvent` y a `SUBJECTS`/`HEADS`/`BODIES`, y dispararlos desde el RPC de admin.
+**Corrección mínima — APLICADA (Etapa 4).** Los eventos `return_requested` y `return_rejected` se
+añadieron al catálogo (`order_notifications.event`, migración `20261021040000`), a `OrderEmailEvent` y a
+`SUBJECTS`/`HEADS`/`BODIES`. La solicitud la nueva acción `request_return` de la Edge Function (valida
+que quien llama es el dueño del pedido, aplica la ventana de 10 días vía el RPC y **envía el correo**);
+el rechazo lo dispara el panel con la función `notify`. Pruebas: 2 casos en `checkout_api.test.mjs`
+(el dueño puede y otro usuario no).
 
 ---
 
 ### A-14 · Los pagos en `refund_state='review'` no generan ninguna alerta
-**Severidad:** 🟠 media (pérdida de dinero silenciosa) · **Estado:** confirmado
+**Severidad:** 🟠 media (pérdida de dinero silenciosa) · **Estado:** ✅ **RESUELTO** (Etapa 4, 21-oct-2026)
 
 **Archivos:** `apps/admin/src/app/pedidos/page.tsx:22-23` · `apps/admin/src/app/page.tsx` (dashboard) · `supabase/functions/checkout/index.ts:525-528`
 
@@ -730,7 +757,7 @@ if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(netSubtotal + shipp
 ---
 
 ### A-25 · Los huérfanos de Storage solo se limpian a mano
-**Severidad:** 🟡 baja · **Estado:** confirmado
+**Severidad:** 🟡 baja · **Estado:** ✅ **RESUELTO** (Etapa 5, 21-oct-2026)
 
 **Archivos:** `supabase/migrations/20261016161216_admin_images_vinta_20261016.sql:91-102` · `apps/admin/src/app/productos/[id]/page.tsx:79-114`
 
@@ -851,7 +878,7 @@ Además `mode` se define por defecto `'live'`, así que todo pedido nuevo nace `
 ---
 
 ### A-35 · La web no usa `env(safe-area-inset-*)` ni `viewport-fit=cover`
-**Severidad:** 🟡 baja (accesibilidad móvil) · **Estado:** confirmado
+**Severidad:** 🟡 baja (accesibilidad móvil) · **Estado:** ✅ **RESUELTO** (Etapa 5, 21-oct-2026)
 
 **Archivos:** `grep -rn "safe-area" apps/web/src` → **0 coincidencias**; `apps/web/src/app/layout.tsx:60` declara `viewport = { themeColor: "#f8f7f4" }` sin `viewportFit`.
 
@@ -862,7 +889,7 @@ Además `mode` se define por defecto `'live'`, así que todo pedido nuevo nace `
 ---
 
 ### A-36 · Chips y un control del Chrome móvil por debajo de 44 px
-**Severidad:** 🟡 baja (accesibilidad móvil) · **Estado:** confirmado
+**Severidad:** 🟡 baja (accesibilidad móvil) · **Estado:** ✅ **RESUELTO** (Etapa 5, 21-oct-2026)
 
 **Archivos:** `apps/mobile/src/components/Chrome.tsx:62` (`minHeight: 40` en el chip). El resto de la app usa 48–52 px (`Inputs.tsx:93`, `EmptyState.tsx:52`, `app/checkout.tsx:533-545`, `app/producto/[id].tsx:273`).
 
@@ -965,7 +992,7 @@ firma vigente de 6 argumentos.
 ---
 
 ### A-41 · La página de login de la web navega durante el render
-**Severidad:** 🟡 baja (calidad) · **Estado:** confirmado, **pendiente de corregir**
+**Severidad:** 🟡 baja (calidad) · **Estado:** ✅ **RESUELTO** (Etapa 5, 21-oct-2026)
 
 **Archivos:** `apps/web/src/app/login/page.tsx:19-22`
 
@@ -1153,6 +1180,44 @@ devuelve `ORDER_NOT_FOUND` con un token caducado).
 `test:beta` **65/65** · `test:checkout` (29 + 17 + …) verde · `web:build` y `admin:build` OK ·
 **E2E 12/12** · suite SQL **T0–T19** en verde.
 
+### 5.4 Evidencia de la remediación (Etapa 4)
+
+| Qué | Cómo se verificó |
+|---|---|
+| El invitado recupera su pedido | `apps/web/src/lib/guestOrders.test.ts` **4/4** (recuerda, no duplica, almacenamiento corrupto, olvidar) + `rls_tests.sql` **T20** (3/3) |
+| Rastreo por número visible | RPC `get_guest_order_by_number` en la BD remota (`20261021030000`, aplicada) + T20 |
+| Correos de devolución | `checkout_api.test.mjs` **31/31** (2 casos nuevos: el dueño puede solicitar la devolución, otro usuario no) |
+| Panel avisa de reembolsos en revisión | `apps/admin/src/app/pedidos/page.tsx` (consulta `payments` con `refund_state` en `review`/`processing`) |
+| Correo con el identificador | `order_created` y `payment_confirmed` incluyen `order_id`; Edge Function redesplegada |
+
+**Estado remoto tras la Etapa 4:** **26/26 migraciones** aplicadas, 0 pendientes; Edge Function
+`checkout` redesplegada (459 kB) y respondiendo.
+
+**Verificación completa:** `tsc` (4 workspaces) sin errores · `eslint --max-warnings 0` ·
+`test:beta` **67/67** · `test:checkout` (31 + 17 + …) verde · `web:build` y `admin:build` OK ·
+suite SQL **T0–T20** en verde · E2E **12/12**.
+
+### 5.5 Evidencia de la remediación (Etapa 5, parcial)
+
+| Qué | Verificación |
+|---|---|
+| Purga de imágenes huérfanas | `rls_tests.sql` **T21** (2 casos: la huérfana se purga, la referenciada no) + **cron activo en remoto** (`shopy-purge-orphan-images`, `17 * * * *`) |
+| Áreas seguras en la web | `viewportFit: "cover"` + `env(safe-area-inset-top/bottom)` en encabezado, contenido y pie |
+| Target táctil de 44 px | chip del Chrome móvil subido de 40 a 44 px |
+| Login sin navegación en render | la redirección pasó a un `useEffect` **antes** de cualquier `return` temprano |
+
+> **Lección de método (importante):** al mover la redirección del login a un
+> `useEffect`, lo coloqué **después** del `return` de carga de sesión. Eso hace
+> que React ejecute los hooks en distinto orden según el estado de la sesión
+> ("React has detected a change in the order of Hooks") y **rompe el login
+> entero**. Lo detectó el E2E de aislamiento de cuentas (no el typecheck, no el
+> lint, no los tests unitarios). Recordatorio: en React, los hooks van **antes**
+> de cualquier retorno temprano, y un E2E que recorre la UI real es lo único
+> que atrapa este tipo de fallo.
+
+**Estado remoto tras la Etapa 5:** **27/27 migraciones** aplicadas, 0 pendientes; **3 crons** activos
+(liberación de reservas, trending, purga de huérfanos).
+
 ### 5.1 Qué **no** pudo verificarse en este entorno
 
 - **Ninguna comprobación de interfaz del sitio público desplegado**: sigue caído (V-12). Los E2E de web se hicieron contra el servidor local `:3010` que levanta Playwright.
@@ -1334,11 +1399,13 @@ con limpieza verificada, y `supabase migration list` con **21/21** aplicadas.
 el pago tardío produce **un reembolso automático** y el aviso al cliente, el precio no puede
 cambiar entre cotización y cobro, y el reembolso funciona en `PREPARING`/`SHIPPED` (T18).
 
-### Etapa 4 — Resolver la recuperación de pedidos invitados y el webhook ⏳ **SIGUIENTE**
-**Depende de:** Etapa 3 (A-06 comparte el camino de pago).
+### Etapa 4 — Resolver la recuperación de pedidos invitados y el webhook 🟡 **PARCIAL** (21-oct-2026)
+**Depende de:** Etapa 3 (hecha). **Estado:** la recuperación del invitado y los correos de devolución
+están hechos; **falta la parte que depende de cuentas externas** (KYC de MercadoPago, secreto del
+webhook y cuenta de Transbank).
 
-1. **A-04** → persistir la lista de pedidos de invitado y mostrar/enviar el
-   `order_id` (hoy el invitado **no puede recuperar su pedido** tras cerrar la app).
+1. ~~**A-04** → persistir la lista de pedidos de invitado y mostrar/enviar el
+   `order_id`~~ ✅ **hecho** (lista local, rastreo por número `SHO-…` e identificador en el correo).
 2. **A-08** → configurar `MERCADOPAGO_WEBHOOK_SECRET` y `notification_url`; probar
    con firma real (P-5).
 3. **A-07** → el bridge ya acepta el host live de Transbank (hecho en la Etapa 3);
@@ -1350,8 +1417,11 @@ cambiar entre cotización y cobro, y el reembolso funciona en `PREPARING`/`SHIPP
 pide la devolución dentro de los 10 días; un webhook firmado liquida el pedido y uno
 mal firmado devuelve 401.
 
-### Etapa 5 — Completar la información pendiente y validar compra, despacho y reembolso ⏳ **SIGUIENTE**
-**Depende de:** datos del dueño y del proveedor.
+### Etapa 5 — Completar la información pendiente y validar compra, despacho y reembolso 🟡 **PARCIAL** (21-oct-2026)
+**Depende de:** datos del dueño y del proveedor. **Estado:** la parte autocontenida está hecha (purga de
+huérfanos, áreas seguras, target táctil, login sin navegación en render, correo de devolución, alerta de
+reembolsos); **falta la que depende de datos del dueño** (los `[pendiente]` legales) y **el E2E de
+compra**.
 
 1. **B-2** → completar razón social, RUT, domicilio, correo y plazo en
    `/legal/privacidad` y `/devoluciones` (quitar todos los `[pendiente]`).
@@ -1471,29 +1541,31 @@ un flujo compra → despacho → entrega → devolución completo pasa de punta 
 **Los diez riesgos principales (estado actual tras las Etapas 1-3).**
 1. 🔴 **B-1** — El sitio público está **caído** (Vercel pausado, 503). La beta no tiene URL.
 2. 🔴 **B-3** — Sin `MERCADOPAGO_WEBHOOK_SECRET`, MercadoPago **nunca notifica**: la única liquidación es el "Ya pagué" del cliente.
-3. 🔴 **A-04** — El invitado **no puede recuperar su pedido** tras cerrar la app (el token se borra y el UUID nunca se muestra ni se envía por correo) → no puede ejercer el retracto de la Ley 19.496.
-4. 🟠 **A-13** — La devolución promete un correo que **no existe** (`return_requested` / `return_rejected` no están en el enum de eventos).
-5. 🟠 **B-2** — Páginas legales con `[pendiente]`: razón social, RUT, domicilio, correo y plazo. **Bloqueante para vender.**
-6. 🟠 **A-11 (parcial)** — La preferencia de MercadoPago se crea sin cabecera `X-Idempotency-Key`: un fallo entre crear la preferencia y guardarla deja el **cobro huérfano** sin registro. El cobro real ya queda en una columna única y un duplicado se detecta y marca, pero la cabecera no se puede probar sin credenciales de MP.
-7. 🟠 **A-07 (parcial)** — Webpay ya no está atado al host sandbox, pero **nunca se validó end-to-end** y el token de Webpay vive 5 min frente a una reserva de 15.
-8. 🟠 **A-14** — Los pagos en `refund_state='review'` o `'processing'` no generan ninguna alerta en el panel (solo una etiqueta dentro del pedido).
-9. 🟡 **A-04/A-02 (higiene)** — `guest_token` ya caduca a 180 días y es revocable, y el checkout pendiente del invitado en `localStorage` sobrevive al cambio de cuenta.
-10. 🟡 **A-33/A-34/A-35** — La web no tiene favoritos, no expone los filtros de talla/condición/precio que la capa de datos sí soporta, y no usa `env(safe-area-inset-*)`.
+3. 🔴 **B-2** — Páginas legales con `[pendiente]`: razón social, RUT, domicilio, correo y plazo. **Bloqueante para vender.**
+4. 🔴 **B-3 (parte)** — MercadoPago notifica, pero **nadie vigila**: sin webhook configurado, un pago confirmado por el cliente sin volver a la app queda sin liquidar. La parte de código está lista (firma HMAC verificada); falta la credencial.
+5. 🟠 **A-11 (parcial)** — La preferencia de MercadoPago se crea sin cabecera `X-Idempotency-Key`: un fallo entre crear la preferencia y guardarla deja el **cobro huérfano** sin registro. El cobro real ya queda en una columna única y un duplicado se detecta y marca, pero la cabecera no se puede probar sin credenciales de MP.
+6. 🟠 **A-07 (parcial)** — Webpay ya no está atado al host sandbox, pero **nunca se validó end-to-end** y el token de Webpay vive 5 min frente a una reserva de 15.
+7. 🟠 **A-41** — La web navega durante el render en el login (`router.replace`): warning de React y riesgo de doble navegación.
+8. 🟡 **A-33/A-34/A-35** — La web no tiene favoritos, no expone los filtros de talla/condición/precio que la capa de datos sí soporta, y no usa `env(safe-area-inset-*)`.
+9. 🟡 **A-36** — Chips del Chrome móvil por debajo de 44 px (target táctil).
+10. 🟡 **A-42 / A-25 / A-23** — Higiene: el checkout pendiente del invitado sobrevive al cambio de cuenta; los huérfanos de Storage no se purgan solos; el catálogo de cupones es legible por `anon`.
 
-**Resueltos en las Etapas 1-3 (con evidencia):** A-01 (escalada a admin), A-02 (fuga entre cuentas),
-A-03 (cancelación con pago vivo), A-05 (fabricación de aprobaciones), A-06 (pago tardío sin reembolso),
-A-09 (precio que cambia entre cotización y cobro), A-10 (checkout móvil bloqueado), A-12 (reembolso en
-PREPARING/SHIPPED), A-15 (pedido de 0 CLP), A-16 (token de invitado sin caducidad), A-18 (dirección
-borrada), A-39 (toggle de admin roto), A-28/A-40 (suite SQL que no corría).
+**Resueltos en las Etapas 1-4 (con evidencia):** A-01 (escalada a admin), A-02 (fuga entre cuentas),
+A-03 (cancelación con pago vivo), A-04 (el invitado no recuperaba su pedido), A-05 (fabricación de
+aprobaciones), A-06 (pago tardío sin reembolso), A-07 (Webpay atado a sandbox), A-09 (precio que cambia
+entre cotización y cobro), A-10 (checkout móvil bloqueado), A-12 (reembolso en PREPARING/SHIPPED),
+A-13 (correo de devolución que no existía), A-14 (sin alerta de reembolsos en revisión), A-15 (pedido de
+0 CLP), A-16 (token de invitado sin caducidad), A-18 (dirección borrada), A-39 (toggle de admin roto),
+A-28/A-40 (suite SQL que no corría).
 
-**Siguiente paso recomendado (orden del dueño).** **Etapa 4**: que el invitado pueda recuperar su
-pedido (persistir la lista local y mostrar/enviar el `order_id`), configurar `MERCADOPAGO_WEBHOOK_SECRET`
-con `notification_url` y probar la firma real, y ejecutar la matriz de pagos de `docs/BETA.md` con
-MercadoPago y Webpay. Después, **Etapa 5** (datos legales, eventos de correo de RMA, E2E de compra) y
-**Etapa 6** (reanudar Vercel y publicar). **No declarar la beta lista por el hecho de que compile y las
-pruebas simuladas pasen:** la evidencia más fuerte del proyecto sigue siendo el E2E de fotos del admin
-(el módulo menos riesgoso); el checkout, donde está el dinero, **sigue sin ningún E2E** — y ahora toca
-justo el camino del dinero, así que ese E2E es lo que falta antes de publicar.
+**Siguiente paso recomendado (orden del dueño).** **Etapa 5**: completar los datos legales
+(`[pendiente]`), el E2E de compra de punta a punta (hoy **no existe ningún E2E del checkout**: el único
+E2E del proyecto cubre el flujo de fotos del admin, el módulo menos riesgoso) y la matriz de pagos de
+`docs/BETA.md`. Todo lo que queda depende de cuentas externas y no se puede cerrar desde el código:
+**KYC de MercadoPago + `MERCADOPAGO_WEBHOOK_SECRET`**, cuenta de Transbank, razón social/RUT y
+reanudar Vercel. **No declarar la beta lista por el hecho de que compile y las pruebas simuladas pasen:**
+la evidencia más fuerte del proyecto sigue siendo el E2E de fotos del admin; el checkout, donde está el
+dinero, **sigue sin E2E** — y ahora toca justo ese camino.
 
 ---
 
