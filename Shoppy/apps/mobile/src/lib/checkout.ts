@@ -128,6 +128,8 @@ export function createOrder(input: {
   save_address?: boolean;
   return_url?: string;
   expected_user_id?: string | null;
+  /** Total cotizado: si el precio cambia, el backend responde PRICE_CHANGED. */
+  expected_total_clp?: number;
   provider?: "mock" | "mercadopago" | "transbank";
   idempotency_key?: string;
   attempt_secret?: string;

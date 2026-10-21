@@ -43,6 +43,61 @@ test("webhook con monto distinto no confirma el pedido", async () => {
   assert.equal(f.rows.payments[0].status, "pending");
 });
 
+test("pago tardío se reembolsa solo y avisa al cliente", async () => {
+  const f = fixture({ interactive: true });
+  const created = await (await f.call(input())).json();
+  // La reserva venció: el pago llega cuando la prenda ya está libre.
+  f.rows.product_reservations
+    .filter((r) => r.order_id === created.order_id)
+    .forEach((r) => { r.status = "expired"; });
+  const confirmed = await f.call({ action: "confirm", order_id: created.order_id, guest_token: created.guest_token });
+  assert.equal(confirmed.status, 409);
+  assert.equal((await confirmed.json()).error.code, "REFUNDED");
+  assert.equal(f.refundCalls, 1);
+  const payment = f.rows.payments.find((p) => p.order_id === created.order_id);
+  assert.equal(payment.status, "refunded");
+  assert.equal(payment.refund_state, "done");
+  assert.equal(f.rows.orders.find((o) => o.id === created.order_id).status, "REFUNDED");
+});
+
+test("si el reembolso automático falla, el pago queda en revisión y no se reintenta", async () => {
+  const f = fixture({ interactive: true, refundError: true });
+  const created = await (await f.call(input())).json();
+  f.rows.product_reservations
+    .filter((r) => r.order_id === created.order_id)
+    .forEach((r) => { r.status = "expired"; });
+  const confirmed = await f.call({ action: "confirm", order_id: created.order_id, guest_token: created.guest_token });
+  assert.equal(confirmed.status, 409);
+  assert.equal((await confirmed.json()).error.code, "REFUND_REQUIRED");
+  const payment = f.rows.payments.find((p) => p.order_id === created.order_id);
+  assert.equal(payment.refund_state, "review");
+  assert.match(payment.incident, /REFUND_REVIEW/);
+});
+
+test("el precio cambió entre la cotización y el pago: no se cobra otro importe", async () => {
+  const f = fixture();
+  const res = await f.call({ ...input(), expected_total_clp: 999 });
+  assert.equal(res.status, 409);
+  assert.equal((await res.json()).error.code, "PRICE_CHANGED");
+  assert.equal(f.rows.orders.length, 0);
+  assert.equal(f.rows.products[0].stock, 1);
+});
+
+test("con el total cotizado correcto la compra sigue adelante", async () => {
+  const f = fixture();
+  const res = await f.call({ ...input(), expected_total_clp: 1000 });
+  assert.equal(res.status, 200);
+  assert.equal(f.rows.orders.length, 1);
+});
+
+test("un cupón del 100 % con envío gratis no deja un pedido de 0 CLP", async () => {
+  const f = fixture({ discountAmount: 1000 });
+  const res = await f.call({ ...input(), discount_code: "TODO" });
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).error.code, "INVALID_TOTAL");
+  assert.equal(f.rows.orders.length, 0);
+});
+
 test("CORS cubre preflight, éxito y errores sin credenciales", async () => {
   const f = fixture();
   for (const response of [await f.call(null, null, { method: "OPTIONS" }), await f.call({ action: "providers" }), await f.call({ action: "unknown" })]) {

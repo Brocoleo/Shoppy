@@ -215,6 +215,9 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
             discount_code: appliedCode,
             save_address: authed,
             provider,
+            // El total que el cliente está viendo: si cambia, el backend lo
+            // rechaza con PRICE_CHANGED en vez de cobrar otro importe.
+            expected_total_clp: quote.data?.total_clp,
           });
           if (!active.current) return;
           setPending(attempt);
@@ -253,11 +256,14 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
     onError: (error) => {
       if (!active.current) return;
       setPayError(error instanceof Error ? error.message : "No se pudo completar el pago.");
-      if (error instanceof CheckoutApiError && error.code === "ATTEMPT_FAILED") {
+      if (error instanceof CheckoutApiError && (error.code === "ATTEMPT_FAILED" || error.code === "PRICE_CHANGED")) {
         void clearPendingCheckout(owner).then(() => {
           if (active.current) {
             setPending(null);
             setStep(1);
+            // El precio cambió: se refresca la cotización para que el cliente
+            // vea el importe nuevo antes de volver a pagar.
+            if (error.code === "PRICE_CHANGED") void queryClient.invalidateQueries({ queryKey: ["quote"] });
           }
         });
       }

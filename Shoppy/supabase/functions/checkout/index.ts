@@ -52,6 +52,12 @@ const createSchema = z.object({
   discount_code: z.string().max(40).nullish(),
   save_address: z.boolean().optional(),
   provider: z.enum(["mock", "mercadopago", "transbank"]).optional(),
+  /**
+   * Total que el cliente vio al cotizar. Si el precio cambió entre la
+   * cotización y el clic en "Pagar", el backend lo rechaza para que el
+   * cliente acepte el nuevo importe de forma explícita.
+   */
+  expected_total_clp: z.number().int().nonnegative().optional(),
   idempotency_key: z.string().uuid().optional(),
   attempt_secret: z.string().uuid().optional(),
   /** Deep link de retorno (shopy://…) para proveedores con redirect. */
@@ -245,6 +251,11 @@ async function computeQuote(
   if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(netSubtotal + shipping_clp)) {
     throw new CheckoutError(409, "INVALID_TOTAL", "No se pudo calcular el total del pedido.");
   }
+  // Un cupón del 100 % con envío gratis dejaría el total en 0: ni el proveedor
+  // acepta cobrar 0 ni tiene sentido crear el pedido.
+  if (netSubtotal + shipping_clp <= 0) {
+    throw new CheckoutError(400, "INVALID_TOTAL", "El total del pedido debe ser mayor a 0.");
+  }
   return {
     lines,
     subtotal_clp: subtotal,
@@ -317,6 +328,11 @@ async function handleCreate(db: SupabaseClient, userId: string | null, body: unk
   let createdOrder = false;
   try {
     const quote = await computeQuote(db, { ...input, region: input.address.region });
+    // El precio pudo cambiar entre la cotización mostrada y el clic en "Pagar":
+    // se rechaza para que el cliente acepte el nuevo importe explícitamente.
+    if (input.expected_total_clp !== undefined && input.expected_total_clp !== quote.total_clp) {
+      throw new CheckoutError(409, "PRICE_CHANGED", "El precio cambió. Revisa el total actualizado antes de pagar.");
+    }
     const mode = sandboxOnly() ? "test" : "live";
     const { data: order, error } = await db.rpc("create_checkout_order", {
       p_attempt: key, p_user: userId, p_guest_token: userId ? null : crypto.randomUUID(), p_input: input, p_quote: quote, p_mode: mode,
@@ -347,11 +363,62 @@ async function handleCreate(db: SupabaseClient, userId: string | null, body: unk
   }
 }
 
+/**
+ * Reembolsa un pago ya aprobado, de forma idempotente.
+ *
+ * El claim `refund_state = 'processing'` (solo si estaba en null) garantiza una
+ * sola ejecución: un segundo llamado no vuelve a reembolsar.
+ * - "refunded": el proveedor confirmó el reembolso y la BD quedó coherente.
+ * - "review":   el resultado es incierto; NO se reintenta automáticamente.
+ * - "skipped":  el pago no estaba reembolsoable (ya reembolsado o en curso).
+ */
+async function refundApprovedPayment(db: SupabaseClient, paymentId: string): Promise<"refunded" | "review" | "skipped"> {
+  const { data: payment, error } = await db
+    .from("payments")
+    .update({ refund_state: "processing" })
+    .eq("id", paymentId)
+    .eq("status", "approved")
+    .is("refund_state", null)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!payment) return "skipped";
+  try {
+    const providerId = payment.provider === "mercadopago"
+      ? (payment.raw_payload?.payment_id ?? payment.provider_payment_id)
+      : payment.provider_payment_id;
+    if (!providerId) throw new Error("Falta identificador confirmado del proveedor");
+    await getPaymentProvider(payment.provider).refundPayment(providerId, payment.amount_clp, payment.order_id);
+    const { error: finishError } = await db.rpc("finish_checkout_refund", { p_payment: payment.id });
+    if (finishError) throw finishError;
+    try { await sendOrderEmail(db, payment.order_id, "order_refunded"); } catch { console.warn("order_refunded email pendiente"); }
+    return "refunded";
+  } catch {
+    await db.from("payments").update({ refund_state: "review", incident: "REFUND_REVIEW: verificar proveedor antes de reintentar" }).eq("id", payment.id);
+    return "review";
+  }
+}
+
 /** Convergencia idempotente pago→pedido. Retorna respuesta lista o null si nada que hacer. */
 async function convergePaid(db: SupabaseClient, order: { id: string; order_number: string; status: string; guest_token: string | null }, paymentId: string): Promise<Response | null> {
   const { data: outcome, error } = await db.rpc("settle_checkout_payment", { p_payment: paymentId });
   if (error) throw new CheckoutError(500, "CONFIRM_FAILED", "No se pudo registrar la confirmación. Verifica nuevamente.");
-  if (outcome === "REFUND_REQUIRED") return bad(409, "REFUND_REQUIRED", "La reserva venció después del pago. Tu pago está en revisión para reembolso.");
+  if (outcome === "REFUND_REQUIRED") {
+    // La reserva venció después del pago (o el pedido se canceló mientras el
+    // pago estaba en vuelo). Antes el dinero quedaba en "revisión" manual: el
+    // cliente había pagado y no recibía nada. Ahora se reembolsa de inmediato y
+    // se le avisa por correo.
+    let refunded: "refunded" | "review" | "skipped" = "review";
+    try {
+      refunded = await refundApprovedPayment(db, paymentId);
+    } catch (e) {
+      console.warn("reembolso automático no pudo ejecutarse", e);
+    }
+    if (refunded === "refunded") {
+      return bad(409, "REFUNDED", "La reserva venció después del pago: te devolvemos el dinero y te escribimos por correo con el detalle.");
+    }
+    return bad(409, "REFUND_REQUIRED", "La reserva venció después del pago. Tu pago está en revisión para reembolso.");
+  }
   if (outcome === "REFUNDED") return bad(409, "REFUNDED", "El pago fue reembolsado.");
   try { await sendOrderEmail(db, order.id, "payment_confirmed"); } catch { console.warn("payment_confirmed email pendiente"); }
   return ok({ order_id: order.id, order_number: order.order_number, status: "PAID", guest_token: order.guest_token });
@@ -381,11 +448,11 @@ async function handleConfirm(db: SupabaseClient, userId: string | null, body: un
 
   const { data: order } = await db
     .from("orders")
-    .select("id,user_id,order_number,status,total_clp,guest_token")
+    .select("id,user_id,order_number,status,total_clp,guest_token,guest_token_expires_at")
     .eq("id", order_id)
     .maybeSingle();
   const typedOrder = order as unknown as {
-    id: string; user_id: string | null; order_number: string; status: string; total_clp: number; guest_token: string | null;
+    id: string; user_id: string | null; order_number: string; status: string; total_clp: number; guest_token: string | null; guest_token_expires_at: string | null;
   } | null;
   if (!typedOrder) return bad(404, "ORDER_NOT_FOUND", "Pedido no encontrado.");
 
@@ -397,6 +464,9 @@ async function handleConfirm(db: SupabaseClient, userId: string | null, body: un
     }
   } else if (!typedOrder.guest_token || !guest_token || !tokensEqual(guest_token, typedOrder.guest_token)) {
     return bad(403, "FORBIDDEN", "No puedes confirmar este pedido.");
+  } else if (typedOrder.guest_token_expires_at && Date.parse(typedOrder.guest_token_expires_at) <= Date.now()) {
+    // Token de invitado caducado: ya no sirve para operar el pedido.
+    return bad(403, "GUEST_TOKEN_EXPIRED", "El código de rastreo venció. Contacta a soporte para seguir tu pedido.");
   }
 
   const { data: payment } = await db
@@ -481,6 +551,22 @@ async function handleWebhook(db: SupabaseClient, req: Request, body: unknown): P
   if (typedPayment?.amount_clp !== result.amountClp) return bad(400, "PAYMENT_MISMATCH", "Monto o moneda inválido.");
   const { error: eventError } = await db.from("payments").update({ raw_payload: { payment_id: result.providerPaymentId } }).eq("id", paymentId);
   if (eventError) throw eventError;
+  // Id real del cobro en el proveedor: queda en una columna con índice único,
+  // así dos pagos no pueden reclamar la misma operación. No se sobrescribe: la
+  // primera confirmación es la buena.
+  const { error: txError } = await db
+    .from("payments")
+    .update({ provider_tx_id: result.providerPaymentId })
+    .eq("id", paymentId)
+    .is("provider_tx_id", null);
+  if (txError) {
+    // 23505 = esa operación ya pertenece a otro pago: es un cobro duplicado
+    // que hay que revisar a mano (no se rompe el webhook para que MP reintente).
+    if (txError.code === "23505") {
+      await db.from("payments").update({ incident: "DUPLICATE_TX: esta operación ya estaba registrada en otro pago; revisar y reembolsar" }).eq("id", paymentId);
+      console.error("pago duplicado: la operación del proveedor ya estaba registrada", txError.message);
+    } else throw txError;
+  }
   const converged = await convergePaid(db, typedOrder, paymentId);
   if (converged && converged.status >= 500) return converged;
   if (converged && converged.status !== 200) {
@@ -511,21 +597,10 @@ async function handleRefund(db: SupabaseClient, userId: string | null, body: unk
   if (profile?.role !== "admin") return bad(403, "FORBIDDEN", "Requiere administrador.");
   const parsed = z.object({ payment_id: z.string().uuid() }).safeParse(body);
   if (!parsed.success) return bad(400, "VALIDATION", "Pago inválido.");
-  const { data: payment, error } = await db.from("payments").update({ refund_state: "processing" }).eq("id", parsed.data.payment_id).eq("status", "approved").is("refund_state", null).select("*").maybeSingle();
-  if (error) throw error;
-  if (!payment) return bad(409, "REFUND_LOCKED", "Pago no reembolsable o reembolso ya iniciado. Revisa el estado del proveedor.");
-  try {
-    const providerId = payment.provider === "mercadopago" ? (payment.raw_payload?.payment_id ?? payment.provider_payment_id) : payment.provider_payment_id;
-    if (!providerId) throw new Error("Falta identificador confirmado del proveedor");
-    await getPaymentProvider(payment.provider).refundPayment(providerId, payment.amount_clp, payment.order_id);
-    const { error: finishError } = await db.rpc("finish_checkout_refund", { p_payment: payment.id });
-    if (finishError) throw finishError;
-    try { await sendOrderEmail(db, payment.order_id, "order_refunded"); } catch { console.warn("order_refunded email pendiente"); }
-    return ok({ refunded: true });
-  } catch {
-    await db.from("payments").update({ refund_state: "review", incident: "REFUND_REVIEW: verificar proveedor antes de reintentar" }).eq("id", payment.id);
-    return bad(409, "REFUND_REVIEW", "Resultado del reembolso pendiente de revisión. No se repetirá automáticamente.");
-  }
+  const result = await refundApprovedPayment(db, parsed.data.payment_id);
+  if (result === "skipped") return bad(409, "REFUND_LOCKED", "Pago no reembolsable o reembolso ya iniciado. Revisa el estado del proveedor.");
+  if (result === "review") return bad(409, "REFUND_REVIEW", "Resultado del reembolso pendiente de revisión. No se repetirá automáticamente.");
+  return ok({ refunded: true });
 }
 
 function ok(data: Record<string, unknown>): Response {

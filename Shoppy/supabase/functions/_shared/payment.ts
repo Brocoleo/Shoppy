@@ -224,8 +224,15 @@ export class MercadoPagoProvider implements PaymentProvider {
     let paymentId = providerPaymentId;
     if (!/^\d+$/.test(paymentId)) {
       if (!orderId || !amountClp) throw new Error("Faltan datos para recuperar el pago");
-      const search = await mpFetch(accessToken, `/v1/payments/search?external_reference=${encodeURIComponent(orderId)}`);
-      const payment = ((search["results"] ?? []) as Record<string, unknown>[]).find((p) => p["status"] === "approved" && p["external_reference"] === orderId && p["currency_id"] === "CLP" && Number(p["transaction_amount"]) === amountClp && p["live_mode"] === !sandboxOnly());
+      // Solo tenemos el id de la preferencia (mp_pref_…): se busca el pago
+      // confirmado por external_reference.
+      const testIdentity = await mpTestIdentity(accessToken);
+      const search = await mpFetch(accessToken, `/v1/payments/search?external_reference=${encodeURIComponent(orderId)}&sort=date_created&criteria=desc`);
+      const results = (search["results"] ?? []) as Record<string, unknown>[];
+      // Mismo criterio de entorno que verifyPayment: con MERCADOPAGO_TEST_USER_FLOW
+      // el flujo test devuelve live_mode=true y el filtro por live_mode no
+      // encontraba el pago (el reembolso nunca se ejecutaba).
+      const payment = results.find((p) => p["status"] === "approved" && p["external_reference"] === orderId && p["currency_id"] === "CLP" && Number(p["transaction_amount"]) === amountClp && mpPaymentEnvironmentMatches(p, testIdentity));
       if (!payment) throw new Error("Pago aprobado no encontrado");
       paymentId = String(payment["id"]);
     }

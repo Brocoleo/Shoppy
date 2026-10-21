@@ -176,7 +176,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         {data.payments.map((payment) => <div key={payment.id} className="py-2">
           <p>{payment.provider} · {payment.status} {payment.refund_state ? `· Reembolso: ${payment.refund_state}` : ""}</p>
           {payment.incident ? <p role="alert" className="text-red-700">{payment.incident}</p> : null}
-          {payment.status === "approved" && !payment.refund_state ? <button disabled={operation.isPending} className="underline" onClick={() => { if (confirm("¿Reembolsar este pago de prueba mediante su proveedor?")) operation.mutate({ functionName: "checkout", body: { action: "refund", payment_id: payment.id } }); }}>Reembolsar con proveedor</button> : null}
+          {payment.status === "approved" && (!payment.refund_state || payment.refund_state === "review") ? <button disabled={operation.isPending} className="underline" onClick={() => { if (confirm("¿Reembolsar este pago de prueba mediante su proveedor?")) operation.mutate({ functionName: "checkout", body: { action: "refund", payment_id: payment.id } }); }}>{payment.refund_state === "review" ? "Reintentar reembolso (revisa antes en el proveedor)" : "Reembolsar con proveedor"}</button> : null}
+          {payment.refund_state === "processing" ? <p role="alert" className="text-amber-800">Reembolso en curso: verifica en el proveedor antes de reintentar.</p> : null}
         </div>)}
         {data.attempts.filter((a) => a.state === "review" || a.state === "processing").map((a) => <p key={a.id} className="text-amber-800">Intento {a.id}: {a.state} · {a.error_code ?? "pendiente"}. Verificar en el proveedor antes de liberar otro intento.</p>)}
       </section>

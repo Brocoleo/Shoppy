@@ -13,6 +13,8 @@ export interface PendingCheckout {
     shipping_rate_id: string;
     discount_code?: string;
     save_address?: boolean;
+    /** Total cotizado: si el precio cambia, el backend responde PRICE_CHANGED. */
+    expected_total_clp?: number;
     provider?: "mock" | "mercadopago" | "transbank";
   };
   created?: {

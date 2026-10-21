@@ -14,7 +14,7 @@ function loadRules(path = new URL("../../functions/_shared/checkout-rules.ts", i
   new Function("require", "exports", compiled)((name) => loadRules(new URL(name, path)), exports);
   return exports;
 }
-export function fixture({ failProvider = false, verdict = "APPROVED", webhookAmount = 1000, webhookCurrency = "CLP", webhookStatus = "APPROVED", webhookError = false, dbError = false, settleError = false, discountAmount = 100, discountError = false, interactive = false, paymentUrl = null } = {}) {
+export function fixture({ failProvider = false, verdict = "APPROVED", webhookAmount = 1000, webhookCurrency = "CLP", webhookStatus = "APPROVED", webhookError = false, dbError = false, settleError = false, discountAmount = 100, discountError = false, interactive = false, paymentUrl = null, refundError = false } = {}) {
   const rows = {
     products: [{ id: product, slug: "prenda", name: "Prenda", price_clp: 1000, stock: 1, availability: "AVAILABLE", published_at: "2026-01-01", condition: "bueno" }],
     shipping_rates: [{ id: rate, region: "Metropolitana", price_clp: 0, is_active: true }],
@@ -99,14 +99,24 @@ export function fixture({ failProvider = false, verdict = "APPROVED", webhookAmo
         order.status = "CANCELLED";
         return { data: true, error: null };
       }
+      if (name === "finish_checkout_refund") {
+        const payment = rows.payments.find((p) => p.id === input.p_payment);
+        if (!payment) return { data: null, error: { message: "PAYMENT_NOT_FOUND" } };
+        payment.status = "refunded"; payment.refund_state = "done"; payment.incident = null;
+        const order = rows.orders.find((o) => o.id === payment.order_id);
+        if (order) order.status = "REFUNDED";
+        return { data: true, error: null };
+      }
       throw new Error(`Unexpected RPC ${name}`);
     },
   };
   let handler;
+  let refundCalls = 0;
   const provider = {
     name: "mock",
     async createPayment(input) { createCalls++; if (failProvider) throw new Error("Lost response"); return { providerPaymentId: "mock-payment", status: "PENDING", checkoutUrl: paymentUrl ? paymentUrl(input.orderId) : null }; },
     async verifyPayment() { return verdict; },
+    async refundPayment() { refundCalls++; if (refundError) throw new Error("Reembolso no confirmado"); },
     async handleWebhook() { if (webhookError) throw new Error(typeof webhookError === "string" ? webhookError : "firma inválida: secret credentials"); return { orderId: rows.orders[0]?.id, status: webhookStatus, amountClp: webhookAmount, currency: webhookCurrency, providerPaymentId: "123" }; },
   };
   const modules = {
@@ -120,7 +130,7 @@ export function fixture({ failProvider = false, verdict = "APPROVED", webhookAmo
     "../_shared/ratelimit.ts": { rateLimit: () => null },
   };
   new Function("require", "exports", "Deno", outputText)((id) => { if (!modules[id]) throw new Error(id); return modules[id]; }, {}, { env: { get: (key) => ({ SUPABASE_URL: "https://example.test", SUPABASE_SECRET_KEY: "test" })[key] } });
-  return { rows, setVerdict(value) { verdict = value; }, get stockDeductions() { return stockDeductions; }, setWebhookStatus(value) { webhookStatus = value; }, get createCalls() { return createCalls; }, async call(body, token, options = {}) { return handler(new Request("https://example.test/functions/v1/checkout", { method: options.method ?? "POST", headers: { "Content-Type": "application/json", Origin: "https://store.test", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(options.method === "OPTIONS" ? {} : { body: JSON.stringify(body) }) })); } };
+  return { rows, setVerdict(value) { verdict = value; }, get stockDeductions() { return stockDeductions; }, setWebhookStatus(value) { webhookStatus = value; }, get createCalls() { return createCalls; }, get refundCalls() { return refundCalls; }, async call(body, token, options = {}) { return handler(new Request("https://example.test/functions/v1/checkout", { method: options.method ?? "POST", headers: { "Content-Type": "application/json", Origin: "https://store.test", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(options.method === "OPTIONS" ? {} : { body: JSON.stringify(body) }) })); } };
 }
 export function input() { return { action: "create", items: [{ product_id: product, qty: 1 }], shipping_rate_id: rate, address: { fullName: "Test User", email: "test@example.test", phone: "+56911111111", street: "Calle 123", comuna: "Santiago", region: "Metropolitana" }, idempotency_key: randomUUID(), attempt_secret: randomUUID() }; }
 

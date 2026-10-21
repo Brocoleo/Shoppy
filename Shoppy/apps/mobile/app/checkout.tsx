@@ -89,7 +89,10 @@ function CheckoutFlow({ owner }: { owner: string }) {
   } = useForm<AddressInput>({ resolver: zodResolver(addressSchema) });
 
   // Prefill con última dirección guardada (autenticados).
-  useQuery({
+  // El `reset` va en un efecto, no dentro del queryFn: si la respuesta llega
+  // tarde (o hay un refetch), borraba lo que el usuario ya había escrito.
+  const addressPrefilled = useRef(false);
+  const savedAddress = useQuery({
     queryKey: ["my-address", session?.user.id ?? "guest"],
     queryFn: async () => {
       const { data } = await getSupabase()
@@ -99,24 +102,30 @@ function CheckoutFlow({ owner }: { owner: string }) {
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      const row = data as unknown as Record<string, string | null> | null;
-      if (row) {
-        reset({
-          fullName: row["full_name"] ?? "",
-          email: row["email"] ?? "",
-          phone: row["phone"] ?? "",
-          street: row["street"] ?? "",
-          comuna: row["comuna"] ?? "",
-          region: row["region"] ?? "",
-          zipCode: row["zip_code"] ?? undefined,
-          notes: row["notes"] ?? undefined,
-        });
-      }
-      return row;
+      return data as unknown as Record<string, string | null> | null;
     },
     enabled: isSupabaseConfigured && Boolean(session),
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    const row = savedAddress.data;
+    if (!row || addressPrefilled.current) return;
+    addressPrefilled.current = true;
+    reset(
+      {
+        fullName: row["full_name"] ?? "",
+        email: row["email"] ?? "",
+        phone: row["phone"] ?? "",
+        street: row["street"] ?? "",
+        comuna: row["comuna"] ?? "",
+        region: row["region"] ?? "",
+        zipCode: row["zip_code"] ?? undefined,
+        notes: row["notes"] ?? undefined,
+      },
+      { keepDirtyValues: true },
+    );
+  }, [savedAddress.data, reset]);
 
   const items = cart.map((l) => ({ product_id: l.productId, qty: l.qty }));
 
@@ -163,7 +172,7 @@ function CheckoutFlow({ owner }: { owner: string }) {
         let attempt = pending;
         if (!attempt) {
           if (!address || !rateId || !provider || !quote.data || quote.isError || quote.isFetching) throw new Error("Revisa los datos y la cotización.");
-          attempt = await newPendingCheckout(owner, { items, address, shipping_rate_id: rateId, discount_code: appliedCode, save_address: Boolean(session), provider });
+          attempt = await newPendingCheckout(owner, { items, address, shipping_rate_id: rateId, discount_code: appliedCode, save_address: Boolean(session), provider, expected_total_clp: quote.data?.total_clp });
           if (!active.current) return;
           setPending(attempt);
         }
@@ -171,9 +180,21 @@ function CheckoutFlow({ owner }: { owner: string }) {
         if (!created) {
           try { created = await recoverCheckout(attempt.key, attempt.secret, owner); }
           catch (error) {
-            if (!(error instanceof CheckoutApiError) || error.code !== "ATTEMPT_NOT_FOUND" || !attempt.input) throw error;
+            const notFound = error instanceof CheckoutApiError && error.code === "ATTEMPT_NOT_FOUND";
+            if (!notFound) throw error;
+            if (!attempt.input) {
+              // Intento sin datos utilizables: se descarta para que el cliente
+              // pueda empezar de cero en vez de quedarse bloqueado.
+              await clearPendingCheckout(owner);
+              if (!active.current) return;
+              setPending(null);
+              if (!address || !rateId || !provider || !quote.data) throw new Error("Revisa los datos y la cotización.");
+              attempt = await newPendingCheckout(owner, { items, address, shipping_rate_id: rateId, discount_code: appliedCode, save_address: Boolean(session), provider, expected_total_clp: quote.data?.total_clp });
+            }
+            const attemptInput = attempt.input;
+            if (!attemptInput) throw new Error("Revisa los datos y la cotización.");
             if (!active.current) return;
-            created = await createOrder({ ...attempt.input, expected_user_id: owner === "guest" ? null : owner, idempotency_key: attempt.key, attempt_secret: attempt.secret });
+            created = await createOrder({ ...attemptInput, expected_user_id: owner === "guest" ? null : owner, idempotency_key: attempt.key, attempt_secret: attempt.secret });
           }
           attempt = { ...attempt, created };
           await savePendingCheckout(owner, attempt);
@@ -189,8 +210,14 @@ function CheckoutFlow({ owner }: { owner: string }) {
     onError: (error) => {
       if (!active.current) return;
       setPayError(error instanceof Error ? error.message : "No se pudo completar el pago.");
-      if (error instanceof CheckoutApiError && error.code === "ATTEMPT_FAILED") {
-        void clearPendingCheckout(owner).then(() => { if (active.current) { setPending(null); setStep(1); } });
+      if (error instanceof CheckoutApiError && (error.code === "ATTEMPT_FAILED" || error.code === "PRICE_CHANGED")) {
+        void clearPendingCheckout(owner).then(() => {
+          if (!active.current) return;
+          setPending(null); setStep(1);
+          // El precio cambió: se refresca la cotización para que el cliente
+          // vea el importe nuevo antes de volver a pagar.
+          if (error.code === "PRICE_CHANGED") void queryClient.invalidateQueries({ queryKey: ["quote"] });
+        });
       }
     },
   });

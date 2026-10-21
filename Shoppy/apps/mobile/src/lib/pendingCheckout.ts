@@ -23,10 +23,37 @@ async function secretWrite(key: string, value: string) {
 export async function loadPendingCheckout(owner: string): Promise<PendingCheckout | null> {
   const stored = await secretRead(name(owner));
   if (!stored) return null;
-  const secret = JSON.parse(stored) as { key: string; secret: string; guestToken?: string | null };
+  // El almacenamiento puede quedar corrupto (valor a medio escribir, borrado
+  // parcial del sistema). Antes, un JSON inválido hacía fallar la promesa y
+  // dejaba el checkout bloqueado para siempre; ahora se descarta el intento
+  // y el cliente puede empezar de cero.
+  let secret: { key: string; secret: string; guestToken?: string | null };
+  try {
+    secret = JSON.parse(stored) as typeof secret;
+  } catch {
+    await clearPendingCheckout(owner);
+    return null;
+  }
+  if (!secret?.key || !secret?.secret) {
+    await clearPendingCheckout(owner);
+    return null;
+  }
   const raw = await AsyncStorage.getItem(`${name(owner)}-details`);
-  const details = raw ? JSON.parse(raw) as PendingCheckout : null;
-  if (details?.key !== secret.key) return { key: secret.key, secret: secret.secret };
+  let details: PendingCheckout | null = null;
+  if (raw) {
+    try {
+      details = JSON.parse(raw) as PendingCheckout;
+    } catch {
+      details = null;
+    }
+  }
+  // Escritura parcial: el secreto está pero los detalles no (o no coinciden).
+  // Devolver un intento sin `input` dejaba al cliente sin poder comprar ni
+  // cerrar el intento; se descarta para que pueda empezar de nuevo.
+  if (!details || details.key !== secret.key) {
+    await clearPendingCheckout(owner);
+    return null;
+  }
   return { ...details, secret: secret.secret, ...(details.created ? { created: { ...details.created, guest_token: secret.guestToken ?? null } } : {}) };
 }
 export async function savePendingCheckout(owner: string, pending: PendingCheckout) {
