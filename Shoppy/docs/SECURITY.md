@@ -1,7 +1,12 @@
 # SECURITY — Shopy
 
 > Estado Fase 10: RLS + hardening implementados y **testeados en Postgres 16**
-> (`supabase/tests/`, 24 checks verdes). Nunca desactivar RLS para "arreglar" permisos.
+> (`supabase/tests/`: checks T0–T16 en verde + `beta_tests.sql` +
+> `admin_images_tests.sql` + `sandbox_checkout_tests.sql`). Nunca desactivar RLS
+> para "arreglar" permisos. Remediación de privilegios aplicada el 20-oct-2026
+> (`20261020000000_security_profiles_payments.sql`): `profiles` con policies por
+> comando, `payments` de solo lectura para clientes y admins, y
+> `mark_order_paid` ejecutable solo por `service_role`.
 
 ## Modelo de roles
 

@@ -1,7 +1,10 @@
 # DATABASE — Shopy
 
 > Estado Fase 10: schema + RLS + hardening implementados y **validados en Postgres 16 real**
-> (`supabase/tests/rls_tests.sql`: 24 checks verdes). Sin proyecto Supabase remoto aún.
+> (`supabase/tests/rls_tests.sql`: checks T0–T16 en verde, más `beta_tests.sql`,
+> `admin_images_tests.sql` y `sandbox_checkout_tests.sql`). El esquema remoto
+> tiene las **21 migraciones aplicadas** (`supabase migration list --linked`).
+> Ver `docs/AUDITORIA_OPENCODE.md` para el detalle de la remediación de seguridad.
 
 ## Migraciones (`supabase/migrations/`)
 
