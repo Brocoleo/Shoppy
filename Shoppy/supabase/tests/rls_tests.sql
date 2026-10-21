@@ -613,6 +613,182 @@ exception when others then
   raise notice 'PASS T16: mark_order_paid solo para service_role';
 end $$;
 
+-- ============================================================================
+-- T17 · no se puede cancelar un pedido con pago vivo (20261021000000)
+-- Reproduce el daño de A-03: el cliente cancelaba mientras el pago seguía en
+-- curso y el backend liquidaba después -> el cliente pagaba sin recibir.
+-- ============================================================================
+reset role;
+reset app.uid;
+reset app.role;
+
+insert into public.orders (id, user_id, status, subtotal_clp, total_clp, shipping_address)
+values ('d000dd00-0000-4000-8000-0000000000d1',
+        '22222222-2222-4222-8222-222222222222',
+        'PENDING_PAYMENT', 5000, 5000, '{"fullName":"D"}');
+
+insert into public.products (id, slug, name, price_clp, stock, published_at)
+values ('d000dd00-0000-4000-8000-0000000000d3', 'test-cancel-t17', 'Test Cancel T17', 5000, 0, now());
+
+insert into public.product_reservations (product_id, order_id, qty, status, expires_at)
+values ('d000dd00-0000-4000-8000-0000000000d3',
+        'd000dd00-0000-4000-8000-0000000000d1', 1, 'active', now() + interval '15 minutes');
+
+insert into public.payments (id, order_id, provider, amount_clp, status)
+values ('d000dd00-0000-4000-8000-0000000000d2',
+        'd000dd00-0000-4000-8000-0000000000d1', 'mock', 5000, 'pending');
+
+set role authenticated;
+set app.uid = '22222222-2222-4222-8222-222222222222';
+do $$ begin
+  update public.orders set status = 'CANCELLED' where id = 'd000dd00-0000-4000-8000-0000000000d1';
+  raise exception 'T17 FAIL: el cliente canceló un pedido con pago en curso';
+exception when others then
+  if sqlerrm not like '%PAYMENT_IN_FLIGHT%' then raise; end if;
+  raise notice 'PASS T17a: no se cancela un pedido con pago en curso';
+end $$;
+
+-- La prenda sigue reservada: no se liberó el stock.
+do $$ declare s int; r text; begin
+  select stock into s from public.products where id = 'd000dd00-0000-4000-8000-0000000000d3';
+  select status into r from public.product_reservations where order_id = 'd000dd00-0000-4000-8000-0000000000d1';
+  if s <> 0 then raise exception 'T17 FAIL: el stock se liberó (stock=%)', s; end if;
+  if r <> 'active' then raise exception 'T17 FAIL: la reserva se liberó (status=%)', r; end if;
+  raise notice 'PASS T17b: la reserva sigue intacta (stock=0, reserva activa)';
+end $$;
+
+-- Con el pago rechazado la cancelación sí procede y el stock vuelve.
+reset role;
+reset app.uid;
+reset app.role;
+update public.payments set status = 'rejected' where id = 'd000dd00-0000-4000-8000-0000000000d2';
+set role authenticated;
+set app.uid = '22222222-2222-4222-8222-222222222222';
+do $$ declare s int; st text; begin
+  update public.orders set status = 'CANCELLED' where id = 'd000dd00-0000-4000-8000-0000000000d1';
+  select status into st from public.orders where id = 'd000dd00-0000-4000-8000-0000000000d1';
+  if st <> 'CANCELLED' then raise exception 'T17 FAIL: con pago rechazado no se canceló (status=%)', st; end if;
+  select stock into s from public.products where id = 'd000dd00-0000-4000-8000-0000000000d3';
+  if s <> 1 then raise exception 'T17 FAIL: el stock no volvió tras cancelar (stock=%)', s; end if;
+  raise notice 'PASS T17c: con el pago rechazado se cancela y el stock vuelve';
+end $$;
+
+-- Un pedido con el pago ya aprobado no se cancela: hay que reembolsarlo.
+reset role;
+reset app.uid;
+reset app.role;
+insert into public.orders (id, user_id, status, subtotal_clp, total_clp, shipping_address)
+values ('e000ee00-0000-4000-8000-0000000000e1',
+        '22222222-2222-4222-8222-222222222222',
+        'PENDING_PAYMENT', 5000, 5000, '{"fullName":"E"}');
+insert into public.payments (id, order_id, provider, amount_clp, status)
+values ('e000ee00-0000-4000-8000-0000000000e2',
+        'e000ee00-0000-4000-8000-0000000000e1', 'mock', 5000, 'approved');
+set role authenticated;
+set app.uid = '22222222-2222-4222-8222-222222222222';
+do $$ begin
+  update public.orders set status = 'CANCELLED' where id = 'e000ee00-0000-4000-8000-0000000000e1';
+  raise exception 'T17 FAIL: se canceló un pedido con el pago ya aprobado';
+exception when others then
+  if sqlerrm not like '%PAYMENT_APPROVED%' then raise; end if;
+  raise notice 'PASS T17d: un pedido con pago aprobado no se cancela (hay que reembolsarlo)';
+end $$;
+
+-- El backend sí puede: finish_checkout_refund cancela el PENDING_PAYMENT de un
+-- pago tardío para devolver la prenda al catálogo.
+reset role;
+reset app.uid;
+reset app.role;
+set app.role = 'service_role';
+do $$ declare st text; begin
+  update public.orders set status = 'CANCELLED' where id = 'e000ee00-0000-4000-8000-0000000000e1';
+  select status into st from public.orders where id = 'e000ee00-0000-4000-8000-0000000000e1';
+  if st <> 'CANCELLED' then raise exception 'T17 FAIL: el backend no pudo cancelar (status=%)', st; end if;
+  raise notice 'PASS T17e: el backend sigue pudiendo cancelar (flujo de reembolso)';
+end $$;
+
+-- ============================================================================
+-- T18 · el reembolso es válido desde PREPARING y SHIPPED (20261021010000)
+-- Antes, el dinero se devolvía en el proveedor pero la BD quedaba con el
+-- pedido pagado y la prenda en SOLD (transición ilegal a REFUNDED).
+-- ============================================================================
+reset role;
+reset app.uid;
+reset app.role;
+set app.role = 'service_role';
+
+insert into public.orders (id, user_id, status, subtotal_clp, total_clp, shipping_address)
+values ('f000ff00-0000-4000-8000-0000000000f1',
+        '11111111-1111-4111-8111-111111111111',
+        'PREPARING', 5000, 5000, '{"fullName":"F"}');
+insert into public.payments (id, order_id, provider, amount_clp, status)
+values ('f000ff00-0000-4000-8000-0000000000f2',
+        'f000ff00-0000-4000-8000-0000000000f1', 'mock', 5000, 'approved');
+do $$ declare st text; ps text; begin
+  perform public.finish_checkout_refund('f000ff00-0000-4000-8000-0000000000f2');
+  select status into st from public.orders where id = 'f000ff00-0000-4000-8000-0000000000f1';
+  select status into ps from public.payments where id = 'f000ff00-0000-4000-8000-0000000000f2';
+  if st <> 'REFUNDED' then raise exception 'T18 FAIL: el pedido quedó en % (esperado REFUNDED)', st; end if;
+  if ps <> 'refunded' then raise exception 'T18 FAIL: el pago quedó en % (esperado refunded)', ps; end if;
+  raise notice 'PASS T18: se puede reembolsar un pedido en PREPARING';
+end $$;
+
+insert into public.orders (id, user_id, status, subtotal_clp, total_clp, shipping_address)
+values ('f000ff00-0000-4000-8000-0000000000f3',
+        '11111111-1111-4111-8111-111111111111',
+        'SHIPPED', 5000, 5000, '{"fullName":"G"}');
+insert into public.payments (id, order_id, provider, amount_clp, status)
+values ('f000ff00-0000-4000-8000-0000000000f4',
+        'f000ff00-0000-4000-8000-0000000000f3', 'mock', 5000, 'approved');
+do $$ declare st text; begin
+  perform public.finish_checkout_refund('f000ff00-0000-4000-8000-0000000000f4');
+  select status into st from public.orders where id = 'f000ff00-0000-4000-8000-0000000000f3';
+  if st <> 'REFUNDED' then raise exception 'T18 FAIL: el pedido quedó en % (esperado REFUNDED)', st; end if;
+  raise notice 'PASS T18: se puede reembolsar un pedido en SHIPPED';
+end $$;
+
+-- ============================================================================
+-- T19 · el token de invitado caduca y el cobro real es único (20261021020000)
+-- ============================================================================
+reset role;
+reset app.uid;
+reset app.role;
+
+insert into public.orders (id, status, subtotal_clp, total_clp, shipping_address, guest_token, guest_token_expires_at)
+values ('b100bb00-0000-4000-8000-0000000000b1', 'PENDING_PAYMENT', 5000, 5000, '{"fullName":"H"}',
+        'token-caducado', now() - interval '1 day'),
+       ('b100bb00-0000-4000-8000-0000000000b2', 'PENDING_PAYMENT', 5000, 5000, '{"fullName":"I"}',
+        'token-vigente', now() + interval '180 days');
+
+do $$ begin
+  perform public.get_guest_order('b100bb00-0000-4000-8000-0000000000b1', 'token-caducado');
+  raise exception 'T19 FAIL: un token caducado todavía rastrea el pedido';
+exception when others then
+  if sqlerrm not like '%ORDER_NOT_FOUND%' then raise; end if;
+  raise notice 'PASS T19a: el token caducado no rastrea el pedido';
+end $$;
+
+do $$ declare r jsonb; begin
+  r := public.get_guest_order('b100bb00-0000-4000-8000-0000000000b2', 'token-vigente');
+  if r is null then raise exception 'T19 FAIL: el token vigente no rastrea el pedido'; end if;
+  if r ? 'guest_token' then raise exception 'T19 FAIL: la respuesta expone el guest_token'; end if;
+  raise notice 'PASS T19b: el token vigente rastrea el pedido sin exponer el token';
+end $$;
+
+-- Dos pagos no pueden reclamar la misma operación del proveedor.
+insert into public.payments (id, order_id, provider, amount_clp, status, provider_tx_id)
+values ('b200bb00-0000-4000-8000-0000000000b1',
+        'b100bb00-0000-4000-8000-0000000000b2', 'mercadopago', 5000, 'approved', 'tx-unico-1');
+do $$ begin
+  insert into public.payments (id, order_id, provider, amount_clp, status, provider_tx_id)
+  values ('b200bb00-0000-4000-8000-0000000000b2',
+          'b100bb00-0000-4000-8000-0000000000b2', 'mercadopago', 5000, 'approved', 'tx-unico-1');
+  raise exception 'T19 FAIL: dos pagos reclamaron la misma operación del proveedor';
+exception when others then
+  if sqlerrm not like '%unique%' then raise; end if;
+  raise notice 'PASS T19c: la operación del proveedor es única por pago';
+end $$;
+
 reset role;
 reset app.uid;
 reset app.role;
