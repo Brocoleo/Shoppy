@@ -31,7 +31,9 @@ const muestreo = setInterval(async () => {
   try {
     const ancho = await page.locator(".barra-archivo .barra").first().evaluate((el) => el.style.width);
     if (ancho) anchos.push(ancho);
-  } catch {}
+  } catch {
+    // el elemento puede no existir todavia: se ignora esta muestra
+  }
 }, 60);
 
 // Espera a que el estado final sea "Guardado".
@@ -60,7 +62,11 @@ console.log(`Errores de consola       : ${errores.length ? errores.join(" | ") :
 // Limpieza del archivo de prueba.
 for (const f of readdirSync(FIXTURES)) {
   if (f.startsWith(nombre.replace(".jpg", ""))) {
-    try { unlinkSync(join(FIXTURES, f)); } catch {}
+    try {
+      unlinkSync(join(FIXTURES, f));
+    } catch {
+      // si no se pudo borrar, se avisa al final
+    }
   }
 }
 

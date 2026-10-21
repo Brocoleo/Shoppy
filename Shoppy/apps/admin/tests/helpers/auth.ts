@@ -20,5 +20,7 @@ export async function loginAsAdmin(
   await expect(
     page.getByRole("navigation", { name: "Administración" }),
   ).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("link", { name: "Productos" })).toBeVisible();
+  // "exact" importa: el dashboard tiene un link "Ver productos" que, sin
+  // coincidencia exacta, también matchea "Productos" (strict mode violation).
+  await expect(page.getByRole("link", { name: "Productos", exact: true })).toBeVisible();
 }

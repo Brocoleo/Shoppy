@@ -7,7 +7,7 @@
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { PNG } from "pngjs";
-import { encode, decode } from "jpeg-js";
+import { encode } from "jpeg-js";
 
 const OUT = "/tmp/opencode/imgbench";
 mkdirSync(OUT, { recursive: true });
@@ -45,7 +45,7 @@ writeFileSync(`${OUT}/celular-4000x3000.png`, pngBuffer);
 console.log(`Foto de celular generada: 4000x3000 PNG (${(pngBuffer.length / 1e6).toFixed(1)} MB)`);
 
 // --- Pipeline "antes" (1800, 0.86, sin unsharp) ---
-function pipeline(bitmap, { maxLado, calidad, unsharp }) {
+function pipeline(bitmap, { maxLado, unsharp }) {
   const scale = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
   const w = Math.max(1, Math.round(bitmap.width * scale));
   const h = Math.max(1, Math.round(bitmap.height * scale));
@@ -114,8 +114,8 @@ function nitidez(canvas) {
   return Math.sqrt(Math.max(0, suma2 / n - media * media));
 }
 
-const antes = pipeline(foto, { maxLado: 1800, calidad: 0.86, unsharp: 0 });
-const despues = pipeline(foto, { maxLado: 2000, calidad: 0.90, unsharp: 0.4 });
+const antes = pipeline(foto, { maxLado: 1800, unsharp: 0 });
+const despues = pipeline(foto, { maxLado: 2000, unsharp: 0.4 });
 
 // WebP no está en node: medimos con JPEG a la misma calidad como proxy de peso.
 const jpgAntes = encode({ data: Buffer.from(antes.data), width: antes.width, height: antes.height }, 86).data;

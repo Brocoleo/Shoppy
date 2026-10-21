@@ -86,7 +86,9 @@ test("login del admin", async ({ page }) => {
   await expect(
     page.getByRole("navigation", { name: "Administración" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Productos" })).toBeVisible();
+  // "exact" importa: el dashboard tiene un link "Ver productos" que, sin
+  // coincidencia exacta, también matchea "Productos" (strict mode violation).
+  await expect(page.getByRole("link", { name: "Productos", exact: true })).toBeVisible();
 });
 
 test("crea una prenda en borrador y llega al paso de fotos", async ({

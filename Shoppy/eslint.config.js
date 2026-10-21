@@ -16,12 +16,17 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["supabase/**/*.mjs", "apps/mobile/tests/**/*.mjs", "scripts/*.test.mjs", "scripts/local-checkout/**/*.{mjs,cjs}"],
+    files: ["supabase/**/*.mjs", "apps/mobile/tests/**/*.mjs", "scripts/*.mjs", "scripts/*.test.mjs", "scripts/local-checkout/**/*.{mjs,cjs}"],
     languageOptions: { globals: globals.node },
   },
   {
     files: ["scripts/local-checkout/browser-tools.js"],
     languageOptions: { globals: globals.browser },
+  },
+  {
+    // Scripts que ejecutan codigo DENTRO de Chromium (canvas, WebP, Playwright).
+    files: ["scripts/image-quality-*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
     files: ["scripts/local-checkout/network-guard.cjs"],

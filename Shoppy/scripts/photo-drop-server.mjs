@@ -303,7 +303,7 @@ const server = createServer(async (req, res) => {
           await aJpeg(bruto, destino);
           await unlink(bruto);
           final = destino;
-        } catch (error) {
+        } catch {
           await unlink(bruto);
           rechazados.push(`${nombreOriginal} (no se pudo convertir a JPEG)`);
           continue;
