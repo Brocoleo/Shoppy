@@ -345,6 +345,11 @@ function ReturnsCard({
         .update({ status: approve ? "completed" : "rejected", resolution_note, resolved_at: new Date().toISOString() })
         .eq("id", id);
       if (updErr) throw updErr;
+      if (!approve) {
+        // La ficha del cliente promete que le avisamos por correo del rechazo.
+        const { error: mailErr } = await supabase.functions.invoke("notify", { body: { order_id: orderId, event: "return_rejected" } });
+        if (mailErr) throw new Error(`La devolución se rechazó, pero el correo de aviso falló: ${mailErr.message}`);
+      }
     },
     onSuccess: (_d, vars) => {
       setNote(vars.approve ? "Devolución aprobada y reembolsada. La prenda volvió al catálogo." : "Solicitud rechazada.");

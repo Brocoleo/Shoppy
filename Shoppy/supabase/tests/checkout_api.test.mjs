@@ -98,6 +98,27 @@ test("un cupón del 100 % con envío gratis no deja un pedido de 0 CLP", async (
   assert.equal(f.rows.orders.length, 0);
 });
 
+test("la devolución exige ser el dueño del pedido", async () => {
+  const f = fixture();
+  const created = await (await f.call(input(), "valid")).json();
+  // Sin sesión no se puede solicitar.
+  assert.equal((await f.call({ action: "request_return", order_id: created.order_id, reason: "no me quedó" })).status, 401);
+  // Con la sesión del dueño, se registra la solicitud.
+  const res = await f.call({ action: "request_return", order_id: created.order_id, reason: "no me quedó" }, "valid");
+  assert.equal(res.status, 200);
+  assert.equal(f.rows.return_requests.length, 1);
+  assert.equal(f.rows.return_requests[0].order_id, created.order_id);
+});
+
+test("otro usuario no puede solicitar la devolución de un pedido ajeno", async () => {
+  const f = fixture();
+  const created = await (await f.call(input(), "valid")).json();
+  f.rows.orders.find((o) => o.id === created.order_id).user_id = "otra-cuenta";
+  const res = await f.call({ action: "request_return", order_id: created.order_id, reason: "no me quedó" }, "valid");
+  assert.equal(res.status, 403);
+  assert.equal(f.rows.return_requests.length, 0);
+});
+
 test("CORS cubre preflight, éxito y errores sin credenciales", async () => {
   const f = fixture();
   for (const response of [await f.call(null, null, { method: "OPTIONS" }), await f.call({ action: "providers" }), await f.call({ action: "unknown" })]) {

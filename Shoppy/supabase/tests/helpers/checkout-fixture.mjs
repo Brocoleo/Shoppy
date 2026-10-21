@@ -19,7 +19,7 @@ export function fixture({ failProvider = false, verdict = "APPROVED", webhookAmo
     products: [{ id: product, slug: "prenda", name: "Prenda", price_clp: 1000, stock: 1, availability: "AVAILABLE", published_at: "2026-01-01", condition: "bueno" }],
     shipping_rates: [{ id: rate, region: "Metropolitana", price_clp: 0, is_active: true }],
     checkout_attempts: [], orders: [], order_items: [], payments: [], product_images: [], brands: [], addresses: [], profiles: [],
-    product_reservations: [], order_status_history: [],
+    product_reservations: [], order_status_history: [], return_requests: [],
   };
   let createCalls = 0;
   let stockDeductions = 0;
@@ -98,6 +98,13 @@ export function fixture({ failProvider = false, verdict = "APPROVED", webhookAmo
         }
         order.status = "CANCELLED";
         return { data: true, error: null };
+      }
+      if (name === "request_return") {
+        const order = rows.orders.find((o) => o.id === input.p_order);
+        if (!order) return { data: null, error: { message: "ORDER_NOT_FOUND" } };
+        rows.return_requests = rows.return_requests ?? [];
+        rows.return_requests.push({ order_id: order.id, reason: input.p_reason, detail: input.p_detail ?? null });
+        return { data: randomUUID(), error: null };
       }
       if (name === "finish_checkout_refund") {
         const payment = rows.payments.find((p) => p.id === input.p_payment);
