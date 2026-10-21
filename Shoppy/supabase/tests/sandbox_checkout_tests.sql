@@ -8,7 +8,10 @@ do $$ begin
   if has_table_privilege('authenticated','public.order_items','INSERT') then
     raise exception 'authenticated can insert order lines';
   end if;
-  if has_function_privilege('anon','public.create_checkout_order(uuid,uuid,text,jsonb,jsonb)','EXECUTE')
+  -- La firma vigente de create_checkout_order tiene 6 args (p_mode) desde
+  -- 20261018120000; la de 5 args ya no existe y has_function_privilege
+  -- lanzaría "function does not exist" contra el esquema real.
+  if has_function_privilege('anon','public.create_checkout_order(uuid,uuid,text,jsonb,jsonb,text)','EXECUTE')
      or has_function_privilege('authenticated','public.settle_checkout_payment(uuid)','EXECUTE') then
     raise exception 'backend RPC exposed';
   end if;

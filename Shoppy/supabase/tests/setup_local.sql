@@ -69,3 +69,17 @@ create table if not exists storage.objects (
 );
 
 alter table storage.objects enable row level security;
+
+-- ----------------------------------------------------------------------------
+-- Historial de migraciones del CLI de Supabase.
+-- 20261018120000 escribe en esta tabla al final del archivo; sin ella la
+-- migración hacía rollback completo y el entorno local quedaba con un esquema
+-- distinto al remoto (create_checkout_order con 5 args en vez de 6, sin las
+-- columnas mode, sin allow_parallel_sales). Este stub alinea local y remoto.
+-- ----------------------------------------------------------------------------
+create schema if not exists supabase_migrations;
+
+create table if not exists supabase_migrations.schema_migrations (
+  version text primary key,
+  name text
+);

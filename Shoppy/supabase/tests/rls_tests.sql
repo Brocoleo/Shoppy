@@ -6,21 +6,24 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- Fixtures: 2 clientes + 1 admin (el trigger on_auth_user_created crea perfiles)
+-- Fixtures: 3 clientes + 1 admin (el trigger on_auth_user_created crea perfiles).
+-- C (44444444) existe SIN pedidos para poder probar el borrado + re-alta de su
+-- propio perfil sin chocar con el ON DELETE SET NULL de orders.user_id.
 -- ----------------------------------------------------------------------------
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'a@shopy.cl'),
   ('22222222-2222-4222-8222-222222222222', 'b@shopy.cl'),
-  ('33333333-3333-4333-8333-333333333333', 'admin@shopy.cl');
+  ('33333333-3333-4333-8333-333333333333', 'admin@shopy.cl'),
+  ('44444444-4444-4444-8444-444444444444', 'c@shopy.cl');
 
 update public.profiles set role = 'admin'
   where id = '33333333-3333-4333-8333-333333333333';
 
 do $$ begin
-  if (select count(*) from public.profiles) <> 3 then
+  if (select count(*) from public.profiles) <> 4 then
     raise exception 'FIXTURE FAIL: trigger on_auth_user_created no creó perfiles';
   end if;
-  raise notice 'PASS: fixtures (3 usuarios, trigger auto-perfil OK)';
+  raise notice 'PASS: fixtures (4 usuarios, trigger auto-perfil OK)';
 end $$;
 
 -- Pedidos propios de A y B.
@@ -35,6 +38,12 @@ insert into public.products
   (id, slug, name, price_clp, stock, published_at)
 values
   ('f0000000-0000-4000-8000-00000000aa01', 'test-unico-t1', 'Test Único T1', 5000, 1, now());
+
+-- Pago pendiente de B: fixture para probar que NADIE puede escribir el estado
+-- del pago desde el cliente (ni siquiera un admin). Lo crea el superuser.
+insert into public.payments (id, order_id, provider, amount_clp, status)
+values ('c000cc00-0000-4000-8000-0000000000c1',
+        'b000bb00-0000-4000-8000-0000000000b1', 'mock', 20000, 'pending');
 
 -- ============================================================================
 -- T0 · Seed íntegro
@@ -133,8 +142,10 @@ do $$ begin
   perform public.mark_order_paid('a000aa00-0000-4000-8000-0000000000a1');
   raise exception 'T4 FAIL: cliente marcó pedido como PAID';
 exception when others then
-  if sqlerrm not like '%FORBIDDEN%' then raise; end if;
-  raise notice 'PASS T4: marcar PAID solo backend (FORBIDDEN para cliente)';
+  -- 20261020000000 revoca EXECUTE: ahora el error es de privilegio (42501) y
+  -- no el guard interno. Se aceptan ambos.
+  if sqlerrm not like '%FORBIDDEN%' and sqlerrm not like '%permission denied%' then raise; end if;
+  raise notice 'PASS T4: marcar PAID solo backend (cliente bloqueado)';
 end $$;
 
 -- ============================================================================
@@ -469,12 +480,20 @@ exception when others then
 end $$;
 
 -- El admin SÍ puede cambiar roles (toggle de apps/admin clientes).
+-- 20261020000000: hasta entonces NO existía policy de UPDATE para admins, el
+-- toggle actualizaba 0 filas y este test daba verde por el simple hecho de que
+-- un UPDATE sin filas afectadas no lanza excepción. Ahora se verifica el
+-- estado real de la fila.
 set app.uid = '33333333-3333-4333-8333-333333333333';
-do $$ begin
+do $$ declare r text; begin
   update public.profiles set role = 'admin'
     where id = '22222222-2222-4222-8222-222222222222';
+  select role into r from public.profiles where id = '22222222-2222-4222-8222-222222222222';
+  if r <> 'admin' then raise exception 'T12b FAIL: el admin no pudo promover (role=%)', r; end if;
   update public.profiles set role = 'customer'
     where id = '22222222-2222-4222-8222-222222222222';
+  select role into r from public.profiles where id = '22222222-2222-4222-8222-222222222222';
+  if r <> 'customer' then raise exception 'T12b FAIL: el admin no pudo degradar (role=%)', r; end if;
   raise notice 'PASS T12b: admin conserva gestión de roles';
 end $$;
 
@@ -488,6 +507,12 @@ end $$;
 
 -- ============================================================================
 -- T13 · search_path inmutable en TODAS las SECURITY DEFINER (skill supabase)
+-- Se aceptan dos formas válidas:
+--   * search_path con pg_temp  → 'public, pg_temp'
+--   * search_path vacío        → 'search_path=""' (más estricto: el caso de
+--     las 4 funciones de imágenes de 20261016161216; ver admin_images_tests.sql,
+--     que exige justamente esa forma). Antes solo se aceptaba la primera, por
+--     lo que el suite abortaba en T13 y beta_tests.sql nunca llegaba a correr.
 -- ============================================================================
 reset role;
 reset app.uid;
@@ -498,12 +523,94 @@ do $$ declare bad text; begin
   where n.nspname = 'public' and p.prosecdef
     and not exists (
       select 1 from unnest(coalesce(p.proconfig, '{}')) c
-      where c like 'search_path=%pg_temp%'
+      where c like 'search_path=%pg_temp%' or c = 'search_path=""'
     );
   if bad is not null then
     raise exception 'T13 FAIL: search_path sin pg_temp en: %', bad;
   end if;
-  raise notice 'PASS T13: search_path inmutable con pg_temp en todas las DEFINER';
+  raise notice 'PASS T13: search_path inmutable en todas las DEFINER';
+end $$;
+
+reset role;
+reset app.uid;
+reset app.role;
+
+-- ============================================================================
+-- T14 · escalada de privilegios a admin bloqueada (20261020000000)
+-- El vector era: profiles_owner_rw era FOR ALL y el WITH CHECK solo validaba
+-- id, mientras el trigger guard_profile_role es BEFORE UPDATE. Un cliente
+-- borraba su perfil y lo reinsertaba con role='admin' -> is_admin() = true.
+-- C (44444444) se usa porque no tiene pedidos: así el DELETE propio no choca
+-- con el ON DELETE SET NULL + CHECK de orders.user_id.
+-- ============================================================================
+set role authenticated;
+set app.uid = '44444444-4444-4444-8444-444444444444';
+do $$ begin
+  -- 1) UPDATE directo a admin: bloqueado por el trigger.
+  begin
+    update public.profiles set role = 'admin'
+      where id = '44444444-4444-4444-8444-444444444444';
+    raise exception 'T14 FAIL: UPDATE role=admin permitido';
+  exception when others then
+    if sqlerrm not like '%FORBIDDEN%' and sqlerrm not like '%policy%' then raise; end if;
+  end;
+
+  -- 2) Borrar la propia fila: permitido (derecho de supresión)...
+  delete from public.profiles where id = '44444444-4444-4444-8444-444444444444';
+
+  -- 3) ...pero reinsertarla como admin: BLOQUEADO por el WITH CHECK.
+  begin
+    insert into public.profiles (id, email, role)
+    values ('44444444-4444-4444-8444-444444444444', 'c@shopy.cl', 'admin');
+    raise exception 'T14 FAIL: el cliente se auto-asignó admin tras borrar su perfil';
+  exception when others then
+    if sqlerrm not like '%policy%' and sqlerrm not like '%permission%' then raise; end if;
+  end;
+
+  -- 4) Reinsertarla como customer: sí debe funcionar (no se rompe el alta).
+  insert into public.profiles (id, email, role)
+  values ('44444444-4444-4444-8444-444444444444', 'c@shopy.cl', 'customer');
+  raise notice 'PASS T14: escalada DELETE+INSERT a admin bloqueada';
+end $$;
+
+-- ============================================================================
+-- T15 · el estado del pago solo lo mueve el backend (20261020000000)
+-- Antes, payments_admin_all era FOR ALL y authenticated tenía UPDATE sobre
+-- todas las tablas: un admin (o un admin auto-proclamado) podía poner
+-- status='approved' a mano y el confirm liquidaba el pedido sin cobrar.
+-- ============================================================================
+set app.uid = '22222222-2222-4222-8222-222222222222';
+do $$ begin
+  update public.payments set status = 'approved'
+    where id = 'c000cc00-0000-4000-8000-0000000000c1';
+  raise exception 'T15 FAIL: el cliente escribió el estado de un pago';
+exception when others then
+  if sqlerrm not like '%policy%' and sqlerrm not like '%permission%' then raise; end if;
+  raise notice 'PASS T15a: cliente no escribe payments';
+end $$;
+
+set app.uid = '33333333-3333-4333-8333-333333333333';
+do $$ begin
+  update public.payments set status = 'approved'
+    where id = 'c000cc00-0000-4000-8000-0000000000c1';
+  raise exception 'T15 FAIL: el admin escribió el estado de un pago';
+exception when others then
+  if sqlerrm not like '%policy%' and sqlerrm not like '%permission%' then raise; end if;
+  raise notice 'PASS T15b: admin tampoco escribe payments (solo service_role)';
+end $$;
+
+-- ============================================================================
+-- T16 · mark_order_paid no es ejecutable por el cliente ni por el admin
+-- ============================================================================
+set app.uid = '33333333-3333-4333-8333-333333333333';
+do $$ begin
+  perform public.mark_order_paid('a000aa00-0000-4000-8000-0000000000a1');
+  raise exception 'T16 FAIL: el admin liquidó un pedido sin pago verificado';
+exception when others then
+  if sqlerrm not like '%FORBIDDEN%' and sqlerrm not like '%permission denied%' then
+    raise exception 'T16 FAIL: mark_order_paid NO estaba bloqueado por privilegio (error real: %)', sqlerrm;
+  end if;
+  raise notice 'PASS T16: mark_order_paid solo para service_role';
 end $$;
 
 reset role;
