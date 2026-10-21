@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { loadPendingCheckout, savePendingCheckout, newPendingCheckout, clearPendingCheckout, type PendingCheckout } from "@/src/lib/pendingCheckout";
+import { rememberGuestOrder } from "@/src/lib/guestOrders";
 import { addressSchema, type AddressInput } from "@shopy/validation";
 import {
   CheckoutApiError,
@@ -153,6 +154,16 @@ function CheckoutFlow({ owner }: { owner: string }) {
     if (!active.current || useShopStore.getState().owner !== owner) return;
     // El recibo y el descuento se guardan juntos para no descontar dos veces tras reiniciar.
     consumePaidOrder(res.order_id, (attempt?.input?.items ?? []).map((line) => ({ productId: line.product_id, qty: line.qty })));
+    // El invitado no tiene cuenta: sin esta lista perdería el acceso a su
+    // pedido al cerrar la app.
+    if (res.guest_token) {
+      await rememberGuestOrder({
+        order_id: res.order_id,
+        order_number: res.order_number,
+        guest_token: res.guest_token,
+        created_at: new Date().toISOString(),
+      });
+    }
     await waitForShopPersistence();
     await clearPendingCheckout(owner);
     if (!active.current) return;

@@ -789,6 +789,70 @@ exception when others then
   raise notice 'PASS T19c: la operación del proveedor es única por pago';
 end $$;
 
+-- ============================================================================
+-- T20 · el invitado puede rastrear por su número visible (20261021030000)
+-- El invitado solo conoce el número del pedido (SHO-XXXX) y su código; el
+-- formulario de tracking lo exigía como UUID, así que tras cerrar la app no
+-- podía volver a su pedido.
+-- ============================================================================
+reset role;
+reset app.uid;
+reset app.role;
+do $$ declare r jsonb; n text; begin
+  select order_number into n from public.orders where id = 'b100bb00-0000-4000-8000-0000000000b2';
+  r := public.get_guest_order_by_number(n, 'token-vigente');
+  if r is null then raise exception 'T20 FAIL: no rastreó por número de pedido'; end if;
+  if r ? 'guest_token' then raise exception 'T20 FAIL: la respuesta expone el guest_token'; end if;
+  raise notice 'PASS T20a: rastreo por número de pedido';
+end $$;
+
+do $$ begin
+  perform public.get_guest_order_by_number('SHO-00000000', 'token-vigente');
+  raise exception 'T20 FAIL: rastreó un pedido inexistente';
+exception when others then
+  if sqlerrm not like '%ORDER_NOT_FOUND%' then raise; end if;
+  raise notice 'PASS T20b: un pedido inexistente no se rastrea';
+end $$;
+
+do $$ begin
+  perform public.get_guest_order_by_number(
+    (select order_number from public.orders where id = 'b100bb00-0000-4000-8000-0000000000b2'),
+    'token-equivocado');
+  raise exception 'T20 FAIL: rastreó con un código equivocado';
+exception when others then
+  if sqlerrm not like '%ORDER_NOT_FOUND%' then raise; end if;
+  raise notice 'PASS T20c: el código de rastreo debe coincidir';
+end $$;
+
+-- ============================================================================
+-- T21 · purga de imágenes huérfanas (20261021050000)
+-- La cola image_cleanup solo se consumía a mano desde el panel: sin pasar por
+-- él, los objetos huérfanos seguían en el bucket.
+-- ============================================================================
+reset role;
+reset app.uid;
+reset app.role;
+insert into public.image_cleanup(storage_path, product_id)
+values ('huerfano-t21.jpg', 'f0000000-0000-4000-8000-00000000aa01');
+do $$ declare left_rows int; begin
+  perform public.purge_orphan_images();
+  select count(*) into left_rows from public.image_cleanup where storage_path = 'huerfano-t21.jpg';
+  if left_rows <> 0 then raise exception 'T21 FAIL: la imagen huérfana no se purgó'; end if;
+  raise notice 'PASS T21a: la imagen huérfana se purga';
+end $$;
+
+insert into public.product_images(id, product_id, storage_path, sort_order)
+values ('e300ee00-0000-4000-8000-0000000000e1',
+        'f0000000-0000-4000-8000-00000000aa01', 'referida-t21.jpg', 1);
+insert into public.image_cleanup(storage_path, product_id)
+values ('referida-t21.jpg', 'f0000000-0000-4000-8000-00000000aa01');
+do $$ declare left_rows int; begin
+  perform public.purge_orphan_images();
+  select count(*) into left_rows from public.image_cleanup where storage_path = 'referida-t21.jpg';
+  if left_rows <> 1 then raise exception 'T21 FAIL: se purgó una imagen todavía referenciada'; end if;
+  raise notice 'PASS T21b: una imagen referenciada no se purga';
+end $$;
+
 reset role;
 reset app.uid;
 reset app.role;

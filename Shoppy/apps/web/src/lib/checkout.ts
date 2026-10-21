@@ -268,10 +268,13 @@ export async function getMyOrderDetail(orderId: string): Promise<OrderDetail | n
 }
 
 /** El cliente solicita el retracto/devolución de un pedido entregado (Ley 19.496). */
+/**
+ * Solicita la devolución. Pasa por la Edge Function (y no por el RPC directo)
+ * porque es quien valida la propiedad del pedido y envía el correo que la
+ * ficha promete ("revisaremos tu caso y te escribiremos por correo").
+ */
 export async function requestReturn(orderId: string, reason: string, detail: string): Promise<void> {
-  const supabase = await db();
-  const { error } = await supabase.rpc("request_return", { p_order: orderId, p_reason: reason, p_detail: detail || null });
-  if (error) throw error;
+  await callCheckout("request_return", { order_id: orderId, reason, detail: detail || null });
 }
 
 export interface GuestOrderResult {
@@ -293,6 +296,27 @@ export interface GuestOrderResult {
     unit_price_clp: number;
     qty: number;
   }[];
+}
+
+/**
+ * Rastreo por número visible de pedido (SHO-XXXX) en vez del UUID interno:
+ * es lo único que el invitado ve en la pantalla de éxito y en el correo.
+ */
+export async function trackGuestOrderByNumber(orderNumber: string, token: string): Promise<GuestOrderResult> {
+  let supabase;
+  try {
+    supabase = await db();
+  } catch {
+    throw new CheckoutApiError(0, "OFFLINE", "Sin conexión. Revisa tu internet e inténtalo de nuevo.");
+  }
+  let rpc: { data: unknown; error: { message?: string } | null };
+  try {
+    rpc = await supabase.rpc("get_guest_order_by_number", { p_order_number: orderNumber, p_token: token });
+  } catch {
+    throw new CheckoutApiError(0, "OFFLINE", "Sin conexión. Revisa tu internet e inténtalo de nuevo.");
+  }
+  if (rpc.error) throw new CheckoutApiError(404, "ORDER_NOT_FOUND", "Pedido no encontrado. Verifica los datos.");
+  return rpc.data as GuestOrderResult;
 }
 
 export async function trackGuestOrder(orderId: string, token: string): Promise<GuestOrderResult> {

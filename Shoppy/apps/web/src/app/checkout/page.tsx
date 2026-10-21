@@ -19,6 +19,7 @@ import {
   recoverCheckout,
 } from "../../lib/checkout";
 import { isSupabaseConfigured } from "../../lib/supabase-config";
+import { rememberGuestOrder } from "../../lib/guestOrders";
 import { getSupabase } from "../../lib/supabase";
 import { useSession } from "../../lib/session";
 import { useCart } from "../../lib/cart";
@@ -191,6 +192,16 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
     clear();
     await clearPendingCheckout(owner);
     if (!active.current) return;
+    // El invitado no tiene cuenta: sin esta lista perdería el acceso a su
+    // pedido al cerrar la app.
+    if (res.guest_token) {
+      rememberGuestOrder({
+        order_id: res.order_id,
+        order_number: res.order_number,
+        guest_token: res.guest_token,
+        created_at: new Date().toISOString(),
+      });
+    }
     setResult({ order_id: res.order_id, order_number: res.order_number, guest_token: res.guest_token });
     setPending(null);
     setPendingRedirect(null);
@@ -241,6 +252,15 @@ function CheckoutFlow({ owner, authed }: { owner: string; authed: boolean }) {
         }
         if (!active.current) return;
         setPending(attempt);
+        if (created.guest_token) {
+          // Queda guardado aunque el invitado cierre la app antes de pagar.
+          rememberGuestOrder({
+            order_id: created.order_id,
+            order_number: created.order_number,
+            guest_token: created.guest_token,
+            created_at: new Date().toISOString(),
+          });
+        }
         if (created.payment.checkout_url) {
           // Proveedor con redirect externo (MP/Webpay): salir y volver por el bridge.
           // NO confirmar aquí: la confirmación ocurre al retornar o con "Ya pagué".

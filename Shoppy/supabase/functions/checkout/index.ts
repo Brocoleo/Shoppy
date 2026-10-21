@@ -74,6 +74,13 @@ const confirmSchema = z.object({
   guest_token: z.string().min(1).max(128).nullish(),
 });
 
+const returnSchema = z.object({
+  action: z.literal("request_return"),
+  order_id: z.string().uuid(),
+  reason: z.string().min(3).max(120),
+  detail: z.string().max(1000).nullish(),
+});
+
 type Quote = {
   lines: {
     product_id: string;
@@ -577,6 +584,35 @@ async function handleWebhook(db: SupabaseClient, req: Request, body: unknown): P
   return Response.json({ received: true }, { status: 200 });
 }
 
+/**
+ * Solicitud de devolución del cliente (derecho de retracto, Ley 19.496).
+ * Solo el dueño del pedido puede solicitarla; el RPC aplica la ventana de 10
+ * días. Aquí se envía además el correo que la ficha del pedido promete.
+ */
+async function handleRequestReturn(db: SupabaseClient, userId: string | null, body: unknown): Promise<Response> {
+  if (!userId) return bad(401, "UNAUTH", "Inicia sesión para solicitar la devolución.");
+  const parsed = returnSchema.safeParse(body);
+  if (!parsed.success) return bad(400, "VALIDATION", "Solicitud de devolución inválida.");
+  const { data: order } = await db.from("orders").select("id,user_id").eq("id", parsed.data.order_id).maybeSingle();
+  const typed = order as unknown as { id: string; user_id: string | null } | null;
+  if (!typed || typed.user_id !== userId) return bad(403, "FORBIDDEN", "No puedes solicitar la devolución de este pedido.");
+  const { error } = await db.rpc("request_return", {
+    p_order: parsed.data.order_id,
+    p_reason: parsed.data.reason,
+    p_detail: parsed.data.detail ?? null,
+  });
+  if (error) {
+    const msg = String((error as { message?: string }).message ?? "");
+    if (msg.includes("RETURN_WINDOW_CLOSED")) return bad(409, "RETURN_WINDOW_CLOSED", "Ya pasó el plazo de 10 días desde la entrega.");
+    if (msg.includes("ORDER_NOT_DELIVERED")) return bad(409, "ORDER_NOT_DELIVERED", "La devolución se puede solicitar cuando el pedido está entregado.");
+    if (msg.includes("REASON_REQUIRED")) return bad(400, "REASON_REQUIRED", "Indica el motivo de la devolución.");
+    if (msg.includes("FORBIDDEN")) return bad(403, "FORBIDDEN", "No puedes solicitar la devolución de este pedido.");
+    throw error;
+  }
+  try { await sendOrderEmail(db, parsed.data.order_id, "return_requested"); } catch { console.warn("return_requested email pendiente"); }
+  return ok({ requested: true });
+}
+
 async function closeAttempt(db: SupabaseClient, userId: string | null, body: unknown): Promise<Response> {
   const parsed = z.object({ idempotency_key: z.string().uuid(), attempt_secret: z.string().uuid() }).safeParse(body);
   if (!parsed.success) return bad(400, "VALIDATION", "Intento inválido.");
@@ -679,6 +715,7 @@ async function handleCheckout(req: Request): Promise<Response> {
     }
     if (action === "close_attempt") return await closeAttempt(db, await authUserId(db, req), body);
     if (action === "refund") return await handleRefund(db, await authUserId(db, req), body);
+    if (action === "request_return") return await handleRequestReturn(db, await authUserId(db, req), body);
     if (action === "quote") return await handleQuote(db, body);
     if (action === "create") {
       return await handleCreate(db, await authUserId(db, req), body);

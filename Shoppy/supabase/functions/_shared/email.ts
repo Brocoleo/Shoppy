@@ -17,10 +17,14 @@ export type OrderEmailEvent =
   | "order_shipped"
   | "order_delivered"
   | "order_cancelled"
-  | "order_refunded";
+  | "order_refunded"
+  | "return_requested"
+  | "return_rejected";
 
 export interface OrderEmailData {
   order_number: string;
+  /** UUID del pedido: el invitado lo necesita para rastrear sin cuenta. */
+  order_id?: string | null;
   customer_name: string;
   total_clp: number;
   items: { name: string; qty: number; unit_price_clp: number }[];
@@ -51,6 +55,8 @@ const SUBJECTS: Record<OrderEmailEvent, (orderNumber: string) => string> = {
   order_delivered: (n) => `Pedido ${n} entregado · Shopy`,
   order_cancelled: (n) => `Pedido ${n} cancelado · Shopy`,
   order_refunded: (n) => `Reembolso de tu pedido ${n} · Shopy`,
+  return_requested: (n) => `Devolución en revisión de tu pedido ${n} · Shopy`,
+  return_rejected: (n) => `Devolución rechazada de tu pedido ${n} · Shopy`,
 };
 
 const HEADS: Record<OrderEmailEvent, string> = {
@@ -61,13 +67,15 @@ const HEADS: Record<OrderEmailEvent, string> = {
   order_delivered: "Entregado",
   order_cancelled: "Pedido cancelado",
   order_refunded: "Reembolso procesado",
+  return_requested: "Recibimos tu solicitud de devolución",
+  return_rejected: "Tu devolución fue rechazada",
 };
 
 const BODIES: Record<OrderEmailEvent, (d: OrderEmailData) => string> = {
   order_created: (d) =>
     `<p>Reservamos tus prendas por 15 minutos mientras se confirma el pago.</p>${guestTokenNote(d)}`,
-  payment_confirmed: () =>
-    `<p>Tu pago fue aprobado. Empezaremos a preparar tu pedido de inmediato.</p>`,
+  payment_confirmed: (d) =>
+    `<p>Tu pago fue aprobado. Empezaremos a preparar tu pedido de inmediato.</p>${guestTokenNote(d)}`,
   order_preparing: () =>
     `<p>Estamos revisando y empacando tus prendas con cuidado.</p>`,
   order_shipped: (d) =>
@@ -78,11 +86,18 @@ const BODIES: Record<OrderEmailEvent, (d: OrderEmailData) => string> = {
     `<p>Tu pedido fue cancelado y liberamos las prendas reservadas. Si pagaste, verás la reversa según tu medio de pago.</p>`,
   order_refunded: () =>
     `<p>Procesamos el reembolso de tu pedido. El plazo depende de tu medio de pago.</p>`,
+  return_requested: (d) =>
+    `<p>Recibimos tu solicitud de devolución del pedido ${escapeHtml(d.order_number)}. La revisaremos y te escribiremos con el resultado. Tienes 10 días desde la entrega para ejercer tu derecho de retracto.</p>`,
+  return_rejected: (d) =>
+    `<p>Revisamos tu solicitud de devolución del pedido ${escapeHtml(d.order_number)} y no pudimos aprobarla. Si crees que hay un error, escríbenos y lo revisamos contigo.</p>`,
 };
 
 function guestTokenNote(d: OrderEmailData): string {
   if (!d.guest_token) return "";
-  return `<p>Compraste como invitado: guarda este código para rastrear tu pedido: <strong>${escapeHtml(d.guest_token)}</strong></p>`;
+  // El invitado necesita PODER volver a su pedido: se le da el número visible
+  // y el identificador con el que puede rastrearlo sin cuenta.
+  const id = d.order_id ? ` Identificador de rastreo: <strong>${escapeHtml(d.order_id)}</strong>.` : "";
+  return `<p>Compraste como invitado: guarda tu número de pedido <strong>${escapeHtml(d.order_number)}</strong> y este código para rastrearlo: <strong>${escapeHtml(d.guest_token)}</strong>.${id}</p>`;
 }
 
 function trackingNote(d: OrderEmailData): string {

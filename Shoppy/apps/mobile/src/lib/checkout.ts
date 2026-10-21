@@ -267,6 +267,19 @@ export interface GuestOrderResult {
   }[];
 }
 
+/**
+ * Rastreo por número visible de pedido (SHO-XXXX) en vez del UUID interno.
+ */
+export async function trackGuestOrderByNumber(orderNumber: string, token: string): Promise<GuestOrderResult> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc("get_guest_order_by_number", {
+    p_order_number: orderNumber,
+    p_token: token,
+  });
+  if (error) throw new CheckoutApiError(404, "ORDER_NOT_FOUND", "Pedido no encontrado. Verifica los datos.");
+  return data as GuestOrderResult;
+}
+
 export async function trackGuestOrder(orderId: string, token: string): Promise<GuestOrderResult> {
   let rpc: { data: unknown; error: { message?: string } | null };
   try {

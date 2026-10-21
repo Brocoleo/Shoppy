@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { MOCK_ORDERS, PRODUCT_MAP } from "@/src/data/catalog";
 import { isSupabaseConfigured } from "@/src/lib/supabase";
-import { listMyOrders } from "@/src/lib/checkout";
+import { listMyOrders, trackGuestOrderByNumber } from "@/src/lib/checkout";
+import { loadGuestOrders, type GuestOrder } from "@/src/lib/guestOrders";
 import { useAuth } from "@/src/auth/AuthContext";
 import { formatCLP, radius, spacing, typeScale, useTheme } from "@/src/theme/tokens";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -30,6 +31,12 @@ export default function OrdersScreen() {
   const [guestToken, setGuestToken] = useState("");
   const [trackError, setTrackError] = useState<string | null>(null);
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // Pedidos de invitado guardados en este dispositivo: sin ellos, al cerrar la
+  // app el invitado no podía volver a su pedido.
+  const [guestOrders, setGuestOrders] = useState<GuestOrder[]>([]);
+  useEffect(() => {
+    void loadGuestOrders().then(setGuestOrders);
+  }, []);
 
   const realOrders = useQuery({
     queryKey: ["my-orders", session?.user.id ?? "guest"],
@@ -88,11 +95,27 @@ export default function OrdersScreen() {
             <Text style={[styles.trackerSub, { color: theme.muted }]}>
               Ingresa el identificador y el código que recibiste al pagar.
             </Text>
+            {guestOrders.length > 0 ? (
+              <View style={[styles.localOrders, { borderColor: theme.border }]}>
+                <Text style={[styles.trackerTitle, { color: theme.text }]}>Tus pedidos como visita</Text>
+                {guestOrders.map((o) => (
+                  <Pressable
+                    key={o.order_id}
+                    accessibilityRole="button"
+                    onPress={() => router.push({ pathname: "/pedido/[id]", params: { id: o.order_id, token: o.guest_token } })}
+                    style={[styles.localOrder, { borderColor: theme.border }]}
+                  >
+                    <Text style={[styles.number, { color: theme.text }]}>{o.order_number}</Text>
+                    <Text style={{ color: theme.muted }}>Ver pedido</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
             <TextInput
               accessibilityLabel="Identificador del pedido"
               value={guestId}
               onChangeText={setGuestId}
-              placeholder="ID del pedido (uuid)"
+              placeholder="Nº de pedido (SHO-…) o ID"
               autoCapitalize="none"
               placeholderTextColor={theme.muted}
               style={[styles.input, { borderColor: theme.border, color: theme.text }]}
@@ -112,16 +135,22 @@ export default function OrdersScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={!guestId.trim() || !guestToken.trim()}
-              onPress={() => {
-                if (!UUID_RE.test(guestId.trim())) {
-                  setTrackError("El identificador debe ser un uuid válido (cópialo del comprobante).");
-                  return;
-                }
+              onPress={async () => {
+                const ref = guestId.trim();
+                const token = guestToken.trim();
+                if (!ref || !token) return;
                 setTrackError(null);
-                router.push({
-                  pathname: "/pedido/[id]",
-                  params: { id: guestId.trim(), token: guestToken.trim() },
-                });
+                try {
+                  // El invitado conoce el número visible del pedido (SHO-XXXX);
+                  // el UUID interno solo si lo tiene a mano.
+                  const resolved = UUID_RE.test(ref) ? ref : (await trackGuestOrderByNumber(ref, token)).id;
+                  router.push({
+                    pathname: "/pedido/[id]",
+                    params: { id: resolved, token },
+                  });
+                } catch (error) {
+                  setTrackError(error instanceof Error ? error.message : "Pedido no encontrado. Verifica los datos.");
+                }
               }}
               style={[styles.cta, { backgroundColor: theme.accent, opacity: !guestId.trim() || !guestToken.trim() ? 0.5 : 1 }]}
             >
@@ -187,6 +216,23 @@ const styles = StyleSheet.create({
   status: { fontSize: typeScale.caption, fontWeight: "600" },
   detail: { fontSize: typeScale.caption },
   total: { fontSize: typeScale.body, fontWeight: "700", marginTop: spacing.xs },
+  localOrders: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  localOrder: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 44,
+  },
   tracker: { gap: spacing.sm, marginTop: spacing.md },
   trackerTitle: { fontSize: typeScale.headline, fontWeight: "700" },
   trackerSub: { fontSize: typeScale.caption },

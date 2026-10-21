@@ -15,6 +15,8 @@ const EVENTS: OrderEmailEvent[] = [
   "order_delivered",
   "order_cancelled",
   "order_refunded",
+  "return_requested",
+  "return_rejected",
 ];
 
 export function isOrderEmailEvent(v: unknown): v is OrderEmailEvent {
@@ -65,6 +67,7 @@ export async function sendOrderEmail(
 
   const emailData: OrderEmailData = {
     order_number: o.order_number,
+    order_id: o.id,
     customer_name: addr["fullName"] ?? to,
     total_clp: o.total_clp,
     items: ((items ?? []) as { product_name: string; qty: number; unit_price_clp: number }[]).map((i) => ({

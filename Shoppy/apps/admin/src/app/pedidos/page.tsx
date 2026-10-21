@@ -17,6 +17,24 @@ interface Row {
 
 const FILTERS = ["all", "PENDING_PAYMENT", "PAID", "PREPARING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"];
 
+interface ReviewPayment {
+  id: string;
+  order_id: string;
+  refund_state: string | null;
+  incident: string | null;
+}
+
+/** Pagos cuyo reembolso quedó en revisión o en curso: requieren una mirada. */
+async function fetchReviewPayments(): Promise<ReviewPayment[]> {
+  const { data, error } = await supabase
+    .from("payments")
+    .select("id,order_id,refund_state,incident")
+    .in("refund_state", ["review", "processing"])
+    .limit(50);
+  if (error) throw error;
+  return (data ?? []) as ReviewPayment[];
+}
+
 async function fetchOrders(): Promise<Row[]> {
   const { data, error } = await supabase
     .from("orders")
@@ -31,6 +49,7 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState("all");
   const { includeTest } = useModo();
   const { data: rows = [], isLoading, isError, refetch } = useQuery({ queryKey: ["admin-orders"], queryFn: fetchOrders });
+  const { data: reviewPayments = [] } = useQuery({ queryKey: ["admin-review-payments"], queryFn: fetchReviewPayments });
 
   const modeFiltered = includeTest ? rows : rows.filter((r) => !isTestOrder(r));
   const statusFiltered = filter === "all" ? modeFiltered : modeFiltered.filter((r) => r.status === filter);
@@ -41,6 +60,25 @@ export default function OrdersPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="font-serif text-3xl tracking-tight">Pedidos</h1>
+
+      {reviewPayments.length > 0 ? (
+        <div role="alert" className="border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="font-semibold">
+            {reviewPayments.length} pago{reviewPayments.length === 1 ? "" : "s"} con reembolso pendiente de revisión.
+          </p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {reviewPayments.map((p) => (
+              <li key={p.id}>
+                <Link href={`/pedidos/${p.order_id}`} className="underline">
+                  Ver pedido
+                </Link>{" "}
+                · {p.refund_state === "processing" ? "reembolso en curso" : "reembolso en revisión"}
+                {p.incident ? ` · ${p.incident}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <p className="text-sm text-zinc-600">
         {includeTest ? (

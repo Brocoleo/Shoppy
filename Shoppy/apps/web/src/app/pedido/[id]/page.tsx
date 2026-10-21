@@ -5,10 +5,12 @@ import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatCLP } from "../../../lib/format";
-import { getMyOrderDetail, requestReturn, trackGuestOrder } from "../../../lib/checkout";
+import { getMyOrderDetail, requestReturn, trackGuestOrder, trackGuestOrderByNumber } from "../../../lib/checkout";
 import { useSession } from "../../../lib/session";
 import { ErrorState, LoadingState, backendErrorMessage } from "../../../components/States";
 import { isSupabaseConfigured } from "../../../lib/supabase";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function PedidoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,6 +27,7 @@ function PedidoInner({ id }: { id: string }) {
   const { user, loading } = useSession();
   const [token, setToken] = useState(search.get("token") ?? "");
   const [submittedToken, setSubmittedToken] = useState<string | null>(search.get("token"));
+  const [formError, setFormError] = useState<string | null>(null);
   const guest = id === "guest" || !user;
 
   const authed = useQuery({
@@ -46,16 +49,28 @@ function PedidoInner({ id }: { id: string }) {
     return (
       <form
         className="mx-auto flex max-w-md flex-col gap-3"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
-          const orderId = String(data.get("orderId") ?? "").trim();
+          const orderRef = String(data.get("orderId") ?? "").trim();
           const code = String(data.get("token") ?? "").trim();
-          router.push(`/pedido/${encodeURIComponent(orderId)}?token=${encodeURIComponent(code)}`);
+          if (!orderRef || !code) return;
+          setFormError(null);
+          try {
+            // El invitado conoce el número visible del pedido (SHO-XXXX); el
+            // UUID interno solo sirve si lo tiene (correo anterior o historial).
+            const resolved = UUID_RE.test(orderRef)
+              ? orderRef
+              : (await trackGuestOrderByNumber(orderRef, code)).id;
+            router.push(`/pedido/${encodeURIComponent(resolved)}?token=${encodeURIComponent(code)}`);
+          } catch (err) {
+            setFormError(err instanceof Error ? err.message : "Pedido no encontrado. Verifica los datos.");
+          }
         }}
       >
         <h1 className="font-display text-3xl tracking-tight text-carbon">Rastrear pedido</h1>
-        <p className="text-sm text-muted">Ingresa el ID del pedido y el código que recibiste al comprar.</p>
+        <p className="text-sm text-muted">Ingresa el número de pedido (SHO-…) y el código que recibiste al comprar.</p>
+        {formError ? <p role="alert" className="border border-red-700/30 bg-red-700/5 p-3 text-sm text-red-700">{formError}</p> : null}
         <GuestIdField defaultId={id === "guest" ? "" : id} />
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Código de rastreo</span>
@@ -168,8 +183,8 @@ function PedidoInner({ id }: { id: string }) {
 function GuestIdField({ defaultId }: { defaultId: string }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-[11px] uppercase tracking-[0.18em] text-muted">ID del pedido</span>
-      <input name="orderId" required autoComplete="off" spellCheck={false} defaultValue={defaultId} placeholder="UUID del pedido" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
+      <span className="text-[11px] uppercase tracking-[0.18em] text-muted">Número o ID del pedido</span>
+      <input name="orderId" required autoComplete="off" spellCheck={false} defaultValue={defaultId} placeholder="SHO-1234ABCD o UUID" className="h-11 border border-carbon/30 bg-ivory px-3 text-sm text-carbon placeholder:text-muted focus:border-carbon" />
     </label>
   );
 }

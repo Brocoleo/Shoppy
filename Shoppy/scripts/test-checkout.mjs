@@ -11,6 +11,7 @@ const files = [
   "scripts/payment-bridge.test.mjs",
   "apps/web/src/lib/cartStore.test.ts",
   "apps/web/src/lib/catalogProduct.test.ts",
+  "apps/web/src/lib/guestOrders.test.ts",
   "scripts/local-checkout/local-checkout.test.mjs",
 ];
 for (const file of files) {
