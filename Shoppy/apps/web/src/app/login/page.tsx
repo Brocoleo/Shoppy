@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "../../lib/session";
@@ -15,11 +15,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Navegar durante el render provoca el warning de React ("Cannot update a
+  // component (Router) while rendering a different component") y puede duplicar
+  // la navegación: se hace en un efecto.
+  // OJO: el efecto va ANTES de cualquier return temprano; si no, React ve
+  // cambiar el orden de los hooks cuando la sesión termina de cargar.
+  useEffect(() => {
+    if (user) router.replace("/");
+  }, [user, router]);
+
   if (loading) return <LoadingState message="Cargando sesión…" />;
-  if (user) {
-    router.replace("/");
-    return null;
-  }
+  if (user) return null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

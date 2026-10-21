@@ -57,7 +57,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export const viewport: Viewport = { themeColor: "#f8f7f4" };
+// viewportFit=cover + env(safe-area-inset-*) para que en iPhone con muesca el
+// encabezado no quede bajo la barra de estado ni el pie bajo la barra inferior.
+export const viewport: Viewport = { themeColor: "#f8f7f4", viewportFit: "cover" };
 
 /** Datos estructurados de marca: ayudan a que Google muestre el sitio con logo. */
 const ORGANIZATION_LD = {
@@ -115,12 +117,12 @@ export default function RootLayout({
               <main
                 id="contenido"
                 tabIndex={-1}
-                className="mx-auto w-full max-w-[1440px] flex-1 px-5 pb-20 pt-3 sm:px-8 sm:pt-5 lg:px-14"
+                className="mx-auto w-full max-w-[1440px] flex-1 px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-3 sm:px-8 sm:pt-5 lg:px-14"
               >
                 {children}
               </main>
               <footer className="mt-auto bg-carbon text-ivory">
-                <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm">
+                <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 text-sm">
                   <div className="flex flex-col gap-1">
                     <p className="font-display text-2xl">vinta.zhe</p>
                     <a

@@ -27,7 +27,7 @@ export function Header() {
           menuButton.current?.focus();
         }
       }}
-      className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur"
+      className="sticky top-0 z-40 border-b border-line bg-ivory/95 backdrop-blur [padding-top:env(safe-area-inset-top)]"
     >
       <div className="mx-auto flex w-full max-w-[1440px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-14">
         <Link

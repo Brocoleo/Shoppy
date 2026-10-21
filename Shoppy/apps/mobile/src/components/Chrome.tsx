@@ -59,7 +59,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    minHeight: 40,
+    // Target táctil mínimo de 44 px (wcag / guidelines móviles).
+    minHeight: 44,
     justifyContent: "center",
   },
   label: { fontSize: typeScale.caption, fontWeight: "500" },
