@@ -60,7 +60,11 @@ tienda) y ajustó dos hallazgos. Este informe ya refleja esa evaluación:
 | **A-01** escalada a admin | crítica | crítica | ✅ **RESUELTO** (Etapa 1) — migración `20261020000000` + T14/T15/T16 + sonda funcional en la BD real |
 | **A-02** fuga entre cuentas en la web | alta | alta | ✅ **RESUELTO** (Etapa 2) — clave por usuario + purga al cambiar de cuenta + E2E de regresión |
 | **A-05** liquidación sin pago verificado | alta (fix mal dirigido) | **alta** | ✅ **RESUELTO** (Etapa 1) — el fix correcto es de **permisos**, no "consultar siempre al proveedor" |
-| **A-03** cancelación con pago en vuelo | alta (sobreventa) | 🟠 **media** — el informe original sobredimensionó el impacto (ver A-03) | ⏳ **Etapa 3**: primero reproducir la carrera, luego endurecer |
+| **A-03** cancelación con pago en vuelo | alta (sobreventa) | 🟠 **media** — el informe original sobredimensionó el impacto (ver A-03) | ✅ **RESUELTO** (Etapa 3): carrera reproducida con 2 conexiones + guard que impide cancelar con pago vivo |
+
+**Etapa 3 aplicada el 21-oct-2026** (3 migraciones nuevas + Edge Function redesplegada): el pago tardío
+**se reembolsa solo y avisa al cliente**, la cancelación con pago vivo queda bloqueada, el precio ya no
+puede cambiar entre la cotización y el cobro, y el reembolso funciona en `PREPARING`/`SHIPPED`.
 
 Detalle de los cambios aplicados y de su evidencia en **§5.2** y **§8**.
 
@@ -320,7 +324,7 @@ Con `staleTime: 60_000` y `refetchOnWindowFocus: false` (`query.tsx:11`), React 
 ---
 
 ### A-03 · El cliente puede cancelar su pedido mientras el pago está en vuelo
-**Severidad:** 🟠 **media** (reclasificada) · **Estado:** policy confirmada; **la carrera completa está sin probar** · ⏳ Etapa 3
+**Severidad:** 🟠 **media** (reclasificada) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 > **Reclasificado tras la revisión del dueño (20-oct-2026).** El informe original
 > lo graduó como "sobreventa" y eso **sobreestimaba el impacto**: el propio código
@@ -440,7 +444,7 @@ real (9 casos). Verificados en rojo antes del fix y en verde después (§5.2).
 ---
 
 ### A-06 · El pago tardío deja el dinero cobrado sin reembolso automático ni aviso al cliente
-**Severidad:** 🔴 alta (pérdida de dinero + sobreventa silenciosa) · **Estado:** confirmado (constatado en producción)
+**Severidad:** 🔴 alta (pérdida de dinero) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `supabase/migrations/20261017233000_checkout_sandbox_prerequisites.sql:89-93` · `supabase/functions/checkout/index.ts:354,356` · `docs/mercadopago-sandbox-2026-10-17/VERIFICACION.md:81`
 
@@ -465,7 +469,7 @@ y en `convergePaid`, el `return` en `:354` ocurre **antes** de `sendOrderEmail(.
 ---
 
 ### A-07 · Webpay está atado al host sandbox: no existe ruta live, y nunca se validó end-to-end
-**Severidad:** 🔴 alta (bloqueo de compra) · **Estado:** confirmado (código) / pendiente de verificación (E2E nunca ejecutado)
+**Severidad:** 🟠 media (bloqueo de compra) · **Estado:** 🟡 **resuelto en código** (Etapa 3: el bridge acepta el host live) · la E2E con Transbank sigue pendiente
 
 **Archivos:** `apps/web/src/app/api/payments/start/route.ts:8` · `apps/admin/src/app/api/payments/start/route.ts` (idéntico) · `supabase/functions/_shared/payment.ts:258-346` · `docs/PAYMENTS.md:46`
 
@@ -505,7 +509,7 @@ notification_url: webhookSecret ? input.webhookUrl : undefined,
 ---
 
 ### A-09 · El precio puede cambiar entre la cotización y el cobro sin que el cliente lo sepa
-**Severidad:** 🟠 media (cobro incorrecto) · **Estado:** confirmado
+**Severidad:** 🟠 media (cobro incorrecto) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `apps/web/src/app/checkout/page.tsx:452-456,574` vs `:225` · `apps/mobile/app/checkout.tsx:387,471` · `supabase/functions/checkout/index.ts:319,245-247`
 
@@ -520,7 +524,7 @@ notification_url: webhookSecret ? input.webhookUrl : undefined,
 ---
 
 ### A-10 · El checkout móvil puede quedar bloqueado permanentemente
-**Severidad:** 🟠 media (bloqueo de compra) · **Estado:** confirmado
+**Severidad:** 🟠 media (bloqueo de compra) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `apps/mobile/src/lib/pendingCheckout.ts:23-31` · `apps/mobile/app/checkout.tsx:80,172-176,457,464-473`
 
@@ -540,7 +544,7 @@ if (details?.key !== secret.key) return { key: secret.key, secret: secret.secret
 ---
 
 ### A-11 · No hay idempotencia a nivel del cargo: doble cobro posible en MercadoPago
-**Severidad:** 🟠 media (pérdida de dinero) · **Estado:** confirmado
+**Severidad:** 🟠 media (pérdida de dinero) · **Estado:** 🟡 **parcialmente resuelto** (Etapa 3: el cobro real queda en una columna única y un duplicado se detecta y marca; falta la cabecera `X-Idempotency-Key` en la preferencia, que no se puede probar sin credenciales de MP)
 
 **Archivos:** `supabase/functions/_shared/payment.ts:169,201` · `supabase/functions/checkout/index.ts:332-333,482` · `supabase/migrations/20260928000000_init_schema.sql:524,527-528`
 
@@ -559,7 +563,7 @@ El id real (`payment_id`) queda en `raw_payload` (jsonb, sin índice único) y *
 ---
 
 ### A-12 · Reembolsar un pedido en `PREPARING`/`SHIPPED` devuelve el dinero pero deja la BD inconsistente
-**Severidad:** 🟠 media (pérdida de dinero + estado corrupto) · **Estado:** confirmado
+**Severidad:** 🟠 media (pérdida de dinero + estado corrupto) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `supabase/functions/checkout/index.ts:520-528` · `supabase/migrations/20260919140000_return_requests.sql:87-106` · `supabase/migrations/20260928000000_init_schema.sql:425-433`
 
@@ -604,7 +608,7 @@ if (finishError) throw finishError;
 ---
 
 ### A-15 · El backend no valida `total_clp > 0`
-**Severidad:** 🟠 media (cobro incorrecto) · **Estado:** confirmado
+**Severidad:** 🟠 media (cobro incorrecto) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `supabase/functions/checkout/index.ts:245-247` · `supabase/migrations/20260928000000_init_schema.sql:525,596`
 
@@ -623,7 +627,7 @@ if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(netSubtotal + shipp
 ---
 
 ### A-16 · `guest_token` sin expiración ni revocación
-**Severidad:** 🟠 media · **Estado:** confirmado
+**Severidad:** 🟠 media · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `supabase/migrations/20260928000000_init_schema.sql:353-371` · `supabase/migrations/20261019150000_guest_order_tracking.sql:33`
 
@@ -649,7 +653,7 @@ if (!Number.isSafeInteger(subtotal) || !Number.isSafeInteger(netSubtotal + shipp
 ---
 
 ### A-18 · El checkout móvil borra la dirección tecleada si la respuesta llega tarde
-**Severidad:** 🟡 baja (pérdida de datos tecleados) · **Estado:** confirmado
+**Severidad:** 🟡 baja (pérdida de datos tecleados) · **Estado:** ✅ **RESUELTO** (Etapa 3, 21-oct-2026)
 
 **Archivos:** `apps/mobile/app/checkout.tsx:92-119` vs `apps/web/src/app/checkout/page.tsx:112-149`
 
@@ -1106,6 +1110,49 @@ que la página activa acababa de lanzar, dejando `/pedidos` colgado en
 "Cargando tus pedidos…" (síntoma visible en el primer intento del E2E). Se
 corrigió purgando **solo la cuenta anterior** (`apps/web/src/lib/session.tsx`).
 
+### 5.3 Evidencia de la remediación (Etapa 3)
+
+**Primero la evidencia, después el fix.** La carrera se reprodujo con **dos conexiones concurrentes**
+(`supabase/tests/race_cancel_payment.sh`, Postgres 16) *antes* de tocar la policy:
+
+| Caso | Antes del guard | Después del guard |
+|---|---|---|
+| A · el cliente cancela, el backend liquida después | `order=CANCELLED`, `payment=approved`, `producto=AVAILABLE` → **el cliente paga y no recibe** | la cancelación se rechaza (`PAYMENT_IN_FLIGHT`) → `order=PAID`, `payment=approved`, `reserva=consumed` → **quien pagó recibe la prenda** |
+| B · el backend liquida, el cliente cancela después | `order=PAID` y el `UPDATE` del cliente afecta 0 filas sin error | igual (el camino sancionado es `close_checkout_attempt`, que ya comprobaba el pago) |
+
+**Suite SQL en Docker (rojo → verde):**
+```
+SIN EL GUARD:  ERROR: T17 FAIL: el cliente canceló un pedido con pago en curso
+CON EL GUARD:  PASS T17a: no se cancela un pedido con pago en curso
+                PASS T17b: la reserva sigue intacta (stock=0, reserva activa)
+                PASS T17c: con el pago rechazado se cancela y el stock vuelve
+                PASS T17d: un pedido con pago aprobado no se cancela (hay que reembolsarlo)
+                PASS T17e: el backend sigue pudiendo cancelar (flujo de reembolso)
+SIN A-12:      ERROR: T18 FAIL: el pedido quedó en PREPARING (esperado REFUNDED)
+CON A-12:      PASS T18: se puede reembolsar un pedido en PREPARING / SHIPPED
+CON A-11/A-16: PASS T19a: el token caducado no rastrea el pedido
+                PASS T19b: el token vigente rastrea el pedido sin exponer el token
+                PASS T19c: la operación del proveedor es única por pago
+                ALL DB TESTS PASSED
+```
+
+**Edge Function (nodos, con mocks del servidor):**
+| Test | Qué cubre |
+|---|---|
+| `el pago tardío se reembolsa solo y avisa al cliente` | `settle` devuelve `REFUND_REQUIRED` → el backend reembolsa, el pago queda `refunded/done` y el pedido `REFUNDED` |
+| `si el reembolso automático falla, el pago queda en revisión y no se reintenta` | el fallo del proveedor deja `refund_state=review` + `incident` (no se reintenta a ciegas) |
+| `el precio cambió entre la cotización y el pago: no se cobra otro importe` | `409 PRICE_CHANGED`, **no** se crea pedido ni se reserva stock |
+| `con el total cotizado correcto la compra sigue adelante` | el camino normal no se rompe |
+| `un cupón del 100 % con envío gratis no deja un pedido de 0 CLP` | `400 INVALID_TOTAL` |
+
+**Aplicado en la BD remota** con `db query --linked` + `migration repair`: **24/24 migraciones**, 0 pendientes.
+Edge Function `checkout` ** redesplegada** y verificada en vivo (responde `VALIDATION` y el RPC de tracking
+devuelve `ORDER_NOT_FOUND` con un token caducado).
+
+**Verificación completa tras la Etapa 3:** `tsc` (4 workspaces) sin errores · `eslint --max-warnings 0` ·
+`test:beta` **65/65** · `test:checkout` (29 + 17 + …) verde · `web:build` y `admin:build` OK ·
+**E2E 12/12** · suite SQL **T0–T19** en verde.
+
 ### 5.1 Qué **no** pudo verificarse en este entorno
 
 - **Ninguna comprobación de interfaz del sitio público desplegado**: sigue caído (V-12). Los E2E de web se hicieron contra el servidor local `:3010` que levanta Playwright.
@@ -1265,8 +1312,8 @@ con limpieza verificada, y `supabase migration list` con **21/21** aplicadas.
 **Criterio de aceptación:** ✅ Cumplido — el E2E **falla con el código anterior**
 (B veía el pedido de A) y **pasa con el nuevo**; suite E2E completa **12/12**.
 
-### Etapa 3 — Probar y endurecer cancelación, reserva y pago tardío ⏳ **SIGUIENTE**
-**Depende de:** Etapa 1 (hecha).
+### Etapa 3 — Probar y endurecer cancelación, reserva y pago tardío ✅ **COMPLETADA**
+**Depende de:** Etapa 1 (hecha). **Estado:** completada el 21-oct-2026.
 
 1. **Reproducir primero** la carrera completa de **A-03** en Postgres aislado con
    **dos conexiones concurrentes** (webhook llegando durante el `UPDATE` de
@@ -1282,9 +1329,10 @@ con limpieza verificada, y `supabase migration list` con **21/21** aplicadas.
 8. **A-12** → ampliar las transiciones a `REFUNDED` y pre-marcar el reembolso antes de llamar al proveedor.
 9. **A-11** → `X-Idempotency-Key` en la preferencia + columna única para el id real del pago.
 
-**Criterio de aceptación:** con dos conexiones concurrentes, cancelar con pago vivo
-no libera stock y no produce un pedido `PAID` sin cobro; un pago tardío produce
-**exactamente un reembolso automático** y un email al cliente.
+**Criterio de aceptación:** ✅ Cumplido — la carrera se reprodujo con dos conexiones
+(`supabase/tests/race_cancel_payment.sh`), el guard bloquea la cancelación con pago vivo (T17),
+el pago tardío produce **un reembolso automático** y el aviso al cliente, el precio no puede
+cambiar entre cotización y cobro, y el reembolso funciona en `PREPARING`/`SHIPPED` (T18).
 
 ### Etapa 4 — Resolver la recuperación de pedidos invitados y el webhook ⏳ **SIGUIENTE**
 **Depende de:** Etapa 3 (A-06 comparte el camino de pago).
@@ -1293,9 +1341,8 @@ no libera stock y no produce un pedido `PAID` sin cobro; un pago tardío produce
    `order_id` (hoy el invitado **no puede recuperar su pedido** tras cerrar la app).
 2. **A-08** → configurar `MERCADOPAGO_WEBHOOK_SECRET` y `notification_url`; probar
    con firma real (P-5).
-3. **A-07** → parametrizar el host del bridge de Webpay por
-   `TRANSBANK_ENVIRONMENT`/`PAYMENT_MODE` (hoy está atado a `webpay3gint`) y avisar
-   del límite de 5 min del token frente a la reserva de 15 min.
+3. **A-07** → el bridge ya acepta el host live de Transbank (hecho en la Etapa 3);
+   queda avisar del límite de 5 min del token frente a la reserva de 15 min.
 4. Ejecutar la matriz completa de `docs/BETA.md:29-35` (aprobación, rechazo,
    cancelación, expiración y reembolso en ambos proveedores).
 
@@ -1421,19 +1468,32 @@ un flujo compra → despacho → entrega → devolución completo pasa de punta 
 - **A-39** (nuevo) — el toggle "Hacer admin" del panel **estaba roto** (RLS sin policy de UPDATE para admins) y su test daba verde falso: **arreglado**; el test ahora lee el rol resultante.
 - **A-28 / A-40** (nuevos) — la suite SQL **abortaba en T13** y el entorno local iba **una migración por detrás** del remoto: **arreglados**; las 4 suites SQL ahora se ejecutan.
 
-**Los diez riesgos principales (estado actual).**
+**Los diez riesgos principales (estado actual tras las Etapas 1-3).**
 1. 🔴 **B-1** — El sitio público está **caído** (Vercel pausado, 503). La beta no tiene URL.
 2. 🔴 **B-3** — Sin `MERCADOPAGO_WEBHOOK_SECRET`, MercadoPago **nunca notifica**: la única liquidación es el "Ya pagué" del cliente.
-3. 🔴 **A-06** — El pago tardío deja el dinero cobrado **sin reembolso automático ni email** (ya consta en producción).
-4. 🔴 **A-04** — El invitado **no puede recuperar su pedido** tras cerrar la app (el token se borra y el UUID nunca se muestra ni se envía por correo) → no puede ejercer el retracto de la Ley 19.496.
-5. 🔴 **A-07** — Webpay está **atado al host sandbox** (no hay ruta live) y **nunca se validó E2E**.
-6. 🟠 **A-03** — El cliente puede cancelar su pedido con el pago en vuelo. **Reclasificado**: no hay sobreventa (`settle_checkOUT` se niega a liquidar y devuelve `REFUND_REQUIRED`); el daño es **cobro sin contraparte** con reembolso manual. La carrera completa está **sin probar** → Etapa 3.
-7. 🟠 **A-09 + A-15** — El precio puede cambiar entre la cotización y el cobro sin aviso, y no se valida `total_clp > 0`.
-8. 🟠 **A-12** — Reembolsar en `PREPARING`/`SHIPPED` devuelve el dinero en el proveedor pero rompe la BD (transición ilegal).
-9. 🟠 **B-2** + **A-13** — Páginas legales con `[pendiente]` (bloqueante para vender) y la devolución promete un correo que no existe.
-10. 🟡 **A-10 + A-16 + A-18** — El checkout móvil puede quedar bloqueado, el `guest_token` no expira y el prefill de dirección borra lo tecleado.
+3. 🔴 **A-04** — El invitado **no puede recuperar su pedido** tras cerrar la app (el token se borra y el UUID nunca se muestra ni se envía por correo) → no puede ejercer el retracto de la Ley 19.496.
+4. 🟠 **A-13** — La devolución promete un correo que **no existe** (`return_requested` / `return_rejected` no están en el enum de eventos).
+5. 🟠 **B-2** — Páginas legales con `[pendiente]`: razón social, RUT, domicilio, correo y plazo. **Bloqueante para vender.**
+6. 🟠 **A-11 (parcial)** — La preferencia de MercadoPago se crea sin cabecera `X-Idempotency-Key`: un fallo entre crear la preferencia y guardarla deja el **cobro huérfano** sin registro. El cobro real ya queda en una columna única y un duplicado se detecta y marca, pero la cabecera no se puede probar sin credenciales de MP.
+7. 🟠 **A-07 (parcial)** — Webpay ya no está atado al host sandbox, pero **nunca se validó end-to-end** y el token de Webpay vive 5 min frente a una reserva de 15.
+8. 🟠 **A-14** — Los pagos en `refund_state='review'` o `'processing'` no generan ninguna alerta en el panel (solo una etiqueta dentro del pedido).
+9. 🟡 **A-04/A-02 (higiene)** — `guest_token` ya caduca a 180 días y es revocable, y el checkout pendiente del invitado en `localStorage` sobrevive al cambio de cuenta.
+10. 🟡 **A-33/A-34/A-35** — La web no tiene favoritos, no expone los filtros de talla/condición/precio que la capa de datos sí soporta, y no usa `env(safe-area-inset-*)`.
 
-**Siguiente paso recomendado (orden del dueño).** **Etapa 3**: reproducir primero la carrera de cancelación/reserva/pago tardío en Postgres aislado con dos conexiones y, **con esa evidencia**, endurecer la policy; en paralelo, cerrar **A-06** (reembolso automático + email). Después, **Etapa 4** (recuperación del invitado + webhook de MP con firma real + Webpay parametrado) y **Etapa 5** (datos legales + E2E de compra). Solo al final, **Etapa 6**: reanudar Vercel y publicar. **No declarar la beta lista por el hecho de que compile y las pruebas simuladas pasen:** la evidencia más fuerte del proyecto sigue siendo el E2E de fotos del admin (el módulo menos riesgoso); el checkout, donde está el dinero, **sigue sin ningún E2E**.
+**Resueltos en las Etapas 1-3 (con evidencia):** A-01 (escalada a admin), A-02 (fuga entre cuentas),
+A-03 (cancelación con pago vivo), A-05 (fabricación de aprobaciones), A-06 (pago tardío sin reembolso),
+A-09 (precio que cambia entre cotización y cobro), A-10 (checkout móvil bloqueado), A-12 (reembolso en
+PREPARING/SHIPPED), A-15 (pedido de 0 CLP), A-16 (token de invitado sin caducidad), A-18 (dirección
+borrada), A-39 (toggle de admin roto), A-28/A-40 (suite SQL que no corría).
+
+**Siguiente paso recomendado (orden del dueño).** **Etapa 4**: que el invitado pueda recuperar su
+pedido (persistir la lista local y mostrar/enviar el `order_id`), configurar `MERCADOPAGO_WEBHOOK_SECRET`
+con `notification_url` y probar la firma real, y ejecutar la matriz de pagos de `docs/BETA.md` con
+MercadoPago y Webpay. Después, **Etapa 5** (datos legales, eventos de correo de RMA, E2E de compra) y
+**Etapa 6** (reanudar Vercel y publicar). **No declarar la beta lista por el hecho de que compile y las
+pruebas simuladas pasen:** la evidencia más fuerte del proyecto sigue siendo el E2E de fotos del admin
+(el módulo menos riesgoso); el checkout, donde está el dinero, **sigue sin ningún E2E** — y ahora toca
+justo el camino del dinero, así que ese E2E es lo que falta antes de publicar.
 
 ---
 
