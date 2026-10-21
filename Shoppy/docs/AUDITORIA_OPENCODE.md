@@ -1060,7 +1060,7 @@ constante `"guest"`).
 | V-10 | Consultas SQL de solo lectura a la BD remota (`supabase db query --linked`) | ✅ 27 tablas (27/27 con RLS), 2 crons activos, policies de `profiles`/`orders`/`payments` verificadas | **Solo lectura** |
 | V-11 | `supabase functions invoke` (POST a `checkout`/`notify`/`producto-ia`) | ✅ Las 3 Edge Functions están desplegadas y responden con validación de entrada (`VALIDATION` / `UNAUTH`) | No se ejecutó un flujo de pago real (requeriría escribir en remoto) |
 | V-12 | `curl` a 5 rutas de `https://shopy-web-six.vercel.app` | 🔴 **503 `DEPLOYMENT_PAUSED`** en las 5 | El sitio está caído |
-| V-13 | `npx playwright test` (apps/admin) | ✅ **12/12** verdes (11 de fotos + 1 nuevo de aislamiento) | Cubre el flujo de fotos del admin y el aislamiento entre cuentas; **no** cubre checkout, pagos ni carrito |
+| V-13 | `npx playwright test` (apps/admin) | ✅ **13/13** verdes (11 de fotos + aislamiento entre cuentas + **compra hasta el pago**) | Cubre el flujo de fotos del admin, el aislamiento entre cuentas y la creación del pedido con su reserva; **no** cubre el pago real contra el proveedor ni la confirmación |
 | V-14 | `deno test` sobre `_shared/*_test.ts` | ⚠️ **No ejecutable**: no hay binario `deno` en el entorno | Los 17 tests Deno documentados en `docs/BETA.md:51` **no se re-verificaron** |
 | V-15 | Suite SQL completa en Docker (Postgres 16) | ✅ `rls_tests` **T0–T16** + `beta_tests` + `admin_images_tests` + `sandbox_checkout_tests` | Ahora **sí** ejecutable (antes abortaba en T13): ver §5.2 |
 
@@ -1218,6 +1218,25 @@ suite SQL **T0–T20** en verde · E2E **12/12**.
 **Estado remoto tras la Etapa 5:** **27/27 migraciones** aplicadas, 0 pendientes; **3 crons** activos
 (liberación de reservas, trending, purga de huérfanos).
 
+### 5.6 El E2E de compra (P-1)
+
+`apps/admin/tests/checkout-flow.spec.ts` recorre la compra **como invitado** en el sitio real:
+carrito → checkout (dirección, región/comuna, tarifa, medio de pago) → "Pagar". Verifica que el
+pedido se crea con el total correcto (prenda + despacho), que el pago queda `pending` y que **la
+prenda única queda RESERVADA** (stock 0, reserva activa de 15 min). No cobra: el proveedor externo
+abre su propia página.
+
+**Lo que este test destapó durante su escritura (todo corregido):**
+- La compra **sin cuenta** deja el pedido con `user_id = null` y `guest_token` (había que localizarlo
+  por la prenda, no por el usuario).
+- `order_items` **no tiene columna `created_at`**: ordenar por ella hacía fallar la consulta.
+- `checkout_attempts.order_id` es FK **sin cascada**: el pedido no se puede borrar hasta borrar el
+  intento (el cleanup lo hace en ese orden).
+- El pago es por el **total** (prenda + despacho), no por el subtotal.
+
+**Limpieza verificada:** tras la corrida completa (13 tests) la BD remota queda con **0** pedidos,
+prendas, perfiles, reservas, intentos y pagos de prueba.
+
 ### 5.1 Qué **no** pudo verificarse en este entorno
 
 - **Ninguna comprobación de interfaz del sitio público desplegado**: sigue caído (V-12). Los E2E de web se hicieron contra el servidor local `:3010` que levanta Playwright.
@@ -1250,7 +1269,7 @@ suite SQL **T0–T20** en verde · E2E **12/12**.
 
 | # | Prueba ausente | Hallazgo que cerraría | Prioridad | Estado |
 |---|---|---|---|---|
-| P-1 | **E2E del checkout completo** en web y móvil: invitado → dirección → cupón → pago simulado → confirmación → tracking. Hoy no existe ningún E2E de compra. | A-04, A-06, A-09, A-10 | 🔴 | ⏳ pendiente (Etapa 5) |
+| P-1 | **E2E del checkout completo** en web y móvil: invitado → dirección → cupón → pago simulado → confirmación → tracking. | A-04, A-06, A-09, A-10 | 🔴 | 🟡 **parcial** — `apps/admin/tests/checkout-flow.spec.ts`: carrito → dirección → tarifa → medio de pago → "Pagar", y se verifica que el pedido se crea con el total correcto, que el pago queda pendiente y que **la prenda queda reservada** (stock 0). Falta el pago real contra el proveedor y la confirmación |
 | P-2 | **E2E de aislamiento de cuenta en la web**: login A → `/pedidos` → logout → login B → `/pedidos` debe estar vacío | A-02 | 🔴 | ✅ **hecho** — `apps/admin/tests/web-account-isolation.spec.ts` |
 | P-3 | **Test SQL de escalada de privilegios**: `DELETE`+`INSERT` con `role='admin'` debe fallar | A-01 | 🔴 | ✅ **hecho** — `rls_tests.sql` T14 |
 | P-4 | **Test SQL de cancelación con pago vivo**: el stock no debe liberarse | A-03 | 🔴 | ⏳ Etapa 3 (con carrera real de dos conexiones) |
@@ -1559,13 +1578,15 @@ A-13 (correo de devolución que no existía), A-14 (sin alerta de reembolsos en 
 A-28/A-40 (suite SQL que no corría).
 
 **Siguiente paso recomendado (orden del dueño).** **Etapa 5**: completar los datos legales
-(`[pendiente]`), el E2E de compra de punta a punta (hoy **no existe ningún E2E del checkout**: el único
-E2E del proyecto cubre el flujo de fotos del admin, el módulo menos riesgoso) y la matriz de pagos de
-`docs/BETA.md`. Todo lo que queda depende de cuentas externas y no se puede cerrar desde el código:
+(`[pendiente]`) y terminar el **E2E de compra**: ya recorre la creación del pedido y la reserva de
+stock (`apps/admin/tests/checkout-flow.spec.ts`), pero falta el **pago real contra el proveedor** y la
+**confirmación** (webhook firmado, pedido `PAID`, correo recibido), que es exactamente lo que exige la
+matriz de `docs/BETA.md`. Todo lo que queda depende de cuentas externas y no se puede cerrar desde el código:
 **KYC de MercadoPago + `MERCADOPAGO_WEBHOOK_SECRET`**, cuenta de Transbank, razón social/RUT y
 reanudar Vercel. **No declarar la beta lista por el hecho de que compile y las pruebas simuladas pasen:**
-la evidencia más fuerte del proyecto sigue siendo el E2E de fotos del admin; el checkout, donde está el
-dinero, **sigue sin E2E** — y ahora toca justo ese camino.
+el E2E de fotos del admin ya no es lo más
+valioso: el proyecto tiene **13 E2E** y uno recorre la creación del pedido y la reserva de la prenda
+única. Lo que sigue sin cubrirse es el **pago real y su confirmación**.
 
 ---
 
