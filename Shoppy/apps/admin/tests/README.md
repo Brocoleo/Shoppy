@@ -28,6 +28,17 @@ Incluye además la regresión de **aislamiento entre cuentas** en el sitio web.
 |---|---|---|
 | 1 | Aislamiento entre cuentas | Dos cuentas reales en el **mismo navegador**: la cuenta B **no** puede ver los pedidos de la cuenta A, y la cuenta A los sigue viendo al volver a entrar |
 
+`tests/checkout-flow.spec.ts` (1 caso): **primer E2E del camino del dinero**.
+
+| # | Caso | Qué prueba |
+|---|---|---|
+| 1 | Compra hasta el pago | Carrito → checkout (dirección, región/comuna, tarifa, medio de pago) → "Pagar": el pedido se crea con el total correcto (prenda + despacho), el pago queda `pending` y **la prenda única queda RESERVADA** (stock 0, reserva activa de 15 min). No se cobra: el proveedor externo (MercadoPago) abre su propia página |
+
+Notas de este test:
+- La compra se hace **como invitada** (sin cuenta), que es el caso más delicado: el pedido queda con `guest_token`.
+- Los `<select>` de región y comuna son **listboxes propios** (`AddressSelect`), no `<select>`: se abren y se elige la opción.
+- La limpieza borra primero el **intento de checkout** (`checkout_attempts.order_id` es FK y bloquea el borrado del pedido) y luego el pedido, la prenda y el usuario.
+
 > **Importante para escribir E2E de caché:** el test de aislamiento navega
 > **con clics en enlaces de Next.js**, no con `page.goto()`. Un `goto()` recarga
 > el documento y borra la caché en memoria de React Query, con lo que una fuga
@@ -71,8 +82,10 @@ E2E_WEB_URL=https://shopy-web-six.vercel.app npm run test:e2e
 Cada corrida crea un usuario admin temporal (`e2e-admin-…@vintah-test.local`)
 y una prenda de prueba, y los borra al terminar (`afterAll`). El test de
 aislamiento crea además **dos usuarios cliente** (`e2e-aislamiento-…`) y **un
-pedido** de prueba (`mode = 'test'`), y también los borra. Si la corrida se
-corta a la mitad, se limpian a mano:
+pedido** de prueba (`mode = 'test'`), y también los borra. El test de compra crea
+**un usuario**, **una prenda** (`prenda-compra-e2e-…`) y **un pedido** de prueba
+(`mode = 'test'`), y limpia todo. Si la corrida se corta a la mitad, se limpian
+a mano:
 
 ```bash
 # desde la raíz del repo
@@ -80,6 +93,8 @@ set -a && . ./supabase/.env && . ./apps/web/.env.local && set +a
 curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/products?slug=like.prenda-e2e-*" \
   -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY"
 curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/profiles?email=like.e2e-aislamiento-*" \
+  -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY"
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/products?slug=like.prenda-compra-e2e-*" \
   -H "apikey: $SUPABASE_SECRET_KEY" -H "Authorization: Bearer $SUPABASE_SECRET_KEY"
 ```
 
