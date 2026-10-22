@@ -1523,6 +1523,19 @@ drop y que no dependen de trámites externos.
 El **A-43** existió porque nada ejecutaba las suites al hacer push. Se añadió
 `.github/workflows/ci.yml`:
 
+> **Trampa del repositorio (ya pagada).** El monorepo **no** está en la raíz del
+> repositorio Git: está bajo `Shoppy/`, y la raíz solo contiene `.gitignore`,
+> `vercel.json` y esa carpeta. La primera versión del workflow quedó en
+> `Shoppy/.github/workflows/ci.yml`, que **GitHub ignora por completo** (solo lee
+> `.github/workflows/` desde la raíz): `actions/workflows` reportaba **0
+> workflows** y no se disparaba ninguna corrida. Peor aún, `git ls-tree` ejecutado
+> desde el subdirectorio **lista el árbol relativo al `cwd`**, así que parecía que
+> el archivo estaba bien ubicado; la única forma de verlo fue
+> `git cat-file -p <tree>`, que muestra el árbol crudo con el prefijo `Shoppy/`.
+> El workflow vive ahora en la raíz del repo y los pasos usan
+> `working-directory: Shoppy` (el `package.json` tampoco está en la raíz).
+> **Verificado**: GitHub registró el workflow y disparó la corrida del push.
+
 | Paso | Comando |
 |---|---|
 | Instalar | `npm ci` (determinista: falla si `package.json` y el lock no coinciden) |
@@ -1542,6 +1555,10 @@ comando suelto), así que el sitio público no se tipaba en la verificación can
 
 **Verificación en local de la secuencia completa** (idéntica a la de CI): todo `exit 0` —
 `test:beta` **67/67**, `test:checkout` **90/90 en 10 suites**, `mobile:test` **14/14**.
+
+**Verificación en GitHub:** la primera corrida real terminó **verde en 1m9s** con los seis pasos
+en ✓ (commit `1fa8b38`). Aprovechó el aviso que dejó esa corrida para subir `actions/checkout` y
+`actions/setup-node` de `@v4` a `@v7`: las `@v4` apuntan a **Node.js 20, ya deprecado**.
 
 #### 5.12.2 Seguridad: lo revisado y lo corregido
 
