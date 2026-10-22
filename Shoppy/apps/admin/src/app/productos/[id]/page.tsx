@@ -338,9 +338,16 @@ export default function EditProductPage({
             const base = Math.max(-1, ...images.map((i) => i.sort_order)) + 1;
             for (const original of selected) {
               setRetryFiles(selected.slice(completed));
+              // El mensaje va ANTES de procesar: preparar una foto de 48 MP
+              // tarda un par de segundos y el navegador queda ocupado, asi
+              // que si se actualizara despues, el usuario veria la pantalla
+              // congelada sin saber que esta pasando.
+              setProgress(
+                `Preparando foto ${completed + 1} de ${selected.length}: ${original.name}`,
+              );
               const file = await prepareImage(original);
               setProgress(
-                `Subiendo ${completed + 1} de ${selected.length}: ${file.name}`,
+                `Subiendo foto ${completed + 1} de ${selected.length}: ${file.name}`,
               );
               const safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
               const path =

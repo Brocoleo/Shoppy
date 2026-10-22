@@ -222,6 +222,10 @@ async function aJpeg(origen, destino) {
 }
 
 const server = createServer(async (req, res) => {
+  // Log de peticiones: para saber si el iPhone llega al servidor y desde qué IP.
+  const marca = new Date().toISOString().slice(11, 19);
+  const origen = req.socket.remoteAddress ?? "?";
+  console.log(`[${marca}] ${req.method} ${req.url} desde ${origen}`);
   try {
     if (req.method === "GET") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
@@ -314,6 +318,7 @@ const server = createServer(async (req, res) => {
       const info = await stat(final);
       guardados.push(`${final.split("/").pop()} (${(info.size / 1024).toFixed(0)} KB)`);
     }
+    console.log(`[${marca}]   -> ${guardados.length} guardadas, ${rechazados.length} rechazadas`);
     const cuerpoHtml = [
       ...guardados.map((g) => `<li class="ok"><b>Guardada</b><span>${g}</span></li>`),
       ...rechazados.map((r) => `<li class="err"><b>Rechazada</b><span>${r}</span></li>`),

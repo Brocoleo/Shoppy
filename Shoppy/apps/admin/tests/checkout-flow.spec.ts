@@ -123,7 +123,12 @@ test("el checkout crea el pedido y reserva la prenda", async ({ browser }) => {
     await rate.check();
 
     // 3) Se revisa el pedido y se elige el medio de pago.
-    await page.getByRole("button", { name: /Revisar pedido/i }).click();
+    // El botón se habilita cuando la cotización llega. Con los servidores
+    // recién arrancados esa llamada tarda: se espera a que se habilite en
+    // vez de fallar al primer clic.
+    const revisar = page.getByRole("button", { name: /Revisar pedido/i });
+    await expect(revisar).toBeEnabled({ timeout: 60_000 });
+    await revisar.click();
     const provider = page.locator('input[name="paymentProvider"]').first();
     await expect(provider).toBeVisible({ timeout: 30_000 });
     await provider.check();

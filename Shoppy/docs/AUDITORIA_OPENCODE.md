@@ -1237,7 +1237,92 @@ abre su propia página.
 **Limpieza verificada:** tras la corrida completa (13 tests) la BD remota queda con **0** pedidos,
 prendas, perfiles, reservas, intentos y pagos de prueba.
 
-### 5.1 Qué **no** pudo verificarse en este entorno
+### 5.7 Etapa 6 — Calidad de las fotos de celular (21-oct-2026, rama `image-quality`)
+
+El dueño subió **11 fotos reales de su iPhone** (4284×5712, 24,5 MP, 6–10 MB cada una) y pidió
+mejorar la calidad de las fotos directas del celular. Todo lo de abajo está medido sobre **esas 11
+fotos**, ejecutando **el mismo código de canvas del navegador** (Chromium) que usa el admin.
+
+#### 5.7.1 El hallazgo de fondo: el pipeline anterior estaba mal dimensionado
+
+La configuración anterior (`MAX_LADO = 2000`, WebP 0.90, unsharp mask de radio 2 y cantidad 1.5)tenía **tres defectos**, todos medidos:
+
+| Defecto | Evidencia | Corrección |
+|---|---|---|
+| **Guardaba el doble de píxeles de los necesarios.** Next.js re-optimiza con `withoutEnlargement: true` (`node_modules/next/dist/server/image-optimizer/transform.js:108`): **nunca agranda**. El mayor display real es 1224 px (408 CSS × DPR 3 en móvil) y 1254 px (627 CSS × DPR 2 en escritorio) → con `deviceSizes` de Next, el master no necesita pasar de ~1700 px de lado. | 2000 px daba 1500×1875 px y **1220 KB/foto** | `MAX_LADO = 1700` → 1360×1700 px, **−58% de peso** |
+| **El realce que se había elegido amplificaba el ruido el doble que el detalle.** Con radio 2 y cantidad 1.5, el ruido en la zona plana (el fondo de la foto) subió **+120%**, mientras la nitidez ganaba **+10,7%**. Con radio 1 y cantidad 0.5 la nitidez ganada es la misma con **+33%** de ruido. | ver tabla 5.7.2 | radio 1, cantidad 0.5 |
+| **No había ninguna protección contra el ruido.** El unsharp mask amplifica **todo** por igual: el detalle de la tela (bien) y el ruido del sensor en las zonas planas (mal). Se añadió un **umbral**: las diferencias por debajo de 3 niveles de luminancia se atribuyen a ruido y no se realzan. | con umbral, el ruido sube **+18%** en vez de +33%, y la nitidez se mantiene | `DETALLE_UMBRAL = 3` |
+
+#### 5.7.2 Medición final (11 fotos reales, módulo `prepareImage.ts` real, no una copia)
+
+`scripts/image-quality-modulo-real.mjs` **transpila el módulo del repo con el compilador de
+TypeScript y lo ejecuta dentro de Chromium**: lo que se mide es el código que usa el admin, no una
+reimplementación que podría divergir.
+
+| Combinación | KB/foto | nitidez | ruido | tiempo |
+|---|---|---|---|---|
+| Repo antes: 2000 q0.90 r2 a1.5 | 1220 | 3.535 | 6.16 | 3385 ms |
+| Versión previa: 1800 q0.86 sin realce | 507 | 3.158 | 2.64 | 2213 ms |
+| **NUEVO: 1700 q0.86 r1 a0.5 u3** | **511** | **3.465** | **3.15** | **2324 ms** |
+| 1700 q0.86 r1 a0.5 sin umbral | 554 | 3.529 | 3.61 | 2465 ms |
+| 1700 q0.86 sin realce | 442 | 3.125 | 2.69 | 1912 ms |
+
+**Resultado: mismo peso que la versión anterior (−58% frente al repo), +9,7% de nitidez y −48,8% de
+ruido que la configuración que estaba en el repo.**
+
+#### 5.7.3 La lección de método: la métrica de nitidez mentía
+
+La primera métrica usada (varianza del Laplaciano) dio **+0,0%** de diferencia entre variantes, y
+el unsharp parecía no hacer nada. **Era la métrica la que estaba mal**, no el algoritmo: el Laplacian
+de una foto de 48 MP está dominado por el borde duro entre el fondo negro y la prenda, así que una
+corrección local apenas mueve la media global.
+
+Al medir con el **ratio Laplacian/Gradiente** apareció un segundo problema: los **artefactos de
+compresión también suben ese ratio**, de modo que una imagen más sucia parecía "más nítida". La
+solución fue medir **PSNR contra una referencia ideal**: el original reescalado al tamaño final con
+remuestreo de alta calidad y sin comprimir. Con esa referencia:
+
+- 1600 q0.86 sin realce → **39,88 dB** (el mejor de todos)
+- 1600 q0.83 sin realce → 38,41 dB
+- 1600 q0.80 sin realce → 37,33 dB
+- cualquier variante con realce fuerte → 25–35 dB
+
+El PSNR confirma que bajar la calidad a 0.80 **degrada** la foto real, mientras que el realce, por
+construcción, siempre se aleja de la referencia (es una corrección deliberada, no un error) — por eso
+el realce se juzga por **nitidez ganada frente a ruido introducido**, no por PSNR.
+
+#### 5.7.4 Rendimiento: el realce bloqueaba la interfaz 7,7 s por foto
+
+El desenfoque de caja usaba un bucle con **O(n × radio²)** operaciones por píxel: una foto de 48 MP
+tardaba **7,7 s** en bloquear el hilo principal del navegador. Con **sumas corridas** (O(1) por
+píxel) el mismo resultado sale en ~1 s. El pipeline completo bajó de 3385 ms a **2324 ms por foto**.
+
+#### 5.7.5 Feedback de subida
+
+El mensaje de progreso del admin se actualizaba **después** de procesar la foto, así que durante los
+~2 s de preparación la pantalla quedaba congelada sin explicación. Ahora el mensaje se pone **antes**
+(`"Preparando foto 2 de 11: IMG_9022.jpeg"`) y se cambia a `"Subiendo foto 2 de 11: …"` al terminar.
+
+#### 5.7.6 Lo que NO se hizo (y por qué)
+
+- **No se commitearon las fotos del usuario.** Son personales (se ve una persona) y el repo de GitHub
+  es **público**. Quedan en `apps/admin/tests/fixtures/local/`, ignorado por git.
+- **No se cambió el recorte 4:5.** Se comprobó que el recorte actual **desperdicia detalle** (una
+  foto vertical 3:4 da 1200×1500 px; una horizontal 4:3 da solo 960 px de ancho) y que un recorte
+  "cover" sobre el lado mayor daría más detalle, pero eso cambia el encuadre de las prendas ya
+  publicadas: es una decisión **editorial**, no técnica, y queda para el dueño.
+- **No se tocó el servidor de imágenes de Next.** Re-optimizar en el edge costaría CPU de Vercel
+  (fuera del techo de $0) y Next ya lo hace en cada request.
+
+### 5.8 Fragilidad del E2E de compra (encontrada y corregida)
+
+Al correr la suite completa en frío, el E2E de compra falló en el botón **"Revisar pedido"**:
+el botón queda deshabilitado mientras `rates`/`quote` no responden, y el test hacía clic a los 20 s
+sin esperar. Pasaba aislado y con los servidores calientes (17 s). **No era un fallo del checkout**
+sino del test: ahora espera a que el botón se habilite (`toBeEnabled({ timeout: 60_000 })`).
+Con eso la suite da **13/13** en frío y en caliente.
+
+### 5.9 Qué **no** pudo verificarse en este entorno
 
 - **Ninguna comprobación de interfaz del sitio público desplegado**: sigue caído (V-12). Los E2E de web se hicieron contra el servidor local `:3010` que levanta Playwright.
 - **Ningún pago real** (ni MP ni Webpay): habría exigido escribir en la BD remota y credenciales de proveedor.
@@ -1512,6 +1597,10 @@ un flujo compra → despacho → entrega → devolución completo pasa de punta 
 | 28 | `docs/mercadopago-sandbox-2026-10-17/VERIFICACION.md` | La evidencia de producción más valiosa (pago real `:49`, pago tardío `:81`, webhook nunca ejercitado `:19,88`) |
 | 29 | `docs/BETA.md` | La matriz obligatoria **antes de entregar** (`:27-36`) — sigue sin ejecutarse |
 | 30 | `docs/GO-LIVE.md` | Plan de lanzamiento vigente; los checklists de `:41-44` y `:75-80` siguen sin marcar |
+| 31 | `apps/admin/src/lib/prepareImage.ts` | **Pipeline de fotos** (recorte 4:5 + WebP + realce de detalle con umbral de ruido). Parámetros medidos sobre 11 fotos reales de 48 MP — ver §5.7 |
+| 32 | `scripts/image-quality-modulo-real.mjs` | **La forma honesta de medir**: transpila `prepareImage.ts` con TypeScript y lo ejecuta en Chromium. Las demás variantes (`-psnr`, `-ruido`, `-umbral`, `-realce`, `-batch`, `-zoom`, `-comparar`) miden fotos reales |
+| 33 | `scripts/photo-drop-server.mjs` | Servidor de recepción de fotos desde el iPhone (HEIC→JPEG con ffmpeg) con barra de progreso por archivo |
+| 34 | `apps/admin/tests/checkout-flow.spec.ts` | E2E de compra como invitado (crea pedido, reserva la prenda única) |
 
 ---
 
@@ -1526,6 +1615,7 @@ un flujo compra → despacho → entrega → devolución completo pasa de punta 
 5. ¿Se acepta que el correo al invitado incluya su `order_id` (UUID) para que pueda recuperar el pedido? (A-04)
 6. ¿El cupón de 100 % es un caso de negocio real o un error de configuración? (A-15)
 7. ¿Se quiere una alerta al admin cuando un pago queda en `review`, o se prefiere revisar el listado a diario? (A-14)
+8. **¿Se cambia el recorte de las fotos?** El actual (4:5 "cover" sobre el lado mayor) **desperdicia detalle**: una foto vertical 3:4 queda en 1200×1500 px y una horizontal 4:3 en solo 960 px de ancho. Un recorte por el lado mayor daría hasta un 33% más de detalle, pero **cambia el encuadre** de las prendas ya publicadas (es una decisión editorial, no técnica). Ver §5.7.6.
 
 ### 10.2 Aspectos que no pude comprobar
 
@@ -1577,6 +1667,14 @@ A-13 (correo de devolución que no existía), A-14 (sin alerta de reembolsos en 
 0 CLP), A-16 (token de invitado sin caducidad), A-18 (dirección borrada), A-39 (toggle de admin roto),
 A-28/A-40 (suite SQL que no corría).
 
+**Etapa 6 (21-oct-2026, rama `image-quality`):** calidad de las fotos de celular, medida sobre **11
+fotos reales de 48 MP** del propio dueño. El pipeline que estaba commiteado guardaba el **doble de
+píxeles de los que la web muestra** (Next nunca agranda) y su realce **amplificaba el ruido el doble
+que el detalle**. Corregido: master a 1700 px, WebP 0.86, realce de radio 1 / cantidad 0.5 **con
+umbral de ruido**, y desenfoque con sumas corridas (7,7 s → 1 s por foto). Resultado: **−58% de peso**,
+**+9,7% de nitidez** y **−48,8% de ruido** frente a lo que estaba en el repo, con el E2E en **13/13**.
+Ver §5.7.
+
 **Siguiente paso recomendado (orden del dueño).** **Etapa 5**: completar los datos legales
 (`[pendiente]`) y terminar el **E2E de compra**: ya recorre la creación del pedido y la reserva de
 stock (`apps/admin/tests/checkout-flow.spec.ts`), pero falta el **pago real contra el proveedor** y la
@@ -1590,4 +1688,4 @@ valioso: el proyecto tiene **13 E2E** y uno recorre la creación del pedido y la
 
 ---
 
-*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota).*
+*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`).*
