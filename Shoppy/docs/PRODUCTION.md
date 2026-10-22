@@ -2,6 +2,12 @@
 
 > Todo lo implementable sin credenciales está hecho (Fases 1–10). Este
 > documento lista el camino a producción real y lo que se necesita del dueño.
+>
+> **Estado al 22-oct-2026.** El **sandbox** de Supabase está migrado y verificado (E2E 13/13
+> contra BD y Storage reales; catálogo con 28 prendas). El **sitio público sigue caído**: el
+> proyecto de Vercel está pausado y devuelve `503 DEPLOYMENT_PAUSED`; reanudarlo exige
+> confirmación interactiva. El **drop 1** se publica **solo en GitHub**, con **techo $0**,
+> cobro **solo con MercadoPago** y **Transbank fuera** (requiere alta de cuenta de pago).
 
 ## 1. Proyecto Supabase remoto
 
@@ -18,11 +24,11 @@
 | Secret | Cuándo |
 |---|---|
 | `SUPABASE_URL` / service key | Automáticos en Cloud |
-| `PAYMENT_PROVIDER` | `mock` hasta homologar; luego `mercadopago` o `transbank` |
+| `PAYMENT_PROVIDER` | `mock` hasta homologar; en el drop 1, `mercadopago` (Transbank queda fuera) |
 | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` | Al activar MP (sandbox primero) |
 | `FUNCTIONS_PUBLIC_URL` | URL pública para `notification_url` de MP |
 | `TRANSBANK_ENVIRONMENT`, `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY_SECRET` | TEST funciona sin credenciales propias; LIVE exige las reales |
-| `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` | Al activar emails (verificar dominio `shopy.cl` en Resend) |
+| `EMAIL_PROVIDER`, `EMAIL_FROM` y la clave del proveedor | Al activar emails. Con techo $0: `brevo` o `smtp2go` (verifican solo el remitente, sin dominio propio); `resend` exige verificar el dominio |
 
 Jamás commitear estos valores (solo `.env.example`, sin secretos).
 
@@ -30,9 +36,11 @@ Jamás commitear estos valores (solo `.env.example`, sin secretos).
 
 1. `PAYMENT_PROVIDER=mock` — flujo completo sin dinero (ya validado por
    `smoke_fase6.mjs` en local).
-2. Transbank TEST — usa códigos públicos de integración (sin credenciales).
-3. Mercado Pago sandbox — credenciales de prueba + webhook con firma HMAC
-   (ya verificada en `verifyMercadoPagoSignature`, testeada).
+2. **Mercado Pago sandbox** — credenciales de prueba + webhook con firma HMAC
+   (ya verificada en `verifyMercadoPagoSignature`, testeada). **Es el paso 2 del drop 1**:
+   falta el KYC y `MERCADOPAGO_WEBHOOK_SECRET`.
+3. Transbank TEST — usa códigos públicos de integración (sin credenciales). **Fuera del
+   drop 1**: activarlo requiere una cuenta de pago de Transbank.
 4. LIVE — credenciales productivas + `TRANSBANK_ENVIRONMENT=LIVE`.
 
 ## 4. Dominios y apps

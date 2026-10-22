@@ -69,8 +69,12 @@ jamás en mobile.
 
 Providers desacoplados (mock por defecto, sin credenciales reales):
 `PAYMENT_PROVIDER=mock` (mock | mercadopago | transbank),
-`EMAIL_PROVIDER=mock` (mock | resend),
+`EMAIL_PROVIDER=mock` (mock | brevo | smtp2go | resend),
 `SHIPPING_PROVIDER=manual` (manual | chilexpress | starken).
+
+El código de Transbank/Webpay está implementado, pero **queda fuera del drop 1**: exige dar de
+alta una cuenta de pago. Con techo $0 el correo va con `brevo` o `smtp2go` (ninguno necesita
+dominio propio); `resend` exige un dominio verificado.
 
 ## Supabase / base de datos
 
@@ -106,6 +110,11 @@ Providers desacoplados (mock por defecto, sin credenciales reales):
 | `npm run mobile:typecheck` / `admin:typecheck` | Typecheck por app |
 | `npm run lint` | ESLint (`--max-warnings 0`) |
 | `npm run lint:fix` | ESLint con autofix |
+| `npm run test:beta` | Reglas de negocio (Node puro, sin red) |
+| `npm run test:checkout` | Contratos de checkout, pagos, carrito y simulador local |
+| `npm run check:residue` | ¿Quedó basura de prueba en el sandbox de Supabase? (solo lectura) |
+| `npm run cleanup:test-data` | Informa los datos de prueba del sandbox; con `--apply` los borra |
+| `npx playwright test` (en `apps/admin`) | E2E del admin contra la BD y el Storage reales |
 
 ## Decisiones arquitectónicas
 

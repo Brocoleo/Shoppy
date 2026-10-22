@@ -15,6 +15,8 @@
     "mobile:web": "npm --workspace apps/mobile run web",
     "test:beta": "node scripts/test-beta.mjs",
     "test:checkout": "node scripts/test-checkout.mjs",
+    "check:residue": "node scripts/check-test-residue.mjs",
+    "cleanup:test-data": "node scripts/cleanup-test-data.mjs",
     "checkout:local": "node scripts/local-checkout/run.mjs",
     "mobile:test": "node --test apps/mobile/tests/*.test.mjs",
     "mobile:typecheck": "npm --workspace apps/mobile run typecheck",

@@ -5,14 +5,14 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { fixture, product, rate } from '../../supabase/tests/helpers/checkout-fixture.mjs';
 
-export function createLocalCheckout({ apiOrigin = 'http://127.0.0.1:4010', webOrigin = 'http://localhost:3020' } = {}) {
+export function createLocalCheckout({ apiOrigin = 'http://127.0.0.1:4010', webOrigin = 'http://localhost:3020', refundError = false } = {}) {
   for (const origin of [apiOrigin, webOrigin]) {
     const u = new URL(origin);
     if (u.protocol !== 'http:' || !['localhost', '127.0.0.1'].includes(u.hostname) || u.origin !== origin) throw Error('Only explicit loopback origins are allowed');
   }
   let state, offline = false, requests = 0;
   function reset() {
-    state = fixture({ interactive: true, verdict: 'PENDING', paymentUrl: id => `${webOrigin}/local-backend/payment/${id}` });
+    state = fixture({ interactive: true, verdict: 'PENDING', paymentUrl: id => `${webOrigin}/local-backend/payment/${id}`, refundError });
     Object.assign(state.rows.products[0], { name: 'Prenda ficticia · Prueba local', slug: 'prenda-prueba-local', description: 'Inventario ficticio del simulador local. No se vende ni utiliza datos comerciales.', price_clp: 12990, stock: 5, size: 'M', color: 'Marfil', metadata: { local_fixture: true }, images: [], brand: null, tags: [], view_count: 0, favorite_count: 0, trending_score: 0, is_featured: false });
     Object.assign(state.rows.shipping_rates[0], { carrier: 'Despacho ficticio', price_clp: 2990, comuna: null, eta_days_min: 1, eta_days_max: 2 });
     state.rows.shipping_rates.push({ ...state.rows.shipping_rates[0], id: '20000000-0000-4000-8000-000000000002', region: 'Valparaíso', price_clp: 4990 });
@@ -27,7 +27,7 @@ export function createLocalCheckout({ apiOrigin = 'http://127.0.0.1:4010', webOr
     }
   }
   function snapshot() {
-    return { simulation: true, offline, requests, orders: state.rows.orders.map(o => ({ id: o.id, status: o.status, total_clp: o.total_clp, region: o.shipping_address?.region })), payments: state.rows.payments.map(p => ({ status: p.status, incident: p.incident ?? null })), stock: state.rows.products[0].stock, creates: state.createCalls, stockDeductions: state.stockDeductions, paidTransitions: state.rows.order_status_history.filter(h => h.to_status === 'PAID').length };
+    return { simulation: true, offline, requests, orders: state.rows.orders.map(o => ({ id: o.id, status: o.status, total_clp: o.total_clp, region: o.shipping_address?.region })), payments: state.rows.payments.map(p => ({ status: p.status, incident: p.incident ?? null })), stock: state.rows.products[0].stock, creates: state.createCalls, stockDeductions: state.stockDeductions, refundCalls: state.refundCalls, paidTransitions: state.rows.order_status_history.filter(h => h.to_status === 'PAID').length };
   }
   function json(body, status = 200) { return Response.json(body, { status }); }
   function page(body) {

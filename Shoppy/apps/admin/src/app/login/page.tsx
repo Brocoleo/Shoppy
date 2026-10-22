@@ -62,7 +62,11 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <button
           onClick={submit}
           disabled={busy}

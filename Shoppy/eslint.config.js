@@ -16,7 +16,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["supabase/**/*.mjs", "apps/mobile/tests/**/*.mjs", "scripts/*.mjs", "scripts/*.test.mjs", "scripts/local-checkout/**/*.{mjs,cjs}"],
+    files: ["supabase/**/*.mjs", "apps/mobile/tests/**/*.mjs", "scripts/*.mjs", "scripts/*.test.mjs", "scripts/local-checkout/**/*.{mjs,cjs}", "scripts/lib/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
   {

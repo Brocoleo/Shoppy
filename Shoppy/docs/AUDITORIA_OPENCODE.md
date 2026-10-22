@@ -47,7 +47,7 @@ tardío sin reembolso automático (A-06) y por la incapacidad del invitado para 
 
 - **43 hallazgos** registrados: **1 crítico, 5 altos, 13 medios y 24 bajos**. A esto se suman **3 bloqueantes de lanzamiento** (B-1…B-3) que son de configuración, no de código.
 - **Verificaciones ejecutadas:** 15 comandos, todos registrados en §5.
-- **Pruebas existentes:** **67** (`test:beta`) + **9 suites** de `test:checkout` (72 casos) + **13 E2E Playwright**, **todas verdes** (reverificado el 22-oct-2026, ver §5.10).
+- **Pruebas existentes:** **67** (`test:beta`) + **10 suites** de `test:checkout` (90 casos) + **13 E2E Playwright**, **todas verdes** (reverificado el 22-oct-2026, ver §5.10 y §5.11).
 - **Cobertura:** 3 capas de tests (Node puro, mocks de checkout, E2E Playwright) + 4 suites SQL de RLS, **ahora ejecutables** (antes abortaban en T13).
 
 ### 1.5 Estado de remediación (actualizado tras la revisión del dueño)
@@ -1068,7 +1068,7 @@ dejó de estar cubierto por el simulador local en el momento en que pasó a ser 
 queda efectivamente reembolsado (`status = 'refunded'`) y que el pedido **no** se liquida ni descuenta stock dos veces
 (`stock = 5`, `paidTransitions = 0`).
 
-**Verificación.** `npm run test:checkout` → **exit 0**, 9 suites, **72/72 casos** (antes: 71/72 con exit 1).
+**Verificación.** `npm run test:checkout` → **exit 0**, 10 suites, **90/90 casos** (antes: 89 casos con 1 fallo y exit 1). *(Las cifras de este hallazgo se corrigieron el 22-oct-2026: el informe daba «9 suites, 72 casos» y sumaba solo 7 de las 10 — ver §5.11.5.)*
 
 **Prueba que lo demostraría (la que ya existe).** `npm run test:checkout` debe terminar con **exit 0**; un rojo aquí
 significa que el simulador local dejó de reflejar el contrato del backend.
@@ -1093,7 +1093,7 @@ significa que el simulador local dejó de reflejar el contrato del backend.
 | V-4 | `npm run web:build` | ✅ **exit 0** — Next 16.4.2 (Turbopack), 16/16 páginas, 19 rutas | Build de un snapshot; no valida el despliegue real (caído) |
 | V-5 | `npm run admin:build` | ✅ **exit 0** — 19/19 páginas, 17 rutas | — |
 | V-6 | `npm run test:beta` | ✅ **60/60** tests, 0 fallos (mock-based) | Los `.mjs` de `supabase/tests` usan **fixtures en memoria**; no tocan la BD |
-| V-7 | `npm run test:checkout` | ⚠️ **estaba en ROJO** (`exit 1`, `local-checkout` 8/9) aunque el informe lo daba por verde — **corregido el 22-oct-2026** (A-43) · hoy ✅ **72/72 en 9 suites** (`checkout_rules` 5, `checkout_api` 31, `payment_provider` 17, `session-connection` 6, `server-read` 1, `payment-bridge` 3, `local-checkout` 9, `cartStore` 9, `catalogProduct` 4) | Igual: **mocks**, no prueban MercadoPago/Webpay reales. El simulador `local-checkout` sí ejecuta el **handler real** con dobles en memoria |
+| V-7 | `npm run test:checkout` | ⚠️ **estaba en ROJO** (`exit 1`, `local-checkout` 8/9) aunque el informe lo daba por verde — **corregido el 22-oct-2026** (A-43) · hoy ✅ **90/90 en 10 suites** (`checkout_rules` 5, `checkout_api` 31, `payment_provider` 17, `session-connection` 6, `server-read` 1, `payment-bridge` 3, `cartStore` 9, `catalogProduct` 4, `guestOrders` 4, `local-checkout` 10) | Igual: **mocks**, no prueban MercadoPago/Webpay reales. El simulador `local-checkout` sí ejecuta el **handler real** con dobles en memoria |
 | V-8 | `npm audit --omit=dev` | ⚠️ **25 vulnerabilidades (11 moderate, 14 high)**, 0 critical | Las 25 son de la cadena **Expo/Metro** (`expo`, `react-native`, `metro`, `@expo/cli`, `braces`, `micromatch`, `node-forge`, `uuid`, `xcode`, `decode-uri-component`) — **herramientas de build**, no runtime del APK/IPA ni del servidor web. Sin exploitabilidad en producción hoy, pero `npm audit fix --force` rompería el SDK de Expo: **no se debe aplicar a ciegas**. |
 | V-9 | `supabase migration list --linked` | ✅ **21/21 migraciones aplicadas**, 0 pendientes (antes 20/20) | — |
 | V-10 | Consultas SQL de solo lectura a la BD remota (`supabase db query --linked`) | ✅ 27 tablas (27/27 con RLS), 2 crons activos, policies de `profiles`/`orders`/`payments` verificadas | **Solo lectura** |
@@ -1276,8 +1276,8 @@ abre su propia página.
 
 **Limpieza verificada:** tras la corrida completa (13 tests) la BD remota queda con **0** pedidos,
 prendas, perfiles, reservas, intentos y pagos de prueba. *(Ajustado el 22-oct-2026: la limpieza automática es
-correcta para toda prueba nueva, pero la BD remota conserva **4 pedidos `mode='test'` del 18-oct-2026** que
-quedaron de una verificación manual anterior al E2E con limpieza; ver §5.10.2.)*
+correcta para toda prueba nueva, y los **4 pedidos `mode='test'` que quedaban del 18-oct-2026** —de una
+verificación manual anterior al E2E con limpieza— **se borraron ese mismo día**; ver §5.10.2 y §5.11.3.)*
 
 ### 5.7 Etapa 6 — Calidad de las fotos de celular (21-oct-2026, **mergeada en `master` el 22-oct-2026**)
 
@@ -1407,14 +1407,14 @@ aprovecharía hasta un 33 % más de detalle pero cambia el encuadre de las prend
 
 `npm run test:checkout` fallaba con **exit 1**: el test del simulador local esperaba el contrato viejo
 `REFUND_REQUIRED` del pago tardío, que la Etapa 3 había cambiado a `REFUNDED` (reembolso automático). El
-informe afirmaba que todas las suites estaban en verde. Corregido y verificado: **exit 0, 72/72**.
+informe afirmaba que todas las suites estaban en verde. Corregido y verificado: **exit 0, 90/90**.
 
 **Higiene de la BD remota (verificado el 22-oct-2026).** La corrida de E2E de hoy **no dejó residuos**: 0 productos,
-0 perfiles, 0 pedidos, 0 pagos y 0 imágenes de prueba. Sí quedan **4 pedidos históricos del 18-oct-2026**
-(`mode='test'`, tres `CANCELLED` y uno `PAID`), con sus 4 `checkout_attempts` y 4 `product_reservations`
-(3 `expired`, 1 `consumed`) — **sin `order_items`**, por lo que no bloquean stock ni aparecen en el catálogo.
-Son ruido de la verificación sandbox manual previa al E2E con limpieza automática; contradicen el «0 pedidos de
-prueba» que afirma §5.6 y se pueden borrar sin riesgo cuando el dueño quiera dejar la BD limpia para el drop 1.
+0 perfiles, 0 pedidos, 0 pagos y 0 imágenes de prueba. Quedaban además **4 pedidos históricos del 18-oct-2026**
+(`mode='test'`, tres `CANCELLED` y uno `PAID`), con sus 4 `checkout_attempts`, 4 `product_reservations` y 4
+`order_items` apuntando a una prenda de ejemplo (`polera-nike-dryfit-prueba-sandbox`, `ARCHIVED`). **Se borraron
+el 22-oct-2026** con `npm run cleanup:test-data --apply` (§5.11.3): la BD quedó con **0** pedidos, **0** reservas,
+**0** intentos y **0** prendas de prueba, y el catálogo real quedó en **28 prendas** (20 `AVAILABLE`, 8 `SOLD`).
 
 **Estado de las suites tras la corrección (22-oct-2026):**
 
@@ -1423,8 +1423,96 @@ prueba» que afirma §5.6 y se pueden borrar sin riesgo cuando el dueño quiera 
 | `npm run typecheck` (root + mobile + admin) | ✅ exit 0 |
 | `npm run lint` (`--max-warnings 0`) | ✅ exit 0, 0 warnings |
 | `npm run test:beta` | ✅ **67/67** |
-| `npm run test:checkout` (9 suites) | ✅ **72/72** (exit 0) |
+| `npm run test:checkout` (10 suites) | ✅ **90/90** (exit 0) |
 | `npx playwright test` (apps/admin) | ✅ **13/13** (2,6 min) |
+
+### 5.11 Endurecimiento previo al drop 1 (22-oct-2026)
+
+Después de la Etapa 6 se hizo una última ronda de endurecimiento sobre el repo, sin tocar el
+código de negocio y **sin gastar un peso**.
+
+#### 5.11.1 El E2E ya no puede quedar «colgado» sin explicación
+
+El fallo de hidratación descrito en §5.8 (servidor en `localhost`, test en `127.0.0.1`) se ataca
+por los dos lados:
+
+| Medida | Archivo | Qué hace |
+|---|---|---|
+| `allowedDevOrigins: ["127.0.0.1", "localhost"]` | `apps/admin/next.config.ts`, `apps/web/next.config.ts` | El dev server acepta recursos de desarrollo desde **los dos** nombres de loopback: la página hidrata aunque el test y el servidor no coincidan |
+| Sonda de hidratación | `apps/admin/tests/global-setup.ts` | Antes de correr la suite comprueba que la página de login **realmente hidrató** (clic → estado «Entrando…» o mensaje de error). Si no, corta al instante con un mensaje que dice qué hacer |
+| Guardia de URL | `apps/admin/playwright.config.ts` | Rechaza `E2E_BASE_URL`/`E2E_WEB_URL` inválidas o con `0.0.0.0` (dirección de escucha, no de conexión) |
+
+**La sonda tiene que ser determinista.** Un clic que falla al instante produce el estado
+«Entrando…» durante unos milisegundos: perseguirlo a pelo es una lotería. Por eso el probe
+**retrasa 1,5 s** la respuesta bloqueada antes de abortarla, y usa `.first()` sobre `role="alert"`
+(el overlay de desarrollo de Next también publica un `alert`, y en modo estricto un locator con dos
+coincidencias se lanza). Con eso la señal es inequívoca: si el botón no muestra nunca «Entrando…» y
+no aparece ningún error, React no se enganchó.
+
+**Verificación (las tres partes).**
+
+| Escenario | Resultado |
+|---|---|
+| Suite completa con los hostnames **canónicos** (`localhost`) | ✅ **13/13** (2,4 min) |
+| Suite completa con los hostnames **cruzados** —servidor en `localhost`, test en `127.0.0.1`— | ✅ **13/13** (2,4 min). Es exactamente el escenario que antes fallaba en silencio |
+| **Caso negativo**: quitar `allowedDevOrigins` y apuntar a `127.0.0.1` | ✅ la sonda **corta en ~10 s** con el mensaje accionable, en vez del timeout mudo de 2 min por test |
+
+El caso negativo se ejecutó de verdad (se quitó la clave, se esperó el reinicio del dev server y se
+lanzó la suite): el fallo histórico es detectable, no hipotético.
+
+#### 5.11.2 La otra mitad del contrato del pago tardío, ahora cubierta
+
+El simulador local cubría solo la rama en que el **reembolso automático se concreta**
+(`REFUNDED`). La rama en que el proveedor **no confirma** el reembolso —el pago queda en revisión
+manual, código `REFUND_REQUIRED`, incidente `REFUND_REVIEW`, **sin reintento automático**— estaba
+sin cubrir.
+
+- `scripts/local-checkout/transport.mjs` acepta `refundError` y expone `refundCalls` en el snapshot.
+- `scripts/local-checkout/local-checkout.test.mjs` suma el caso: dos confirmaciones seguidas
+  devuelven `REFUND_REQUIRED`, el pago sigue `approved`, el incidente es `REFUND_REVIEW`, el stock
+  no se descuenta y **el proveedor recibe un solo intento de reembolso**.
+
+#### 5.11.3 Scripts reutilizables de higiene del sandbox
+
+Dos comandos nuevos, con la misma política que el resto del repo (secretos solo en archivos
+gitignored, nada de esto corre en producción):
+
+| Comando | Qué hace |
+|---|---|
+| `npm run check:residue` | **Solo lectura**: cuenta pedidos `mode='test'`, prendas y perfiles de E2E, intentos, pagos, ítems, reservas e imágenes colgando. Sale con código 1 si hay residuos |
+| `npm run cleanup:test-data` | Informa lo mismo; con `--apply` borra en orden seguro de claves foráneas (`checkout_attempts` → `product_reservations` → `orders` → imágenes y Storage → prendas → perfiles) |
+
+El detector se apoya en las **columnas reales** (`checkout_attempts` no tiene `idempotency_key`:
+sus columnas son `id, user_id, secret_hash, request_hash, order_id, response, state, error_code,
+created_at`) y **protege** cualquier prenda referenciada por un pedido que no sea de prueba.
+
+**Ejecución real (22-oct-2026).** Se borraron los **4 pedidos `mode='test'` del 18-oct** (tres
+`CANCELLED` y uno `PAID`), sus 4 intentos, 4 pagos, 4 ítems, 4 reservas y la prenda de ejemplo
+`polera-nike-dryfit-prueba-sandbox` con sus 2 imágenes y los 2 objetos de Storage. Verificación
+posterior: **0** pedidos, **0** reservas, **0** intentos, **0** prendas de prueba; el catálogo real
+queda en **28 prendas** (20 `AVAILABLE`, 8 `SOLD`) y 48 imágenes.
+
+#### 5.11.4 La documentación pública decía cosas que ya no eran verdad
+
+| Documento | Qué estaba mal | Ahora |
+|---|---|---|
+| `docs/BETA.md` | «implementación local en revisión, no desplegada en Supabase» | Estado real: sandbox migrado y verificado, sitio público caído, KYC y secreto del webhook pendientes, sin binarios móviles |
+| `docs/BETA.md` | La matriz pedía «ambos proveedores» | Matriz con estado por caso (✅/🟡/⛔) y Transbank fuera del drop 1 |
+| `docs/BETA.md` | El correo era solo Resend | `brevo` o `smtp2go` para el techo $0 (sin dominio propio); `resend` exige dominio verificado |
+| `README.md` | `EMAIL_PROVIDER` listaba solo `mock` y `resend` | `mock`, `brevo`, `smtp2go` y `resend`, con la nota de que Transbank queda fuera del drop 1 |
+| `.env.example` | No tenía `BREVO_API_KEY` ni `SMTP2GO_API_KEY` | Ahora los dos, con el criterio de $0 anotado |
+| `docs/PAYMENTS.md`, `docs/PRODUCTION.md` | Presentaban Transbank como un paso más | Marcado explícitamente como **fuera del drop 1** |
+
+#### 5.11.5 Correcciones de cifras en este informe
+
+Al recontar las suites aparecieron dos números que este documento daba mal:
+
+- `test:checkout` son **10 suites y 90 casos**, no «9 suites y 72 casos»: el conteo anterior sumaba
+  solo 7 de las 10 (faltaban `cartStore`, `catalogProduct` y `guestOrders`). El desglose real es
+  `checkout_rules` 5 · `checkout_api` 31 · `payment_provider` 17 · `session-connection` 6 ·
+  `server-read` 1 · `payment-bridge` 3 · `cartStore` 9 · `catalogProduct` 4 · `guestOrders` 4 ·
+  `local-checkout` 10.
+- El simulador local pasó de 9 a 10 casos con la nueva cobertura de la revisión manual.
 
 ---
 
@@ -1774,7 +1862,7 @@ umbral de ruido**, y desenfoque con sumas corridas (7,7 s → 1 s por foto). Res
 **+9,7% de nitidez** y **−48,8% de ruido** frente a lo que estaba en el repo, con el E2E en **13/13**.
 Ver §5.7.
 
-**Estado verificado el 22-oct-2026.** E2E **13/13**, `test:beta` **67/67**, `test:checkout` **72/72**, `typecheck` y `lint` en exit 0. Se corrigió un **rojo preexistente en `master`**: el test del simulador local esperaba el contrato viejo `REFUND_REQUIRED` del pago tardío, que la Etapa 3 cambió a `REFUNDED` (reembolso automático) — ver **A-43**. Además, el panel editorial se quedó **solo con los 3 prompts** (catálogo, prenda y gorra) y se retiró la paleta de colores de fondo, que ya no era editable (§5.10).
+**Estado verificado el 22-oct-2026.** E2E **13/13**, `test:beta` **67/67**, `test:checkout` **90/90**, `typecheck` y `lint` en exit 0. Se corrigió un **rojo preexistente en `master`**: el test del simulador local esperaba el contrato viejo `REFUND_REQUIRED` del pago tardío, que la Etapa 3 cambió a `REFUNDED` (reembolso automático) — ver **A-43**. Además, el panel editorial se quedó **solo con los 3 prompts** (catálogo, prenda y gorra) y se retiró la paleta de colores de fondo, que ya no era editable (§5.10).
 
 **Siguiente paso recomendado (drop 1, con techo $0).** El alcance quedó acotado por el dueño el 22-oct-2026:
 **Transbank fuera** (requiere alta de cuenta de pago) y **Vercel diferido** (el drop 1 se publica **solo en
@@ -1785,8 +1873,8 @@ GitHub**). Quedan **tres cosas, y las tres dependen de cuentas externas, no del 
 2. **KYC de MercadoPago** y **`MERCADOPAGO_WEBHOOK_SECRET`** (B-3) — es lo que hace que el pago **notifique**:
    hoy la única liquidación es el botón «Ya pagué» del cliente, y si cierra la app tras pagar se queda sin
    pedido. El código de la firma HMAC ya está bien implementado y probado (`payment_provider.test.mjs`).
-3. **Limpieza opcional de la BD** — borrar los 4 pedidos `mode='test'` del 18-oct (§5.10.2) para dejar el
-   catálogo limpio el día del drop.
+3. ~~**Limpieza de la BD**~~ → **hecha el 22-oct-2026**: el sandbox quedó sin pedidos, prendas, intentos,
+   pagos ni reservas de prueba (`npm run check:residue` da 0). Ver §5.11.3.
 
 **Lo que el E2E de compra todavía no cubre:** el **pago real contra el proveedor** y la **confirmación**
 (webhook firmado → pedido `PAID` → correo recibido), que es exactamente lo que exige la matriz de
@@ -1799,4 +1887,4 @@ cubrirse es el pago real y su confirmación, y eso depende de (1) y (2).
 
 ---
 
-*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`). Actualizada por última vez el 22-oct-2026 con la Etapa 6 ya mergeada en `master`, el panel editorial, la corrección de **A-43** y la re-verificación de las suites (E2E 13/13, `test:beta` 67/67, `test:checkout` 72/72).*
+*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`). Actualizada por última vez el 22-oct-2026 con la Etapa 6 ya mergeada en `master`, el panel editorial, la corrección de **A-43**, el endurecimiento del E2E, la limpieza del sandbox y la re-verificación de las suites (E2E 13/13, `test:beta` 67/67, `test:checkout` 90/90; ver §5.11).*

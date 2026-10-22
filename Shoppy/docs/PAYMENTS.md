@@ -4,6 +4,10 @@
 > (`supabase/functions/_shared/payment.ts`), selección por `PAYMENT_PROVIDER`.
 > Default `mock`. Tests Deno: `payment_test.ts` (5 verdes).
 > **Sin credenciales reales configuradas: opera en mock.**
+>
+> **Alcance del drop 1 (22-oct-2026):** solo **MercadoPago**, en modo `sandbox`.
+> **Transbank/Webpay queda fuera de este lanzamiento** — el código está listo y probado en
+> contrato, pero activarlo exige dar de alta una cuenta de pago.
 
 ## Interfaz
 
