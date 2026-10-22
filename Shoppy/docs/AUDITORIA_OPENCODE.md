@@ -1,8 +1,8 @@
 # AUDITORÍA TÉCNICA Y FUNCIONAL — Shoppy (vinta.zhe)
 
-> **Fecha:** 2026-10-20 · **Alcance:** `/home/leandro/Documentos/ChatGPT/React Native/Shoppy`
-> **Tipo:** diagnóstico de solo lectura. No se modificó código, no se instalaron dependencias,
-> no se creó ningún commit ni despliegue y **no seCambió ningún dato remoto**.
+> **Fecha inicial:** 2026-10-20 · **Última actualización:** 2026-10-22 · **Alcance:** `/home/leandro/Documentos/ChatGPT/React Native/Shoppy`
+> **Tipo:** informe vivo. Nació como diagnóstico de solo lectura (20-oct-2026) y se ha ido
+> ampliando con la remediación aplicada y verificada en las etapas 1–6 (§5.2–§5.10).
 > **Único archivo creado por esta auditoría:** `docs/AUDITORIA_OPENCODE.md`.
 >
 > Las rutas del informe son relativas a la raíz de Shoppy.
@@ -26,7 +26,7 @@ tardío sin reembolso automático (A-06) y por la incapacidad del invitado para 
 
 | # | Bloqueante | Evidencia |
 |---|---|---|
-| B-1 | **Sitio público caído.** `https://shopy-web-six.vercel.app` responde `503 DEPLOYMENT_PAUSED`. El proyecto Vercel `shopy-web` está pausado; `vercel project resume` exige confirmación interactiva (no automatizable). | `curl` a 5 rutas → todas 503; `vercel inspect` → *"This deployment couldn't be built because the project was paused"* |
+| B-1 | **Sitio público caído.** `https://shopy-web-six.vercel.app` responde `503 DEPLOYMENT_PAUSED`. El proyecto Vercel `shopy-web` está pausado; `vercel project resume` exige confirmación interactiva (no automatizable). **Decisión del dueño (22-oct-2026): diferido** — el drop 1 se prepara y se publica **solo en GitHub**; reanudar Vercel queda para más adelante. | `curl` a 5 rutas → todas 503; `vercel inspect` → *"This deployment couldn't be built because the project was paused"* |
 | B-2 | **Páginas legales con `[pendiente]`.** `/legal/privacidad` no tiene razón social, RUT ni domicilio; `/devoluciones` no tiene el correo de contacto ni el plazo. | `apps/web/src/app/legal/privacidad/page.tsx:16-17`; `apps/web/src/app/devoluciones/page.tsx:71` |
 | B-3 | **MercadoPago nunca notifica.** Sin `MERCADOPAGO_WEBHOOK_SECRET` configurado, la preferencia se crea sin `notification_url` y la firma nunca valida. La **única** vía de liquidación es el botón "Ya pagué" del cliente: si cierra la app tras pagar, el pedido queda `PENDING_PAYMENT` y la prenda se libera a los 15 min. | `supabase/functions/_shared/payment.ts:151,193`; `docs/mercadopago-sandbox-2026-10-17/VERIFICACION.md:19,88` |
 
@@ -45,9 +45,9 @@ tardío sin reembolso automático (A-06) y por la incapacidad del invitado para 
 
 ### 1.4 Cifras de la auditoría
 
-- **38 hallazgos** registrados: **1 crítico, 7 altos, 8 medios y 22 bajos**. A esto se suman **3 bloqueantes de lanzamiento** (B-1…B-3) que son de configuración, no de código.
+- **43 hallazgos** registrados: **1 crítico, 5 altos, 13 medios y 24 bajos**. A esto se suman **3 bloqueantes de lanzamiento** (B-1…B-3) que son de configuración, no de código.
 - **Verificaciones ejecutadas:** 15 comandos, todos registrados en §5.
-- **Pruebas existentes:** 60 (`test:beta`) + 4 suites de checkout (~40 casos) + 12 E2E Playwright, **todas verdes**.
+- **Pruebas existentes:** **67** (`test:beta`) + **9 suites** de `test:checkout` (72 casos) + **13 E2E Playwright**, **todas verdes** (reverificado el 22-oct-2026, ver §5.10).
 - **Cobertura:** 3 capas de tests (Node puro, mocks de checkout, E2E Playwright) + 4 suites SQL de RLS, **ahora ejecutables** (antes abortaban en T13).
 
 ### 1.5 Estado de remediación (actualizado tras la revisión del dueño)
@@ -1034,6 +1034,45 @@ compartido conviene limpiarlo.
 (o mover el intento de invitado a una clave con token aleatorio en vez de la
 constante `"guest"`).
 
+### A-43 · El contrato del pago tardío cambió en la Etapa 3 y el simulador local no se actualizó: `test:checkout` en rojo en `master`
+**Severidad:** 🟠 media (cobertura engañosa) · **Estado:** ✅ **RESUELTO** (22-oct-2026)
+
+**Hallazgo nuevo, descubierto el 22-oct-2026 al re-verificar las suites antes del drop 1.**
+
+**Archivos:** `scripts/local-checkout/local-checkout.test.mjs:14` · `supabase/functions/checkout/index.ts:413-429`
+
+**Evidencia.** El test del simulador local («reserva vencida no liquida ni descuenta dos veces») seguía esperando el
+código de error **anterior a la Etapa 3**:
+```js
+assert.equal((await response.json()).error.code, 'REFUND_REQUIRED');
+```
+Pero el handler real ya no devuelve ese código cuando el reembolso automático se concreta:
+```ts
+if (refunded === "refunded") {
+  return bad(409, "REFUNDED", "La reserva venció después del pago: te devolvemos el dinero y te escribimos por correo con el detalle.");
+}
+return bad(409, "REFUND_REQUIRED", "La reserva venció después del pago. Tu pago está en revisión para reembolso.");
+```
+`REFUND_REQUIRED` quedó **solo** para el caso en que el reembolso queda en revisión manual (`refund_state='review'`).
+
+**Por qué estaba rojo y nadie lo notó.** El test se escribió el 18-oct-2026 (`7215cbf`) y el handler cambió después
+en la Etapa 3 (`b29c16e`, «reembolso automático del pago tardío»): el simulador local (`transport.mjs`) ejecuta el
+**handler real** con dobles en memoria, así que devolvió el código nuevo sin que nadie actualizara la expectativa.
+El rojo estaba **en `master` desde la Etapa 3** y el informe afirmaba «todas las suites de checkout en verde».
+
+**Impacto.** Un gate rojo silencioso: `npm run test:checkout` terminaba con **exit 1** mientras la documentación
+reportaba la suite en verde. El escenario del pago tardío —justo el que provoca **dinero cobrado sin contraparte**—
+dejó de estar cubierto por el simulador local en el momento en que pasó a ser automático.
+
+**Corrección aplicada.** La expectativa pasa a `REFUNDED` y se **reforzó** el test: ahora comprueba además que el pago
+queda efectivamente reembolsado (`status = 'refunded'`) y que el pedido **no** se liquida ni descuenta stock dos veces
+(`stock = 5`, `paidTransitions = 0`).
+
+**Verificación.** `npm run test:checkout` → **exit 0**, 9 suites, **72/72 casos** (antes: 71/72 con exit 1).
+
+**Prueba que lo demostraría (la que ya existe).** `npm run test:checkout` debe terminar con **exit 0**; un rojo aquí
+significa que el simulador local dejó de reflejar el contrato del backend.
+
 ---
 
 ## 5. Resultados de verificaciones
@@ -1054,15 +1093,16 @@ constante `"guest"`).
 | V-4 | `npm run web:build` | ✅ **exit 0** — Next 16.4.2 (Turbopack), 16/16 páginas, 19 rutas | Build de un snapshot; no valida el despliegue real (caído) |
 | V-5 | `npm run admin:build` | ✅ **exit 0** — 19/19 páginas, 17 rutas | — |
 | V-6 | `npm run test:beta` | ✅ **60/60** tests, 0 fallos (mock-based) | Los `.mjs` de `supabase/tests` usan **fixtures en memoria**; no tocan la BD |
-| V-7 | `npm run test:checkout` | ✅ **todas las suites verdes** (`checkout_rules` 5, `checkout_api` 24, `payment_provider` 17, `session-connection` 6, `server-read` 1, `payment-bridge` 3, `cartStore` 9, `catalogProduct` 4, `local-checkout` 9) | Igual: **mocks**, no prueban MercadoPago/Webpay reales |
+| V-7 | `npm run test:checkout` | ⚠️ **estaba en ROJO** (`exit 1`, `local-checkout` 8/9) aunque el informe lo daba por verde — **corregido el 22-oct-2026** (A-43) · hoy ✅ **72/72 en 9 suites** (`checkout_rules` 5, `checkout_api` 31, `payment_provider` 17, `session-connection` 6, `server-read` 1, `payment-bridge` 3, `local-checkout` 9, `cartStore` 9, `catalogProduct` 4) | Igual: **mocks**, no prueban MercadoPago/Webpay reales. El simulador `local-checkout` sí ejecuta el **handler real** con dobles en memoria |
 | V-8 | `npm audit --omit=dev` | ⚠️ **25 vulnerabilidades (11 moderate, 14 high)**, 0 critical | Las 25 son de la cadena **Expo/Metro** (`expo`, `react-native`, `metro`, `@expo/cli`, `braces`, `micromatch`, `node-forge`, `uuid`, `xcode`, `decode-uri-component`) — **herramientas de build**, no runtime del APK/IPA ni del servidor web. Sin exploitabilidad en producción hoy, pero `npm audit fix --force` rompería el SDK de Expo: **no se debe aplicar a ciegas**. |
 | V-9 | `supabase migration list --linked` | ✅ **21/21 migraciones aplicadas**, 0 pendientes (antes 20/20) | — |
 | V-10 | Consultas SQL de solo lectura a la BD remota (`supabase db query --linked`) | ✅ 27 tablas (27/27 con RLS), 2 crons activos, policies de `profiles`/`orders`/`payments` verificadas | **Solo lectura** |
 | V-11 | `supabase functions invoke` (POST a `checkout`/`notify`/`producto-ia`) | ✅ Las 3 Edge Functions están desplegadas y responden con validación de entrada (`VALIDATION` / `UNAUTH`) | No se ejecutó un flujo de pago real (requeriría escribir en remoto) |
 | V-12 | `curl` a 5 rutas de `https://shopy-web-six.vercel.app` | 🔴 **503 `DEPLOYMENT_PAUSED`** en las 5 | El sitio está caído |
-| V-13 | `npx playwright test` (apps/admin) | ✅ **13/13** verdes (11 de fotos + aislamiento entre cuentas + **compra hasta el pago**) | Cubre el flujo de fotos del admin, el aislamiento entre cuentas y la creación del pedido con su reserva; **no** cubre el pago real contra el proveedor ni la confirmación |
+| V-13 | `npx playwright test` (apps/admin) | ✅ **13/13** verdes (11 de fotos + aislamiento entre cuentas + **compra hasta el pago**) — **reverificado el 22-oct-2026** | Cubre el flujo de fotos del admin, el aislamiento entre cuentas y la creación del pedido con su reserva; **no** cubre el pago real contra el proveedor ni la confirmación |
 | V-14 | `deno test` sobre `_shared/*_test.ts` | ⚠️ **No ejecutable**: no hay binario `deno` en el entorno | Los 17 tests Deno documentados en `docs/BETA.md:51` **no se re-verificaron** |
 | V-15 | Suite SQL completa en Docker (Postgres 16) | ✅ `rls_tests` **T0–T16** + `beta_tests` + `admin_images_tests` + `sandbox_checkout_tests` | Ahora **sí** ejecutable (antes abortaba en T13): ver §5.2 |
+| V-16 | `npm run typecheck` + `npm run lint` + `npm run test:beta` + `npm run test:checkout` (22-oct-2026) | ✅ `typecheck` exit 0 · `lint` exit 0 (0 warnings) · `test:beta` **67/67** · `test:checkout` **72/72 en 9 suites** (tras corregir el test obsoleto del simulador local, ver **A-43**) | No cubre la BD real ni el proveedor de pagos |
 
 ### 5.2 Evidencia de la remediación (Etapas 1 y 2)
 
@@ -1235,9 +1275,11 @@ abre su propia página.
 - El pago es por el **total** (prenda + despacho), no por el subtotal.
 
 **Limpieza verificada:** tras la corrida completa (13 tests) la BD remota queda con **0** pedidos,
-prendas, perfiles, reservas, intentos y pagos de prueba.
+prendas, perfiles, reservas, intentos y pagos de prueba. *(Ajustado el 22-oct-2026: la limpieza automática es
+correcta para toda prueba nueva, pero la BD remota conserva **4 pedidos `mode='test'` del 18-oct-2026** que
+quedaron de una verificación manual anterior al E2E con limpieza; ver §5.10.2.)*
 
-### 5.7 Etapa 6 — Calidad de las fotos de celular (21-oct-2026, rama `image-quality`)
+### 5.7 Etapa 6 — Calidad de las fotos de celular (21-oct-2026, **mergeada en `master` el 22-oct-2026**)
 
 El dueño subió **11 fotos reales de su iPhone** (4284×5712, 24,5 MP, 6–10 MB cada una) y pidió
 mejorar la calidad de las fotos directas del celular. Todo lo de abajo está medido sobre **esas 11
@@ -1322,15 +1364,67 @@ sin esperar. Pasaba aislado y con los servidores calientes (17 s). **No era un f
 sino del test: ahora espera a que el botón se habilite (`toBeEnabled({ timeout: 60_000 })`).
 Con eso la suite da **13/13** en frío y en caliente.
 
+**Lección añadida el 22-oct-2026 (importante para cualquier E2E contra un dev server):** el `E2E_BASE_URL` debe apuntar **exactamente al mismo hostname con el que se arrancó el servidor**. Con el admin levantado en `localhost` y el test apuntando a `127.0.0.1`, Next.js bloquea los recursos de desarrollo cross-origin (`allowedDevOrigins`): la página **se sirve pero nunca hidrata**, así que el clic en «Entrar» no dispara nada, no aparece ningún mensaje de error y el test expira en `waitForURL` — un fallo que parece de autenticación y es de infraestructura. Con `E2E_BASE_URL=http://localhost:3002` la suite corre completa y verde.
+
 ### 5.9 Qué **no** pudo verificarse en este entorno
 
 - **Ninguna comprobación de interfaz del sitio público desplegado**: sigue caído (V-12). Los E2E de web se hicieron contra el servidor local `:3010` que levanta Playwright.
 - **Ningún pago real** (ni MP ni Webpay): habría exigido escribir en la BD remota y credenciales de proveedor.
 - **Ninguna prueba en dispositivo físico**: teclado, áreas seguras, texto grande y contraste quedan pendientes de la matriz de `docs/BETA.md:36`.
 - **Los 3 smoke tests** (`smoke_fase4/5/6.mjs`) requieren un stack Supabase local; no se ejecutaron contra remoto por seguridad.
-- **A-03** (carrera de cancelación): la policy está confirmada en el catálogo remoto, pero **la carrera completa no se reprodujo**; queda para la Etapa 3.
+- ~~**A-03** (carrera de cancelación)~~ → **resuelto en la Etapa 3**: la carrera se reprodujo con dos conexiones concurrentes y el guard que impide cancelar con pago vivo quedó verificado (ver §5.3).
 - **Los 17 tests Deno** no se corrieron (no hay binario `deno`).
 - **Concurrencia real** entre conexiones: la suite SQL es secuencial.
+
+### 5.10 El panel editorial y el rojo preexistente de `master` (22-oct-2026)
+
+Antes del drop 1 se re-verificó todo el repo y aparecieron dos cosas que el informe aún no recogía.
+
+#### 5.10.1 El panel `/editorial` queda en una sola línea visual
+
+El panel editorial del admin (`/editorial`) era, hasta el 21-oct-2026, un muestrario de **cuatro fondos
+propuestos** —«Lino blanco arrugado (estándar)», «Blanco con patrón tenue», «Beige del sitio (parchment)» y
+«Gris piedra»— con sus muestras de color, sus hex y sus pasos, alimentado por la foto de archivo del
+catalogo. El dueño lo cerró en una sola dirección:
+
+| Cambio | Commit | Qué quedó |
+|---|---|---|
+| Prompt de gorras | `0974874` | Tarjeta «3. Prompt /editorial-gorra — gorras (snapback, trucker, dad hat)» con botón Copiar, a ancho completo |
+| Prompt 1 reescrito | `faf1c6b` | `/catálogo` ahora edita **EXCLUSIVAMENTE el fondo y la iluminación** (regla absoluta: la prenda no se toca), vista superior 4:5. El mismo prompt sirve para flat-lay de gorras |
+| Paleta de colores retirada | `95a04f6` | Se eliminaron los cuatro estilos, el array `ESTILOS`, `BEIGE_SITIO` y el componente `Propuestas`, y con ellos la carga de la foto de muestra del archivo (que solo alimentaba ese bloque) |
+
+El panel quedó en **3 prompts copiables** (`/catálogo`, `/editorial`, `/editorial-gorra`) + «Flujo manual» +
+«Honestidad de segunda mano». La foto de muestra del archivo se quitó porque la paleta era su único consumidor.
+
+**Verificación.** Playwright contra el admin real con un usuario admin temporal (borrado al terminar):
+**0 apariciones** de los cuatro estilos y de «Propuestas», los **3 botones «Copiar» visibles**, sin errores de
+runtime; `typecheck` y `lint` en exit 0. Captura: `/tmp/opencode/editorial-sin-colores.png`.
+
+**Lo que sigue diferido (decisión editorial, no técnica):** el recorte 4:5 «cover» sobre el lado mayor, que
+aprovecharía hasta un 33 % más de detalle pero cambia el encuadre de las prendas ya publicadas (§5.7.6).
+
+#### 5.10.2 Un rojo preexistente en `master` (ver **A-43**)
+
+`npm run test:checkout` fallaba con **exit 1**: el test del simulador local esperaba el contrato viejo
+`REFUND_REQUIRED` del pago tardío, que la Etapa 3 había cambiado a `REFUNDED` (reembolso automático). El
+informe afirmaba que todas las suites estaban en verde. Corregido y verificado: **exit 0, 72/72**.
+
+**Higiene de la BD remota (verificado el 22-oct-2026).** La corrida de E2E de hoy **no dejó residuos**: 0 productos,
+0 perfiles, 0 pedidos, 0 pagos y 0 imágenes de prueba. Sí quedan **4 pedidos históricos del 18-oct-2026**
+(`mode='test'`, tres `CANCELLED` y uno `PAID`), con sus 4 `checkout_attempts` y 4 `product_reservations`
+(3 `expired`, 1 `consumed`) — **sin `order_items`**, por lo que no bloquean stock ni aparecen en el catálogo.
+Son ruido de la verificación sandbox manual previa al E2E con limpieza automática; contradicen el «0 pedidos de
+prueba» que afirma §5.6 y se pueden borrar sin riesgo cuando el dueño quiera dejar la BD limpia para el drop 1.
+
+**Estado de las suites tras la corrección (22-oct-2026):**
+
+| Suite | Resultado |
+|---|---|
+| `npm run typecheck` (root + mobile + admin) | ✅ exit 0 |
+| `npm run lint` (`--max-warnings 0`) | ✅ exit 0, 0 warnings |
+| `npm run test:beta` | ✅ **67/67** |
+| `npm run test:checkout` (9 suites) | ✅ **72/72** (exit 0) |
+| `npx playwright test` (apps/admin) | ✅ **13/13** (2,6 min) |
 
 ---
 
@@ -1347,6 +1441,7 @@ Con eso la suite da **13/13** en frío y en caliente.
 | Contrato | `supabase/tests/payment_provider.test.mjs` (17) | Firma HMAC, entorno sandbox/live, comprador test, fallo HTTP | **Buena**: cubre `payment.ts` con `fetch` mockeado |
 | Reglas | `supabase/tests/checkout_rules.test.mjs` (5) | Dirección y tarifa por región | Pura |
 | E2E | `apps/admin/tests/photo-flow.spec.ts` (11) | Login → crear → 3 fotos → portada → defecto → orden (flechas y drag) → eliminar → publicar → verificar en el sitio | **La más valiosa**: toca BD real y Storage real, con limpieza |
+| Simulador | `scripts/local-checkout/local-checkout.test.mjs` (9) | El **handler real** de `checkout` con dobles en memoria: pedido, reserva, pago tardío, corte de red, origen externo | **Buena**: ejecutó el código de producción; fue la que destapó **A-43** (esperativa desactualizada) |
 | SQL | `supabase/tests/rls_tests.sql` (25 checks) | T1–T13: aislamiento A/B, no-insert, no-modificar precio, doble venta, expiración, IDOR, cupones, analytics, `profiles.role` | **No está en CI** y está rota por A-28 |
 | SQL | `supabase/tests/beta_tests.sql` | Reserva, idempotencia de liquidación, idempotencia de correos, pago tardío, refund, `sync_my_cart` | No está en CI |
 
@@ -1385,10 +1480,10 @@ del admin (BD + Storage reales) y los 3 smoke tests que no se ejecutaron aquí.
 
 | Servicio | Estado | Uso | Coste | Acción pendiente |
 |---|---|---|---|---|
-| **Vercel (web)** | 🔴 **PAUSADO** — 503 | Hosting del sitio público | $0 (Hobby) | `vercel project resume shopy-web --scope leandro-mirandas-projects` (**requiere confirmación interactiva**; no automatizable) y luego redesplegar para publicar el código de las últimas 2 semanas |
+| **Vercel (web)** | 🔴 **PAUSADO** — 503 | Hosting del sitio público | $0 (Hobby) | **Diferido por decisión del dueño (22-oct-2026)**: el drop 1 se publica **solo en GitHub**. Cuando se retome: `vercel project resume shopy-web --scope leandro-mirandas-projects` (**requiere confirmación interactiva**; no automatizable) y luego redesplegar |
 | **Supabase** | 🟢 Operativo | Postgres + Auth + Storage + Edge Functions | $0 (Free) | Plan Free: 500 MB DB, 1 GB Storage, 500 MB egress/mes — **vigilar** con el catálogo growing |
 | **MercadoPago** | 🟡 Sandbox verificado (1 pago real aprobado el 17-oct) | Pagos | $0 en sandbox | **KYC** (1–2 días hábiles) + credenciales `APP_USR-…` + `MERCADOPAGO_WEBHOOK_SECRET` + `PAYMENT_MODE=live` |
-| **Transbank / Webpay** | 🟡 Código listo, **nunca probado E2E** | Pagos | $0 en TEST | Cuenta Transbank + `TRANSBANK_COMMERCE_CODE` + `TRANSBANK_API_KEY_SECRET`; y quitar el atado al host sandbox (A-07) |
+| **Transbank / Webpay** | ⛔ **FUERA del drop 1** (decisión del dueño, 22-oct-2026: **requiere dar de alta una cuenta de pago**) | Pagos | — | El código queda listo pero **sin credenciales ni E2E** (A-07 sigue vigente). El drop 1 se paga solo con MercadoPago |
 | **Brevo** | 🟢 Activo, remitente verificado, E2E verificado | Emails (300/día gratis) | $0 | Solo rotar a `EMAIL_PROVIDER=brevo` en live y vaciar `EMAIL_TEST_RECIPIENTS` |
 | **SMTP2GO / Resend** | 🟢 Adaptadores implementados | Alternativas de email | $0 / $0 | — |
 | **Gemini API** | 🟢 Operativo | Extracción de datos de la prenda desde la foto | Capa gratis | — |
@@ -1540,8 +1635,10 @@ compra**.
 **Criterio de aceptación:** `grep -rn "\[pendiente\]" apps/web/src` → 0 resultados;
 un flujo compra → despacho → entrega → devolución completo pasa de punta a punta.
 
-### Etapa 6 — Reactivar la tienda para lanzamiento ⏳ **SIGUIENTE**
+### Etapa 6 — Reactivar la tienda para lanzamiento ⏸️ **DIFERIDA** (decisión del dueño, 22-oct-2026)
 **Depende de:** Etapas 1–5 validadas. **Responsable:** el dueño (confirmación interactiva).
+
+> **Alcance reducido:** el drop 1 se prepara y se publica **solo en GitHub** (`master` ⇄ `origin/master`), sin despliegue en Vercel. **Transbank queda fuera** (requiere alta de cuenta de pago). El pago del drop 1 es **solo MercadoPago**, y su webhook sigue dependiendo de `MERCADOPAGO_WEBHOOK_SECRET` (B-3).
 
 1. `vercel project resume shopy-web --scope leandro-mirandas-projects` → confirmar con `Y`.
 2. `vercel deploy --prod --scope leandro-mirandas-projects --project shopy-web` desde `apps/web`.
@@ -1601,6 +1698,8 @@ un flujo compra → despacho → entrega → devolución completo pasa de punta 
 | 32 | `scripts/image-quality-modulo-real.mjs` | **La forma honesta de medir**: transpila `prepareImage.ts` con TypeScript y lo ejecuta en Chromium. Las demás variantes (`-psnr`, `-ruido`, `-umbral`, `-realce`, `-batch`, `-zoom`, `-comparar`) miden fotos reales |
 | 33 | `scripts/photo-drop-server.mjs` | Servidor de recepción de fotos desde el iPhone (HEIC→JPEG con ffmpeg) con barra de progreso por archivo |
 | 34 | `apps/admin/tests/checkout-flow.spec.ts` | E2E de compra como invitado (crea pedido, reserva la prenda única) |
+| 35 | `apps/admin/src/app/editorial/page.tsx` | **Panel editorial**: los 3 prompts copiables (`/catálogo`, `/editorial`, `/editorial-gorra`) + flujo manual + checklist. Sin paleta de colores desde `95a04f6` — ver §5.10 |
+| 36 | `scripts/local-checkout/transport.mjs` + `local-checkout.test.mjs` | Simulador local que ejecuta el **handler real** con dobles en memoria. Su test estaba rojo desde la Etapa 3 (A-43) |
 
 ---
 
@@ -1667,7 +1766,7 @@ A-13 (correo de devolución que no existía), A-14 (sin alerta de reembolsos en 
 0 CLP), A-16 (token de invitado sin caducidad), A-18 (dirección borrada), A-39 (toggle de admin roto),
 A-28/A-40 (suite SQL que no corría).
 
-**Etapa 6 (21-oct-2026, rama `image-quality`):** calidad de las fotos de celular, medida sobre **11
+**Etapa 6 (21-oct-2026, **mergeada en `master` el 22-oct-2026**):** calidad de las fotos de celular, medida sobre **11
 fotos reales de 48 MP** del propio dueño. El pipeline que estaba commiteado guardaba el **doble de
 píxeles de los que la web muestra** (Next nunca agranda) y su realce **amplificaba el ruido el doble
 que el detalle**. Corregido: master a 1700 px, WebP 0.86, realce de radio 1 / cantidad 0.5 **con
@@ -1675,17 +1774,29 @@ umbral de ruido**, y desenfoque con sumas corridas (7,7 s → 1 s por foto). Res
 **+9,7% de nitidez** y **−48,8% de ruido** frente a lo que estaba en el repo, con el E2E en **13/13**.
 Ver §5.7.
 
-**Siguiente paso recomendado (orden del dueño).** **Etapa 5**: completar los datos legales
-(`[pendiente]`) y terminar el **E2E de compra**: ya recorre la creación del pedido y la reserva de
-stock (`apps/admin/tests/checkout-flow.spec.ts`), pero falta el **pago real contra el proveedor** y la
-**confirmación** (webhook firmado, pedido `PAID`, correo recibido), que es exactamente lo que exige la
-matriz de `docs/BETA.md`. Todo lo que queda depende de cuentas externas y no se puede cerrar desde el código:
-**KYC de MercadoPago + `MERCADOPAGO_WEBHOOK_SECRET`**, cuenta de Transbank, razón social/RUT y
-reanudar Vercel. **No declarar la beta lista por el hecho de que compile y las pruebas simuladas pasen:**
-el E2E de fotos del admin ya no es lo más
-valioso: el proyecto tiene **13 E2E** y uno recorre la creación del pedido y la reserva de la prenda
-única. Lo que sigue sin cubrirse es el **pago real y su confirmación**.
+**Estado verificado el 22-oct-2026.** E2E **13/13**, `test:beta` **67/67**, `test:checkout` **72/72**, `typecheck` y `lint` en exit 0. Se corrigió un **rojo preexistente en `master`**: el test del simulador local esperaba el contrato viejo `REFUND_REQUIRED` del pago tardío, que la Etapa 3 cambió a `REFUNDED` (reembolso automático) — ver **A-43**. Además, el panel editorial se quedó **solo con los 3 prompts** (catálogo, prenda y gorra) y se retiró la paleta de colores de fondo, que ya no era editable (§5.10).
+
+**Siguiente paso recomendado (drop 1, con techo $0).** El alcance quedó acotado por el dueño el 22-oct-2026:
+**Transbank fuera** (requiere alta de cuenta de pago) y **Vercel diferido** (el drop 1 se publica **solo en
+GitHub**). Quedan **tres cosas, y las tres dependen de cuentas externas, no del código**:
+
+1. **Razón social, RUT, domicilio, correo de contacto y plazo de devolución** (B-2) — `grep -rn "\[pendiente\]"
+   apps/web/src` debe dar 0. Sin esto no se puede vender en Chile.
+2. **KYC de MercadoPago** y **`MERCADOPAGO_WEBHOOK_SECRET`** (B-3) — es lo que hace que el pago **notifique**:
+   hoy la única liquidación es el botón «Ya pagué» del cliente, y si cierra la app tras pagar se queda sin
+   pedido. El código de la firma HMAC ya está bien implementado y probado (`payment_provider.test.mjs`).
+3. **Limpieza opcional de la BD** — borrar los 4 pedidos `mode='test'` del 18-oct (§5.10.2) para dejar el
+   catálogo limpio el día del drop.
+
+**Lo que el E2E de compra todavía no cubre:** el **pago real contra el proveedor** y la **confirmación**
+(webhook firmado → pedido `PAID` → correo recibido), que es exactamente lo que exige la matriz de
+`docs/BETA.md`. El proyecto tiene **13 E2E** y uno ya recorre la creación del pedido y la reserva de la
+prenda única (`checkout-flow.spec.ts`), así que el camino de código está probado; lo que falta es la
+**notificación real del proveedor**.
+
+**No declarar el drop 1 listo por el hecho de que compile y las pruebas simuladas pasen:** lo que sigue sin
+cubrirse es el pago real y su confirmación, y eso depende de (1) y (2).
 
 ---
 
-*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`).*
+*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`). Actualizada por última vez el 22-oct-2026 con la Etapa 6 ya mergeada en `master`, el panel editorial, la corrección de **A-43** y la re-verificación de las suites (E2E 13/13, `test:beta` 67/67, `test:checkout` 72/72).*
