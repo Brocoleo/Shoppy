@@ -23,7 +23,7 @@
     "admin": "npm --workspace apps/admin run dev -- -p ${PORT:-3002}",
     "admin:build": "npm --workspace apps/admin run build",
     "admin:typecheck": "npm --workspace apps/admin run typecheck",
-    "typecheck": "tsc --noEmit -p tsconfig.json && npm --workspace apps/mobile run typecheck && npm --workspace apps/admin run typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm --workspace apps/mobile run typecheck && npm --workspace apps/admin run typecheck && npm --workspace apps/web run typecheck",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "web": "npm --workspace apps/web run dev -- -p ${PORT:-3001}",

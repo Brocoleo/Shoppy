@@ -1,0 +1,56 @@
+name: CI
+
+# Guardia de master: el rojo que casi se cuela (A-43) existió porque nada
+# ejecutaba las suites al hacer push. Aquí corren en cada commit.
+#
+# Alcance (techo $0, sin secretos):
+#   - typecheck + lint + suites de Node puro.
+#   NO se ejecutan aquí los E2E de Playwright: abren la BD y el Storage del
+#   sandbox (requieren SUPABASE_SECRET_KEY) y necesitan Chromium + dos dev
+#   servers; eso vive en local. Tampoco `check:residue`, que consulta el
+#   sandbox remoto.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` es determinista: falla si package.json y el lock no coinciden,
+      # que es exactamente lo que queremos detectar.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Typecheck (packages + mobile + admin + web)
+        run: npm run typecheck
+
+      - name: Lint (--max-warnings 0)
+        run: npm run lint
+
+      - name: Reglas de negocio
+        run: npm run test:beta
+
+      - name: Contratos de checkout, pagos y carrito
+        run: npm run test:checkout
+
+      - name: Tests de mobile
+        run: npm run mobile:test

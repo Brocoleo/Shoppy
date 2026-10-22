@@ -1,3 +1,7 @@
+// `server-only` convierte este módulo en un error de build si algún componente
+// de cliente llega a importarlo: aquí vive la service key y jamás debe entrar
+// al bundle del navegador.
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 /**

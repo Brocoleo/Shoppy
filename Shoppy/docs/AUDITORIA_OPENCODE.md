@@ -47,7 +47,7 @@ tardío sin reembolso automático (A-06) y por la incapacidad del invitado para 
 
 - **43 hallazgos** registrados: **1 crítico, 5 altos, 13 medios y 24 bajos**. A esto se suman **3 bloqueantes de lanzamiento** (B-1…B-3) que son de configuración, no de código.
 - **Verificaciones ejecutadas:** 15 comandos, todos registrados en §5.
-- **Pruebas existentes:** **67** (`test:beta`) + **10 suites** de `test:checkout` (90 casos) + **13 E2E Playwright**, **todas verdes** (reverificado el 22-oct-2026, ver §5.10 y §5.11).
+- **Pruebas existentes:** **67** (`test:beta`) + **10 suites** de `test:checkout` (90 casos) + **14** de mobile + **15 E2E Playwright**, **todas verdes** (reverificado el 22-oct-2026, ver §5.10, §5.11 y §5.12). **Ahora corren solas en cada push** vía GitHub Actions (§5.12.1).
 - **Cobertura:** 3 capas de tests (Node puro, mocks de checkout, E2E Playwright) + 4 suites SQL de RLS, **ahora ejecutables** (antes abortaban en T13).
 
 ### 1.5 Estado de remediación (actualizado tras la revisión del dueño)
@@ -1099,7 +1099,7 @@ significa que el simulador local dejó de reflejar el contrato del backend.
 | V-10 | Consultas SQL de solo lectura a la BD remota (`supabase db query --linked`) | ✅ 27 tablas (27/27 con RLS), 2 crons activos, policies de `profiles`/`orders`/`payments` verificadas | **Solo lectura** |
 | V-11 | `supabase functions invoke` (POST a `checkout`/`notify`/`producto-ia`) | ✅ Las 3 Edge Functions están desplegadas y responden con validación de entrada (`VALIDATION` / `UNAUTH`) | No se ejecutó un flujo de pago real (requeriría escribir en remoto) |
 | V-12 | `curl` a 5 rutas de `https://shopy-web-six.vercel.app` | 🔴 **503 `DEPLOYMENT_PAUSED`** en las 5 | El sitio está caído |
-| V-13 | `npx playwright test` (apps/admin) | ✅ **13/13** verdes (11 de fotos + aislamiento entre cuentas + **compra hasta el pago**) — **reverificado el 22-oct-2026** | Cubre el flujo de fotos del admin, el aislamiento entre cuentas y la creación del pedido con su reserva; **no** cubre el pago real contra el proveedor ni la confirmación |
+| V-13 | `npx playwright test` (apps/admin) | ✅ **15/15** verdes (11 de fotos + aislamiento entre cuentas + **compra hasta el pago** + **2 de la sonda de hidratación**) — **reverificado el 22-oct-2026** | Cubre el flujo de fotos del admin, el aislamiento entre cuentas y la creación del pedido con su reserva; **no** cubre el pago real contra el proveedor ni la confirmación |
 | V-14 | `deno test` sobre `_shared/*_test.ts` | ⚠️ **No ejecutable**: no hay binario `deno` en el entorno | Los 17 tests Deno documentados en `docs/BETA.md:51` **no se re-verificaron** |
 | V-15 | Suite SQL completa en Docker (Postgres 16) | ✅ `rls_tests` **T0–T16** + `beta_tests` + `admin_images_tests` + `sandbox_checkout_tests` | Ahora **sí** ejecutable (antes abortaba en T13): ver §5.2 |
 | V-16 | `npm run typecheck` + `npm run lint` + `npm run test:beta` + `npm run test:checkout` (22-oct-2026) | ✅ `typecheck` exit 0 · `lint` exit 0 (0 warnings) · `test:beta` **67/67** · `test:checkout` **72/72 en 9 suites** (tras corregir el test obsoleto del simulador local, ver **A-43**) | No cubre la BD real ni el proveedor de pagos |
@@ -1513,6 +1513,113 @@ Al recontar las suites aparecieron dos números que este documento daba mal:
   `server-read` 1 · `payment-bridge` 3 · `cartStore` 9 · `catalogProduct` 4 · `guestOrders` 4 ·
   `local-checkout` 10.
 - El simulador local pasó de 9 a 10 casos con la nueva cobertura de la revisión manual.
+### 5.12 Tanda 2 de endurecimiento: CI, seguridad y catálogo (22-oct-2026)
+
+Segunda ronda, de nuevo **sin gastar un peso**. Cubre las cuatro cosas que faltaban antes del
+drop y que no dependen de trámites externos.
+
+#### 5.12.1 CI: `master` ya no se queda en rojo sin que nadie lo vea
+
+El **A-43** existió porque nada ejecutaba las suites al hacer push. Se añadió
+`.github/workflows/ci.yml`:
+
+| Paso | Comando |
+|---|---|
+| Instalar | `npm ci` (determinista: falla si `package.json` y el lock no coinciden) |
+| Tipos | `npm run typecheck` |
+| Lint | `npm run lint` (`--max-warnings 0`) |
+| Reglas de negocio | `npm run test:beta` |
+| Contratos de checkout | `npm run test:checkout` |
+| Mobile | `npm run mobile:test` |
+
+Corre en cada push a `master` y en cada PR, con `concurrency` que cancela corridas obsoletas.
+**Costo $0** (GitHub Actions gratis en repos públicos) y **sin secretos**: los E2E quedan fuera a
+propósito (necesitan `SUPABASE_SECRET_KEY`, Chromium y dos dev servers) y también `check:residue`
+(consulta el sandbox remoto).
+
+Se aprovechó para cerrar un hueco: `npm run typecheck` **no incluía `apps/web`** (tenía su
+comando suelto), así que el sitio público no se tipaba en la verificación canónica. Ya lo incluye.
+
+**Verificación en local de la secuencia completa** (idéntica a la de CI): todo `exit 0` —
+`test:beta` **67/67**, `test:checkout` **90/90 en 10 suites**, `mobile:test` **14/14**.
+
+#### 5.12.2 Seguridad: lo revisado y lo corregido
+
+| Revisión | Resultado |
+|---|---|
+| Secretos en el árbol rastreado | ✅ **0** (solo plantillas `.env.example` y menciones en documentos) |
+| Claves de servicio en código de cliente | ✅ **0**: `SUPABASE_SECRET_KEY` solo aparece en route handlers de `/api/payments/*` |
+| Guardia contra regresión | ✅ **nueva**: `import "server-only"` en ambos `paymentBridge.ts` |
+| Headers de seguridad | ❌→✅ **faltaban en la web pública**; añadidos a ambas apps |
+
+**La guarda de `server-only` se verificó con caso negativo real**: se importó `paymentBridge`
+desde un componente de cliente y el build **falló** con mensaje claro («This API is only available
+in Server Components»). Antes de esto, que la service key no llegara al navegador era una
+convención; ahora es un error de compilación. La dependencia quedó declarada en `apps/admin` y
+`apps/web`.
+
+Headers añadidos a `/​:path*` en admin y web (el admin conserva su `X-Robots-Tag`):
+
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer` (coincide con el que ya devolvía el puente de pagos)
+- `X-Frame-Options: DENY`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+Verificados en vivo con `curl -I` contra ambos dev servers. Antes de tocar nada se confirmó que
+**no hay iframes** en el repo y que los enlaces `target="_blank"` ya llevan `rel="noreferrer"`.
+
+**Dos omisiones deliberadas, no olvidos:**
+
+- **Sin CSP global**: Next inyecta scripts inline, así que una CSP útil exigiría `unsafe-inline`
+  (o `unsafe-eval` en desarrollo) y terminaría dando una falsa sensación de seguridad. El **puente
+  de pagos sí lleva CSP estricta con nonce**, que es donde de verdad se sirve HTML propio.
+- **Sin HSTS**: es una decisión pegajosa (el navegador la obedece hasta un año) y depende del
+  dominio definitivo; queda para el momento en que se fije.
+
+#### 5.12.3 La sonda de hidratación ahora se testea sola
+
+La lógica de §5.11.1 se extrajo a `apps/admin/tests/helpers/hidratacion.ts` y se añadió
+`apps/admin/tests/e2e-sonda.spec.ts` con dos casos:
+
+1. Página sana → la sonda **acepta**.
+2. Bundles de la app bloqueados (página servida, React sin enganchar) → la sonda **rechaza**.
+
+El caso 2 es el que importa: sin él, la sonda podría "arreglarse" dejando de fallar y volveríamos
+al timeout mudo. La suite del admin pasa de **13 a 15 casos**.
+
+#### 5.12.4 Auditoría del sitio público: qué estaba bien (y no se toca) y qué no
+
+| Área | Resultado |
+|---|---|
+| SEO | ✅ **sólido**: `robots.ts` con rutas privadas excluidas; `sitemap.ts` resiliente (si Supabase falla devuelve las rutas fijas en vez de romper la indexación); `generateMetadata` **por prenda** con título, descripción, canónica, OpenGraph y Twitter, más JSON-LD `Product` + `BreadcrumbList` con la oferta |
+| a11y | ✅ **sin defectos reales**: `ProductCard` envuelve la tarjeta entera en un enlace con `aria-label` (nombre, marca, precio) y usa `alt=""` correctamente —imagen decorativa junto al texto que la nombra—; los campos del catálogo, el checkout y el login van envueltos en `<label>` |
+| Performance | ✅ `sizes`, `priority` en el LCP y `content-visibility` en las tarjetas ya aplicados (Etapa 5) |
+| Headers | ❌→✅ corregido en §5.12.2 |
+| Catálogo | ⚠️ dos hallazgos de datos en §5.12.5 |
+
+Un escáner estático de JSX acusó 25 imágenes sin `alt` y 21 controles sin etiqueta: **todos falsos
+positivos** por JSX multilínea (el `alt`/`id` está en la línea siguiente). Se verificó una muestra
+uno por uno antes de descartarlos.
+
+#### 5.12.5 Barrido de las 28 prendas del catálogo
+
+Sano: **28/28** con portada marcada, talla, descripción ≥40 caracteres y precio válido; sin
+`sort_order` duplicado y sin precios de comparación ilógicos.
+
+Dos hallazgos que **son decisión del dueño** (ambos son escrituras en la BD del sandbox):
+
+1. **Categorías raíz vacías en la navegación.** La home muestra todas las categorías raíz como
+   enlaces; `ofertas` y `novedades` están activas con **0 prendas**, así que el visitante llega a
+   un catálogo vacío. (`poleras-mujer` es la única subcategoría vacía.) La home y el catálogo
+   leen `is_active`, así que la solución es ponerlas `is_active=false`. La colección
+   `/coleccion/ofertas` es una tabla aparte y **sí** tiene prendas: no se toca.
+2. **8 de las 28 prendas son de demostración** (`demo-editorial-*`, `metadata.demo=true`). Se
+   muestran públicas con la etiqueta «Producto de demostración · Precio ilustrativo», así que no
+   engañan, pero conviene decidir si quedan visibles el día del drop.
+
+**Nota de datos:** `product_images.alt_text` existe en el esquema pero **no lo usa ningún
+componente** (el frontend deriva el texto alternativo del nombre de la prenda). No es un fallo de
+accesibilidad; es una columna sin uso que conviene documentar o eliminar en una migración futura.
 
 ---
 
@@ -1862,7 +1969,7 @@ umbral de ruido**, y desenfoque con sumas corridas (7,7 s → 1 s por foto). Res
 **+9,7% de nitidez** y **−48,8% de ruido** frente a lo que estaba en el repo, con el E2E en **13/13**.
 Ver §5.7.
 
-**Estado verificado el 22-oct-2026.** E2E **13/13**, `test:beta` **67/67**, `test:checkout` **90/90**, `typecheck` y `lint` en exit 0. Se corrigió un **rojo preexistente en `master`**: el test del simulador local esperaba el contrato viejo `REFUND_REQUIRED` del pago tardío, que la Etapa 3 cambió a `REFUNDED` (reembolso automático) — ver **A-43**. Además, el panel editorial se quedó **solo con los 3 prompts** (catálogo, prenda y gorra) y se retiró la paleta de colores de fondo, que ya no era editable (§5.10).
+**Estado verificado el 22-oct-2026.** E2E **15/15**, `test:beta` **67/67**, `test:checkout` **90/90**, `mobile:test` **14/14**, `typecheck` y `lint` en exit 0. Todo ello corre solo en cada push (§5.12.1). Se corrigió un **rojo preexistente en `master`**: el test del simulador local esperaba el contrato viejo `REFUND_REQUIRED` del pago tardío, que la Etapa 3 cambió a `REFUNDED` (reembolso automático) — ver **A-43**. Además, el panel editorial se quedó **solo con los 3 prompts** (catálogo, prenda y gorra) y se retiró la paleta de colores de fondo, que ya no era editable (§5.10).
 
 **Siguiente paso recomendado (drop 1, con techo $0).** El alcance quedó acotado por el dueño el 22-oct-2026:
 **Transbank fuera** (requiere alta de cuenta de pago) y **Vercel diferido** (el drop 1 se publica **solo en
@@ -1887,4 +1994,4 @@ cubrirse es el pago real y su confirmación, y eso depende de (1) y (2).
 
 ---
 
-*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`). Actualizada por última vez el 22-oct-2026 con la Etapa 6 ya mergeada en `master`, el panel editorial, la corrección de **A-43**, el endurecimiento del E2E, la limpieza del sandbox y la re-verificación de las suites (E2E 13/13, `test:beta` 67/67, `test:checkout` 90/90; ver §5.11).*
+*Auditoría generada el 2026-10-20 contra `master` @ `5b77152`; revisada por el dueño el mismo día y ampliada con la remediación de las Etapas 1 y 2 (migración `20261020000000` aplicada en la BD remota). Ampliada de nuevo el 21-oct-2026 con las Etapas 3–6 (calidad de fotos, rama `image-quality`). Actualizada por última vez el 22-oct-2026 con la Etapa 6 ya mergeada en `master`, el panel editorial, la corrección de **A-43**, el endurecimiento del E2E, la limpieza del sandbox, la **CI en cada push**, la **hardening de seguridad** y la auditoría del sitio público y el catálogo (E2E 15/15, `test:beta` 67/67, `test:checkout` 90/90, `mobile:test` 14/14; ver §5.11 y §5.12).*

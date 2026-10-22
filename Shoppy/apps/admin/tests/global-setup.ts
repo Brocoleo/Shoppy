@@ -1,17 +1,17 @@
 import { chromium } from "@playwright/test";
 import { CHROMIUM_ARGS, chromiumExecutable } from "./helpers/browser";
+import { comprobarHidratacion } from "./helpers/hidratacion";
 
 /**
- * Sonda de hidratación del admin, previa a toda la suite.
+ * Verificación previa a toda la suite: la página de login del admin tiene que
+ * hidratar de verdad antes de gastar minutos en los tests.
  *
- * Next.js bloquea los recursos cross-origin en desarrollo. Si el dev server se
- * arrancó en `localhost` y el test apunta a `127.0.0.1` (o al revés), la
- * página se sirve pero **nunca hidrata**: el login no responde, no aparece
- * ningún error y el test expira en `waitForURL` — un fallo que parece de
- * autenticación y es de infraestructura.
+ * El caso que atrapa (y que ya costó una mañana) es el hostname cruzado:
+ * servidor en `localhost`, test en `127.0.0.1`. Sin `allowedDevOrigins` la
+ * página se sirve pero nunca hidrata y cada test expira sin dar ningún error.
  *
- * Esta sonda comprueba, antes de gastar minutos en la suite, que la página de
- * login realmente hidrató. Si no, falla de inmediato con el mensaje accionable.
+ * La lógica vive en `helpers/hidratacion.ts` para poder testearla: ver
+ * `tests/e2e-sonda.spec.ts`.
  */
 const PORT = Number(process.env.E2E_PORT ?? 3001);
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
@@ -28,26 +28,8 @@ export default async function globalSetup(): Promise<void> {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
-    const boton = page.getByRole("button", { name: /Entrar/ });
-    await boton.waitFor({ timeout: 30_000 });
-
-    // Se bloquea todo lo que no sea del propio origen: así la llamada a
-    // Supabase falla sola y la única señal posible de hidratación es que React
-    // actualice la vista. El fallo se **retasa 1,5 s** a propósito: sin esa
-    // demora el estado «Entrando…» existe apenas unos milisegundos y la sonda
-    // sería una lotería.
-    await page.route(
-      (url) => url.origin !== origen,
-      async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        await route.abort();
-      },
-    );
-    await boton.click();
-    await Promise.any([
-      page.getByRole("button", { name: /Entrando/ }).waitFor({ timeout: 15_000 }),
-      page.getByRole("alert").first().waitFor({ timeout: 15_000 }),
-    ]);
+    await page.getByRole("button", { name: /Entrar/ }).waitFor({ timeout: 30_000 });
+    await comprobarHidratacion(page, origen);
   } catch (error) {
     throw new Error(
       [

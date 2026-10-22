@@ -7,7 +7,23 @@ const nextConfig: NextConfig = {
   // error visible. Autorizar los dos nombres de loopback evita ese fallo.
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   async headers() {
-    return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] }];
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // El panel no debe indexarse ni embeberse: la misma lógica de
+          // seguridad que la web pública, más el noindex.
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
   },
   transpilePackages: ["@shopy/types", "@shopy/shared", "@shopy/validation"],
 };
