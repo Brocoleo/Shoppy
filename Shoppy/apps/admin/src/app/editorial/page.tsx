@@ -82,7 +82,86 @@ const ESTILOS: Estilo[] = [
 // Copiar y pegar en ChatGPT adjuntando la foto cruda de la prenda.
 // ──────────────────────────────────────────────────────────────
 
-const PROMPT_CATALOGO = `Edita esta foto de producto: coloca la MISMA prenda —idéntica: no cambies diseño, color, textura, etiqueta ni desgaste— plana, centrada, vista superior, sobre un fondo de lino blanco arrugado. Luz natural de ventana desde la izquierda, sombra suave. Sin modelo, sin accesorios, sin texto. Encuadre vertical 4:5 con aire alrededor. Fotografía profesional de e-commerce.`;
+const PROMPT_CATALOGO = `Edita esta fotografía original para convertirla en una imagen profesional de e-commerce, hiperrealista y natural, modificando **EXCLUSIVAMENTE el fondo y la iluminación**.
+
+### REGLA ABSOLUTA: NO MODIFICAR LA PRENDA
+
+La prenda original debe permanecer completamente intacta. No recrearla, reinterpretarla, redibujarla ni regenerarla.
+
+**Conservar exactamente los píxeles originales de la prenda siempre que sea posible.**
+
+Está estrictamente prohibido modificar:
+
+- Diseño, forma, silueta, tamaño y proporciones.
+- Color, tonalidades, decoloraciones y desgaste.
+- Textura original, trama del tejido, arrugas y pliegues.
+- Costuras, bordados, estampados y detalles decorativos.
+- Botones, cierres, bolsillos, etiquetas y terminaciones.
+- Posición, orientación y disposición original.
+- Imperfecciones, asimetrías y marcas de uso reales.
+
+**No embellecer, corregir, reconstruir, suavizar ni perfeccionar ningún elemento de la prenda.**
+
+### 1. Edición del fondo
+
+Modificar únicamente el entorno que rodea la prenda.
+
+- Fondo de lino blanco natural, ligeramente arrugado.
+- Textura auténtica de tela, con pliegues suaves e irregulares.
+- Estética minimalista, limpia y editorial.
+- Eliminar distracciones visuales del fondo.
+- Mantener una transición natural entre la prenda y la superficie.
+- Conservar las sombras de contacto para evitar que el producto parezca flotando.
+
+### 2. Mejora de iluminación
+
+Simular luz natural suave de ventana desde la izquierda.
+
+- Mejorar ligeramente la exposición general.
+- Equilibrar luces y sombras.
+- Corregir el balance de blancos del entorno.
+- Recuperar detalles en las zonas oscuras sin alterar los colores reales del producto.
+- Mantener sombras suaves, naturales y físicamente coherentes.
+- Evitar sobreexposición, contrastes excesivos y saturación artificial.
+
+**La mejora de iluminación no debe cambiar la apariencia real de la prenda ni su estado de conservación.**
+
+### 3. Composición
+
+- Encuadre vertical 4:5.
+- Vista superior.
+- Prenda completa, centrada y sin recortes.
+- Espacio negativo equilibrado alrededor.
+- Mantener la escala, orientación y geometría originales.
+- No reposicionar ni deformar la prenda.
+- Si es necesario ampliar el encuadre, generar únicamente las áreas adicionales del fondo.
+
+### 4. Restricciones prioritarias
+
+- No generar una nueva versión de la prenda.
+- No alterar sus bordados ni detalles, aunque sean imperfectos.
+- No modificar el tamaño o distribución de sus elementos.
+- No eliminar arrugas, manchas ni desgaste del producto.
+- No agregar modelos, manos, accesorios, textos ni decoraciones.
+- No aplicar filtros de belleza, efectos CGI ni retoques artificiales.
+- No modificar el producto para conseguir una composición más estética.
+
+### 5. Resultado esperado
+
+La imagen final debe parecer la **misma fotografía original**, pero con un fondo de lino blanco mejor presentado y una iluminación natural más profesional.
+
+El comprador debe recibir una representación fiel del producto físico que realmente se encuentra a la venta.
+
+**PRIORIDAD FINAL:**
+
+1. Preservar íntegramente la prenda original.
+2. Mejorar únicamente el fondo.
+3. Optimizar suavemente la iluminación.
+4. Mantener una estética natural y profesional.
+
+**Si cualquier mejora requiere modificar la prenda, NO realizar esa modificación.**
+
+Fotografía profesional para catálogo SHOPY de ropa de segunda mano. Formato vertical 4:5, realismo fotográfico y máxima fidelidad al producto original.`;
 
 const PROMPT_EDITORIAL = `Edita la fotografía original de esta prenda para crear una composición profesional de e-commerce, hiperrealista y natural, manteniendo la identidad visual del producto.
 
@@ -333,9 +412,9 @@ export default function EditorialPage() {
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <PromptCard
-            title="1. Prompt /catálogo — foto para tarjeta"
+            title="1. Prompt /catálogo — fondo e iluminación (sin tocar la prenda)"
             prompt={PROMPT_CATALOGO}
-            hint="Resultado: prenda plana sobre lino blanco arrugado, 4:5. Para la portada del catálogo y la ficha principal."
+            hint="Resultado: la MISMA foto original con fondo de lino blanco y luz de ventana, sin recrear ni retocar la prenda. Vista superior, 4:5. Para la portada del catálogo y la ficha principal."
             label="/catálogo"
           />
           <PromptCard
