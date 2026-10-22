@@ -3,6 +3,10 @@ name: CI
 # Guardia de master: el rojo que casi se cuela (A-43) existió porque nada
 # ejecutaba las suites al hacer push. Aquí corren en cada commit.
 #
+# ATENCIÓN: el monorepo NO está en la raíz del repositorio, sino bajo
+# `Shoppy/`. GitHub solo lee los workflows desde `.github/workflows` de la raíz
+# del repositorio, por eso este archivo vive aquí y no dentro de `Shoppy/`.
+#
 # Alcance (techo $0, sin secretos):
 #   - typecheck + lint + suites de Node puro.
 #   NO se ejecutan aquí los E2E de Playwright: abren la BD y el Storage del
@@ -15,6 +19,11 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+
+defaults:
+  run:
+    # El package.json del workspace está aquí, no en la raíz del repo.
+    working-directory: Shoppy
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -29,11 +38,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Node ${{ matrix.node-version }}
+      - name: Node 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: Shoppy/package-lock.json
 
       # `npm ci` es determinista: falla si package.json y el lock no coinciden,
       # que es exactamente lo que queremos detectar.
