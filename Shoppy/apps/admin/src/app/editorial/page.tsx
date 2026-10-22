@@ -136,6 +136,58 @@ No agregar textos, logos, accesorios ni elementos decorativos.
 
 El objetivo es que el comprador observe inmediatamente la prenda, su forma, su caída, su textura y sus detalles, utilizando a la modelo únicamente como soporte visual para mostrar cómo queda puesta.`;
 
+const PROMPT_GORRA = `Edita la fotografía original de esta gorra para crear una composición profesional de e-commerce, hiperrealista y natural, manteniendo la identidad visual del producto.
+
+═══════════════════════════════════════════
+DISTRIBUCIÓN VISUAL OBJETIVO — NO NEGOCIABLE
+┌──────────────────────────────────────────┐
+│  ████████████████████████  85 % GORRA    │
+│  ██████  15 % MODELO (soporte visual)    │
+└──────────────────────────────────────────┘
+La gorra llena 80–85 % del encuadre. La modelo es solo el 15–20 % restante
+(cuello y una franja mínima de sienes/recedimiento). Si la modelo o el entorno ocupan más, el prompt falló.
+═══════════════════════════════════════════
+
+**REGLA PRINCIPAL: LA GORRA ES LA PROTAGONISTA.**
+
+### 1. Encuadre de la fotografía principal
+Mostrar la gorra puesta en una modelo adulta, utilizando un encuadre cerrado de producto, no un retrato de moda.
+- La gorra debe ocupar aproximadamente el 80–85% del protagonismo visual.
+- La modelo debe representar como máximo el 15–20% del protagonismo visual.
+- Recortar la cabeza de forma cerrada: incluir únicamente la gorra, una franja muy pequeña de sienes/recedimiento bajo el borde y el arranque del cuello.
+- El encuadre debe acabar justo por debajo del borde inferior de la visera curvada, mostrando apenas el arranque de la barbilla difuminado en sombra, sin labios ni mandíbula visible.
+- No mostrar rostro completo, ojos expresivos, hombros completos ni torso.
+- Evitar poses llamativas, sonrisas, movimientos exagerados y accesorios (gafas, pendientes, aretes, tatuajes visibles).
+- La modelo debe estar de frente natural, con la cabeza ligeramente inclinada hacia abajo (posición neutra de producto, no mirando a cámara).
+- Cámara a la altura de la gorra, ligeramente frontal con leve ángulo de 3/4 para que la visera y los paneles se lean con claridad, sin perspectiva dramática.
+La imagen debe parecer una fotografía de producto con una persona utilizándolo, NO una sesión fotográfica de una modelo.
+
+### 2. Fidelidad a la gorra original
+Utilizar la fotografía original como referencia obligatoria.
+Mantener la forma exacta de la copa (número de paneles), la curvatura real de la visera, el color, las costuras de los paneles y de la visera, los ojales de ventilación, el cierre trasero (broche, velcro o hebilla, tal cual sea), la etiqueta frontal o laterales tal como están, la textura de la tela y cualquier marca de desgaste real.
+No inventar logotipos, modificar la curvatura de la visera, reemplazar el cierre trasero, cambiar la tonalidad ni "mejorar" artificialmente el estado de la prenda.
+
+### 3. Composición editorial
+Crear una imagen vertical 4:5 con tres fotografías:
+**Fotografía principal:** aproximadamente 70% del espacio total, mostrando la gorra puesta con el encuadre cerrado descrito anteriormente.
+**Detalle 1:** acercamiento a la visera y las costuras originales de los paneles (punto central de la copa incluido).
+**Detalle 2:** acercamiento al cierre trasero y a la etiqueta original con la textura de la tela.
+Los detalles deben ser secundarios y mantener coherencia visual con la fotografía principal.
+
+### 4. Estética fotográfica
+Fotografía casera profesional, realista y sin retoques excesivos.
+Fondo beige claro de lino, iluminación suave de ventana desde la izquierda, sombras naturales (que la propia visera proyecte una sombra suave y creíble sobre la sien) y colores fieles.
+Conservar pequeñas imperfecciones fotográficas, textura real de la tela (sarga, ribete o pana según sea la gorra), arrugas auténticas de la copa y asimetrías naturales del bordado.
+Evitar apariencia CGI, piel plastificada, bordados digitalmente perfectos, iluminación cinematográfica y retoques de moda.
+
+### 5. Restricciones prioritarias
+No generar fotografías de cabeza y hombros en marco abierto ni medio cuerpo.
+No ampliar el encuadre para mostrar más rostro, cuello o torso de la modelo.
+No convertir la imagen en una campaña publicitaria centrada en la persona.
+No agregar textos, logotipos inventados, accesorios ni elementos decorativos.
+
+El objetivo es que el comprador observe inmediatamente la gorra, su copa, su visera, su bordado, su textura y sus detalles, utilizando a la modelo únicamente como soporte visual para mostrar cómo queda puesta.`;
+
 async function fetchFotoDemo() {
   const { data, error } = await supabase
     .from("home_sections")
@@ -274,9 +326,9 @@ export default function EditorialPage() {
       <div className="border-t border-zinc-200 pt-6">
         <h2 className="font-serif text-2xl tracking-tight">Proceso con ChatGPT (manual, $0)</h2>
         <p className="mt-1.5 text-sm text-zinc-600">
-          Los dos prompts listos para copiar y pegar en ChatGPT adjuntando la
-          foto cruda de la prenda. Mantienen la línea visual fija (lino blanco
-          arrugado) entre todas las prendas.
+          Los prompts listos para copiar y pegar en ChatGPT adjuntando la
+          foto cruda de la prenda o de la gorra. Mantienen la línea visual fija
+          (lino blanco arrugado) entre todos los productos.
         </p>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -292,6 +344,14 @@ export default function EditorialPage() {
             hint="Resultado: foto principal (prenda puesta 85% encuadre cerrado, sin rostro) + 2 detalles (pliegue/costuras + etiqueta/textura). Vertical 4:5, fondo lino beige, luz ventana. Para la galería de la ficha."
             label="/editorial"
           />
+          <div className="md:col-span-2">
+            <PromptCard
+              title="3. Prompt /editorial-gorra — gorras (snapback, trucker, dad hat)"
+              prompt={PROMPT_GORRA}
+              hint="Resultado: foto principal (gorra puesta 85% del encuadre, recorte cerrado en sien y cuello, sin rostro) + 2 detalles (visera y costuras de paneles + cierre trasero y etiqueta). Vertical 4:5, fondo lino beige, luz de ventana con sombra de la visera. Para la galería de gorras."
+              label="/editorial-gorra"
+            />
+          </div>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
